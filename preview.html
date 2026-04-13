@@ -1,0 +1,1592 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>I Cave - Preview</title>
+  <link href="https://cdn.jsdelivr.net/npm/pretendard@1.3.9/dist/web/static/pretendard.min.css" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,600;0,700;1,400&display=swap" rel="stylesheet">
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, sans-serif;
+      background: #e8e8e8;
+      display: flex;
+      justify-content: center;
+      padding: 20px;
+      gap: 24px;
+      flex-wrap: wrap;
+    }
+
+    .phone {
+      width: 390px;
+      height: 844px;
+      background: #ffffff;
+      border-radius: 44px;
+      overflow: hidden;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.15), 0 0 0 1px rgba(0,0,0,0.08);
+      position: relative;
+      flex-shrink: 0;
+    }
+
+    .phone-label {
+      color: #888;
+      text-align: center;
+      margin-bottom: 10px;
+      font-size: 13px;
+      font-weight: 500;
+      letter-spacing: 0.5px;
+    }
+
+    .notch {
+      width: 126px;
+      height: 34px;
+      background: #000;
+      border-radius: 0 0 24px 24px;
+      margin: 0 auto;
+    }
+
+    .screen {
+      height: calc(100% - 34px - 83px);
+      overflow-y: auto;
+    }
+
+    .screen::-webkit-scrollbar { display: none; }
+
+    /* Tab Bar */
+    .tab-bar {
+      position: absolute;
+      bottom: 0; left: 0; right: 0;
+      height: 83px;
+      background: #ffffff;
+      border-top: 1px solid #efefef;
+      display: flex;
+      justify-content: space-around;
+      align-items: flex-start;
+      padding-top: 8px;
+    }
+
+    .tab-item {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 3px;
+      cursor: pointer;
+    }
+
+    .tab-icon {
+      width: 26px; height: 26px;
+      display: flex; align-items: center; justify-content: center;
+    }
+
+    .tab-item .label { font-size: 10px; color: #999; font-weight: 500; }
+    .tab-item.active .label { color: #222; font-weight: 600; }
+
+    /* SVG icons inline */
+    .tab-icon svg { width: 24px; height: 24px; }
+    .tab-item.active svg { stroke-width: 2.5; }
+
+    .header {
+      padding: 14px 20px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      background: #fff;
+    }
+
+    .header-border { border-bottom: 1px solid #efefef; }
+
+    .header h1 { font-size: 22px; font-weight: 700; color: #222; letter-spacing: -0.3px; }
+    .logo-text { color: #7b2d4e; font-family: 'Playfair Display', serif; font-style: italic; font-weight: 600; letter-spacing: -0.5px; }
+
+    .btn-primary {
+      background: #7b2d4e;
+      color: #fff;
+      border: none;
+      padding: 8px 16px;
+      border-radius: 20px;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      font-family: inherit;
+    }
+
+    .btn-outline {
+      background: none;
+      border: 1px solid #ddd;
+      padding: 8px 20px;
+      border-radius: 8px;
+      font-size: 13px;
+      font-weight: 600;
+      color: #222;
+      cursor: pointer;
+      font-family: inherit;
+    }
+
+    /* ===== LOGIN ===== */
+    .screen-login {
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      height: 100%;
+      background: #fff;
+    }
+
+    .login-hero {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .login-logo {
+      font-family: 'Playfair Display', serif;
+      font-size: 40px;
+      font-weight: 700;
+      font-style: italic;
+      color: #7b2d4e;
+      letter-spacing: -0.5px;
+      margin-bottom: 8px;
+    }
+
+    .login-sub {
+      font-size: 15px;
+      color: #888;
+      font-weight: 400;
+    }
+
+    .login-actions { padding: 0 28px 50px; }
+
+    .google-btn {
+      width: 100%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      background: #fff;
+      border: 1px solid #ddd;
+      padding: 14px;
+      border-radius: 10px;
+      font-size: 15px;
+      font-weight: 500;
+      color: #333;
+      cursor: pointer;
+      font-family: inherit;
+    }
+
+    .google-btn img { width: 20px; height: 20px; }
+
+    .apple-btn {
+      width: 100%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      background: #000;
+      border: none;
+      padding: 14px;
+      border-radius: 10px;
+      font-size: 15px;
+      font-weight: 500;
+      color: #fff;
+      cursor: pointer;
+      font-family: inherit;
+      margin-top: 10px;
+    }
+
+    .terms {
+      font-size: 11px;
+      color: #aaa;
+      text-align: center;
+      margin-top: 20px;
+      line-height: 16px;
+    }
+
+    .terms a { color: #7b2d4e; text-decoration: none; }
+
+    /* ===== FEED ===== */
+    .post { border-bottom: 1px solid #efefef; }
+
+    .post-header {
+      display: flex;
+      align-items: center;
+      padding: 12px 16px;
+      gap: 10px;
+    }
+
+    .post-avatar {
+      width: 34px; height: 34px;
+      border-radius: 17px;
+      background: #f0f0f0;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 12px; color: #666; font-weight: 600;
+      overflow: hidden;
+    }
+
+    .post-avatar img { width: 100%; height: 100%; object-fit: cover; }
+
+    .post-user { font-size: 14px; font-weight: 600; color: #222; }
+    .post-location { font-size: 11px; color: #999; margin-top: 1px; }
+
+    .post-image {
+      width: 100%;
+      height: 390px;
+      background: #f5f0eb;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .post-image-inner {
+      width: 100%; height: 100%;
+      background-size: cover;
+      background-position: center;
+    }
+
+    .post-actions {
+      display: flex;
+      gap: 16px;
+      padding: 10px 14px;
+      align-items: center;
+    }
+
+    .post-actions svg { width: 24px; height: 24px; cursor: pointer; }
+    .post-actions .spacer { flex: 1; }
+
+    .post-likes { padding: 0 16px; font-size: 13px; font-weight: 600; color: #222; }
+
+    .post-caption {
+      padding: 4px 16px;
+      font-size: 13px;
+      color: #222;
+      line-height: 18px;
+    }
+    .post-caption b { font-weight: 600; }
+
+    .post-wine-tag {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      background: #f7f0f3;
+      color: #7b2d4e;
+      padding: 4px 10px;
+      border-radius: 6px;
+      font-size: 12px;
+      font-weight: 500;
+      margin: 6px 16px 4px;
+    }
+
+    .post-time { padding: 2px 16px 14px; font-size: 11px; color: #bbb; }
+
+    .post-more {
+      margin-left: auto;
+      font-size: 18px;
+      color: #999;
+      cursor: pointer;
+      letter-spacing: 2px;
+    }
+
+    /* ===== CREATE ===== */
+    .create-options { padding: 20px; display: flex; flex-direction: column; gap: 1px; background: #f5f5f5; }
+
+    .create-option {
+      background: #fff;
+      padding: 18px 20px;
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      cursor: pointer;
+    }
+
+    .create-option:first-child { border-radius: 12px 12px 0 0; }
+    .create-option:last-child { border-radius: 0 0 12px 12px; }
+
+    .create-icon {
+      width: 44px; height: 44px;
+      background: #f7f0f3;
+      border-radius: 12px;
+      display: flex; align-items: center; justify-content: center;
+    }
+
+    .create-icon svg { width: 22px; height: 22px; color: #7b2d4e; }
+
+    .create-option .title { font-size: 15px; font-weight: 600; color: #222; }
+    .create-option .desc { font-size: 12px; color: #999; margin-top: 2px; }
+
+    .create-option .arrow { margin-left: auto; color: #ccc; font-size: 18px; }
+
+    /* ===== CELLAR ===== */
+    .stats-bar {
+      display: flex;
+      justify-content: space-around;
+      padding: 18px 0;
+      margin: 0 20px;
+      border-bottom: 1px solid #efefef;
+    }
+
+    .stat { text-align: center; }
+    .stat .num { font-size: 20px; font-weight: 700; color: #222; }
+    .stat .label { font-size: 11px; color: #999; margin-top: 2px; font-weight: 500; }
+
+    .cellar-tabs {
+      display: flex;
+      padding: 0 20px;
+      gap: 0;
+      border-bottom: 1px solid #efefef;
+    }
+
+    .cellar-tab {
+      padding: 14px 0;
+      font-size: 14px;
+      font-weight: 500;
+      color: #bbb;
+      flex: 1;
+      text-align: center;
+      cursor: pointer;
+    }
+
+    .cellar-tab.active {
+      color: #222;
+      font-weight: 600;
+      border-bottom: 2px solid #222;
+    }
+
+    .wine-grid {
+      padding: 16px 16px;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+    }
+
+    .wine-card {
+      background: #fafafa;
+      border-radius: 12px;
+      overflow: hidden;
+      border: 1px solid #f0f0f0;
+    }
+
+    .wine-card-img {
+      height: 140px;
+      background: #f5f0eb;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 13px;
+      color: #ccc;
+    }
+
+    .wine-card-info { padding: 12px; }
+    .wine-card-name { font-size: 13px; font-weight: 600; color: #222; line-height: 17px; }
+    .wine-card-meta { font-size: 11px; color: #999; margin-top: 4px; }
+    .wine-card-rating { font-size: 11px; color: #7b2d4e; margin-top: 4px; font-weight: 500; }
+
+    /* ===== PROFILE ===== */
+    .profile-top {
+      display: flex;
+      align-items: center;
+      padding: 20px;
+      gap: 20px;
+    }
+
+    .avatar-lg {
+      width: 80px; height: 80px;
+      border-radius: 40px;
+      background: #f0f0f0;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 28px; font-weight: 600; color: #999;
+      flex-shrink: 0;
+    }
+
+    .profile-stats {
+      display: flex;
+      gap: 20px;
+      flex: 1;
+      justify-content: center;
+    }
+
+    .profile-stats .stat .num { font-size: 17px; }
+
+    .profile-info { padding: 0 20px 16px; }
+    .profile-name { font-size: 14px; font-weight: 600; color: #222; }
+    .profile-bio { font-size: 13px; color: #666; margin-top: 4px; line-height: 18px; }
+
+    .profile-actions {
+      display: flex;
+      gap: 8px;
+      padding: 0 20px 16px;
+    }
+
+    .profile-actions .btn-outline { flex: 1; text-align: center; }
+
+    .badge-row {
+      display: flex;
+      gap: 10px;
+      padding: 0 20px 16px;
+      overflow-x: auto;
+    }
+
+    .badge-item {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 4px;
+      min-width: 70px;
+    }
+
+    .badge-circle {
+      width: 60px; height: 60px;
+      border-radius: 30px;
+      border: 2px solid #e0e0e0;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 11px; color: #999; font-weight: 500;
+      background: #fafafa;
+    }
+
+    .badge-circle.earned { border-color: #7b2d4e; background: #f7f0f3; color: #7b2d4e; }
+
+    .badge-label { font-size: 10px; color: #999; font-weight: 500; }
+
+    .profile-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap: 2px;
+      border-top: 1px solid #efefef;
+    }
+
+    .profile-grid-item {
+      aspect-ratio: 1;
+      background: #f5f0eb;
+    }
+
+    /* ===== DISCOVER ===== */
+    .discover-section { padding: 20px 0 0; }
+
+    .discover-section-title {
+      font-size: 15px;
+      font-weight: 700;
+      color: #222;
+      padding: 0 20px 12px;
+    }
+
+    .featured-scroll {
+      display: flex;
+      gap: 12px;
+      padding: 0 20px;
+      overflow-x: auto;
+      padding-bottom: 4px;
+    }
+
+    .featured-scroll::-webkit-scrollbar { display: none; }
+
+    .featured-card {
+      min-width: 200px;
+      height: 240px;
+      border-radius: 16px;
+      overflow: hidden;
+      position: relative;
+      flex-shrink: 0;
+    }
+
+    .featured-bg {
+      width: 100%; height: 100%;
+    }
+
+    .featured-overlay {
+      position: absolute;
+      bottom: 0; left: 0; right: 0;
+      padding: 16px;
+      background: linear-gradient(transparent, rgba(0,0,0,0.6));
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+
+    .featured-avatar {
+      width: 36px; height: 36px;
+      border-radius: 18px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 12px; font-weight: 600; color: #888;
+      border: 2px solid #fff;
+      margin-bottom: 2px;
+    }
+
+    .featured-name { font-size: 14px; font-weight: 600; color: #fff; }
+    .featured-desc { font-size: 12px; color: rgba(255,255,255,0.8); }
+
+    .featured-badges { display: flex; gap: 4px; margin-top: 4px; }
+
+    .featured-badge {
+      font-size: 10px;
+      font-weight: 600;
+      color: #fff;
+      background: rgba(255,255,255,0.2);
+      padding: 2px 8px;
+      border-radius: 10px;
+      backdrop-filter: blur(4px);
+    }
+
+    /* Achievement Feed */
+    .achievement-card {
+      padding: 16px 20px;
+      border-bottom: 1px solid #efefef;
+    }
+
+    .achievement-header {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 12px;
+    }
+
+    .achievement-info { flex: 1; }
+
+    .achievement-text {
+      font-size: 13px;
+      color: #666;
+      margin-top: 2px;
+    }
+
+    .achievement-trophy {
+      background: #fafaf8;
+      border-radius: 12px;
+      padding: 14px 16px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .trophy-visual {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 6px 12px;
+      border: 1.5px solid #c9a84c;
+      border-radius: 10px;
+      background: #fff;
+    }
+
+    .trophy-label {
+      font-size: 13px;
+      font-weight: 700;
+      color: #c9a84c;
+    }
+
+    .trophy-detail {
+      font-size: 12px;
+      color: #999;
+    }
+
+    .achievement-time {
+      font-size: 11px;
+      color: #bbb;
+      margin-top: 8px;
+    }
+
+    .ranking-user-avatar {
+      width: 40px; height: 40px;
+      border-radius: 20px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 12px; font-weight: 600; color: #888;
+      flex-shrink: 0;
+    }
+
+    .ranking-username { font-size: 14px; font-weight: 600; color: #222; }
+
+    /* ===== GATHERING ===== */
+    .gathering-tabs {
+      display: flex;
+      border-bottom: 1px solid #efefef;
+      padding: 0 20px;
+    }
+
+    .gathering-card {
+      border-bottom: 8px solid #f5f5f5;
+    }
+
+    .gathering-img {
+      width: 100%;
+      height: 140px;
+    }
+
+    .gathering-body { padding: 14px 20px 16px; }
+
+    .gathering-category {
+      font-size: 11px;
+      font-weight: 600;
+      color: #7b2d4e;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      margin-bottom: 4px;
+    }
+
+    .gathering-title {
+      font-size: 17px;
+      font-weight: 700;
+      color: #222;
+      margin-bottom: 10px;
+    }
+
+    .gathering-host-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 12px;
+    }
+
+    .gathering-host-avatar {
+      width: 28px; height: 28px;
+      border-radius: 14px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 10px; font-weight: 600; color: #888;
+    }
+
+    .gathering-host-name { font-size: 13px; font-weight: 600; color: #222; }
+
+    .gathering-host-badge {
+      font-size: 10px;
+      font-weight: 600;
+      color: #7b2d4e;
+      background: #f7f0f3;
+      padding: 2px 8px;
+      border-radius: 8px;
+    }
+
+    .gathering-details {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      margin-bottom: 14px;
+    }
+
+    .gathering-detail-item {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 13px;
+      color: #666;
+    }
+
+    .gathering-footer {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .gathering-price {
+      font-size: 15px;
+      font-weight: 700;
+      color: #222;
+    }
+
+    /* ===== HOST MANAGE ===== */
+    .applicant-card {
+      padding: 16px 20px;
+      border-bottom: 1px solid #efefef;
+      position: relative;
+    }
+
+    .applicant-status-bar {
+      position: absolute;
+      left: 0; top: 0; bottom: 0;
+      width: 3px;
+    }
+
+    .applicant-status-bar.pending { background: #e8a838; }
+    .applicant-status-bar.approved { background: #4caf7c; }
+
+    .applicant-header {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 10px;
+    }
+
+    .applicant-avatar {
+      width: 44px; height: 44px;
+      border-radius: 22px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 14px; font-weight: 600; color: #888;
+      flex-shrink: 0;
+    }
+
+    .applicant-info { flex: 1; }
+    .applicant-name { font-size: 15px; font-weight: 600; color: #222; }
+    .applicant-meta { font-size: 12px; color: #999; margin-top: 2px; }
+
+    .applicant-badge-row { display: flex; gap: 4px; }
+
+    .applicant-mini-badge {
+      font-size: 10px;
+      font-weight: 600;
+      color: #7b2d4e;
+      background: #f7f0f3;
+      padding: 3px 8px;
+      border-radius: 8px;
+    }
+
+    .applicant-message {
+      font-size: 13px;
+      color: #555;
+      line-height: 19px;
+      background: #fafaf8;
+      padding: 10px 14px;
+      border-radius: 10px;
+      margin-bottom: 10px;
+    }
+
+    .applicant-cave-preview { margin-bottom: 12px; }
+
+    .applicant-cave-title {
+      font-size: 11px;
+      font-weight: 600;
+      color: #999;
+      margin-bottom: 6px;
+    }
+
+    .applicant-cave-items {
+      display: flex;
+      gap: 6px;
+    }
+
+    .applicant-cave-item {
+      width: 56px; height: 56px;
+      border-radius: 8px;
+    }
+
+    .applicant-actions {
+      display: flex;
+      gap: 8px;
+    }
+
+    .btn-accept {
+      flex: 1;
+      padding: 10px;
+      background: #7b2d4e;
+      color: #fff;
+      border: none;
+      border-radius: 10px;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      font-family: inherit;
+    }
+
+    .btn-reject {
+      flex: 1;
+      padding: 10px;
+      background: none;
+      color: #999;
+      border: 1px solid #ddd;
+      border-radius: 10px;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      font-family: inherit;
+    }
+
+    .phone-wrapper {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Screen 1: Login -->
+  <div class="phone-wrapper">
+    <div class="phone-label">Login</div>
+    <div class="phone">
+      <div class="notch"></div>
+      <div class="screen">
+        <div class="screen-login">
+          <div class="login-hero">
+            <div class="login-logo">I Cave</div>
+            <div class="login-sub">나만의 주류 취향을 공유하세요</div>
+          </div>
+          <div class="login-actions">
+            <button class="google-btn">
+              <svg width="20" height="20" viewBox="0 0 24 24"><path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92a5.06 5.06 0 0 1-2.2 3.32v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.1z" fill="#4285F4"/><path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/><path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05"/><path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/></svg>
+              <span>Google로 계속하기</span>
+            </button>
+            <button class="apple-btn">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="white"><path d="M17.05 20.28c-.98.95-2.05.88-3.08.4-1.09-.5-2.08-.48-3.24 0-1.44.62-2.2.44-3.06-.4C2.79 15.25 3.51 7.59 9.05 7.31c1.35.07 2.29.74 3.08.8 1.18-.24 2.31-.93 3.57-.84 1.51.12 2.65.72 3.4 1.8-3.12 1.87-2.38 5.98.48 7.13-.57 1.5-1.31 2.99-2.54 4.09zM12.03 7.25c-.15-2.23 1.66-4.07 3.74-4.25.29 2.58-2.34 4.5-3.74 4.25z"/></svg>
+              <span>Apple로 계속하기</span>
+            </button>
+            <div class="terms">계속 진행하면 <a href="#">이용약관</a> 및 <a href="#">개인정보처리방침</a>에 동의하게 됩니다.</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Screen 2: Feed -->
+  <div class="phone-wrapper">
+    <div class="phone-label">Feed</div>
+    <div class="phone">
+      <div class="notch"></div>
+      <div class="screen">
+        <div class="header header-border" style="justify-content:center; position:relative;">
+          <h1><span class="logo-text">I Cave</span></h1>
+          <svg style="position:absolute;right:20px;" width="24" height="24" fill="none" stroke="#222" stroke-width="1.8" viewBox="0 0 24 24"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/></svg>
+        </div>
+        <!-- Post 1 -->
+        <div class="post">
+          <div class="post-header">
+            <div class="post-avatar" style="background: #e8d5c4;">JK</div>
+            <div style="flex:1">
+              <div class="post-user">wine_lover_jk</div>
+              <div class="post-location">Le Bar, 청담동</div>
+            </div>
+            <div class="post-more">...</div>
+          </div>
+          <div class="post-image">
+            <div class="post-image-inner" style="background: linear-gradient(180deg, #e8d5c4 0%, #c9a88a 100%);"></div>
+          </div>
+          <div class="post-actions">
+            <svg fill="#ed4956" stroke="#ed4956" stroke-width="0" viewBox="0 0 24 24"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
+            <svg fill="none" stroke="#222" stroke-width="1.8" viewBox="0 0 24 24"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+            <svg fill="none" stroke="#222" stroke-width="1.8" viewBox="0 0 24 24"><path d="M22 2L11 13M22 2l-7 20-4-9-9-4 20-7z"/></svg>
+            <div class="spacer"></div>
+            <svg fill="none" stroke="#222" stroke-width="1.8" viewBox="0 0 24 24"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg>
+          </div>
+          <div class="post-likes">좋아요 42개</div>
+          <div class="post-caption"><b>wine_lover_jk</b> 오늘의 발견. 2018 Margaux의 우아함이란... 실크 같은 탄닌에 블랙커런트 향이 가득</div>
+          <div class="post-wine-tag">
+            <svg width="14" height="14" fill="none" stroke="#7b2d4e" stroke-width="1.8" viewBox="0 0 24 24"><path d="M4 22V12a8 8 0 0 1 16 0v10"/><line x1="4" y1="22" x2="20" y2="22"/><path d="M10.5 9h3M10.5 7h3M10 9v1.5c0 .5-1.5 1.5-1.5 3v4.5a1 1 0 0 0 1 1h5a1 1 0 0 0 1-1v-4.5c0-1.5-1.5-2.5-1.5-3V9" stroke-width="1.5"/></svg>
+            Chateau Margaux 2018
+          </div>
+          <div class="post-time">2시간 전</div>
+        </div>
+        <!-- Post 2 -->
+        <div class="post">
+          <div class="post-header">
+            <div class="post-avatar" style="background: #d4c5e2;">TK</div>
+            <div style="flex:1">
+              <div class="post-user">tokyo_whisky</div>
+              <div class="post-location">Bar K, 이태원</div>
+            </div>
+            <div class="post-more">...</div>
+          </div>
+          <div class="post-image">
+            <div class="post-image-inner" style="background: linear-gradient(180deg, #d4c0a0 0%, #a8865a 100%);"></div>
+          </div>
+          <div class="post-actions">
+            <svg fill="none" stroke="#222" stroke-width="1.8" viewBox="0 0 24 24"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
+            <svg fill="none" stroke="#222" stroke-width="1.8" viewBox="0 0 24 24"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+            <svg fill="none" stroke="#222" stroke-width="1.8" viewBox="0 0 24 24"><path d="M22 2L11 13M22 2l-7 20-4-9-9-4 20-7z"/></svg>
+            <div class="spacer"></div>
+            <svg fill="none" stroke="#222" stroke-width="1.8" viewBox="0 0 24 24"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg>
+          </div>
+          <div class="post-likes">좋아요 63개</div>
+          <div class="post-caption"><b>tokyo_whisky</b> Yamazaki 18년의 깊이. 꿀, 말린 과일, 오크의 완벽한 밸런스</div>
+          <div class="post-wine-tag" style="background:#f5f0e8;color:#8a6d3b;">
+            <svg width="14" height="14" fill="none" stroke="#8a6d3b" stroke-width="1.8" viewBox="0 0 24 24"><path d="M4 22V12a8 8 0 0 1 16 0v10"/><line x1="4" y1="22" x2="20" y2="22"/><path d="M10.5 9h3M10.5 7h3M10 9v1.5c0 .5-1.5 1.5-1.5 3v4.5a1 1 0 0 0 1 1h5a1 1 0 0 0 1-1v-4.5c0-1.5-1.5-2.5-1.5-3V9" stroke-width="1.5"/></svg>
+            Yamazaki 18 Year
+          </div>
+          <div class="post-time">3시간 전</div>
+        </div>
+      </div>
+      <div class="tab-bar">
+        <div class="tab-item active">
+          <div class="tab-icon"><svg fill="none" stroke="#222" stroke-width="2.2" viewBox="0 0 24 24"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg></div>
+          <span class="label"></span>
+        </div>
+        <div class="tab-item">
+          <div class="tab-icon"><svg fill="none" stroke="#999" stroke-width="1.8" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg></div>
+          <span class="label"></span>
+        </div>
+        <div class="tab-item">
+          <div class="tab-icon"><svg fill="none" stroke="#999" stroke-width="1.8" viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="3"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></svg></div>
+          <span class="label"></span>
+        </div>
+        <div class="tab-item">
+          <div class="tab-icon"><svg fill="none" stroke="#999" stroke-width="1.8" viewBox="0 0 24 24"><path d="M4 22V12a8 8 0 0 1 16 0v10"/><line x1="4" y1="22" x2="20" y2="22"/><path d="M10.5 9h3M10.5 7h3M10 9v1.5c0 .5-1.5 1.5-1.5 3v4.5a1 1 0 0 0 1 1h5a1 1 0 0 0 1-1v-4.5c0-1.5-1.5-2.5-1.5-3V9" stroke-width="1.5"/></svg></div>
+          <span class="label"></span>
+        </div>
+        <div class="tab-item">
+          <div class="tab-icon"><svg fill="none" stroke="#999" stroke-width="1.8" viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg></div>
+          <span class="label"></span>
+        </div>
+        <div class="tab-item">
+          <div class="tab-icon"><svg fill="none" stroke="#999" stroke-width="1.8" viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg></div>
+          <span class="label"></span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Screen: Discover (Featured Caves + Achievement Feed) -->
+  <div class="phone-wrapper">
+    <div class="phone-label">Discover</div>
+    <div class="phone">
+      <div class="notch"></div>
+      <div class="screen">
+        <div class="header header-border" style="justify-content:center;">
+          <h1>Discover</h1>
+        </div>
+
+        <!-- Featured Caves -->
+        <div class="discover-section">
+          <div class="discover-section-title">Featured Caves</div>
+          <div class="featured-scroll">
+            <div class="featured-card">
+              <div class="featured-bg" style="background:linear-gradient(135deg,#e8d5c4,#c9a88a);"></div>
+              <div class="featured-overlay">
+                <div class="featured-avatar" style="background:#f0e8dd;">MJ</div>
+                <div class="featured-name">wine_master_mj</div>
+                <div class="featured-desc">10개국 52병의 여정</div>
+                <div class="featured-badges">
+                  <span class="featured-badge">Collector</span>
+                  <span class="featured-badge">World Traveler</span>
+                </div>
+              </div>
+            </div>
+            <div class="featured-card">
+              <div class="featured-bg" style="background:linear-gradient(135deg,#d4c0a0,#a8865a);"></div>
+              <div class="featured-overlay">
+                <div class="featured-avatar" style="background:#d4c5e2;">TK</div>
+                <div class="featured-name">tokyo_whisky</div>
+                <div class="featured-desc">Japanese Whisky 전문</div>
+                <div class="featured-badges">
+                  <span class="featured-badge">Whisky Explorer</span>
+                </div>
+              </div>
+            </div>
+            <div class="featured-card">
+              <div class="featured-bg" style="background:linear-gradient(135deg,#e8e4d8,#c5c0b0);"></div>
+              <div class="featured-overlay">
+                <div class="featured-avatar" style="background:#e0ddd8;">YR</div>
+                <div class="featured-name">yerin_sake</div>
+                <div class="featured-desc">사케의 세계를 탐험중</div>
+                <div class="featured-badges">
+                  <span class="featured-badge">Sake Lover</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Achievement Feed -->
+        <div class="discover-section">
+          <div class="discover-section-title">Recent Achievements</div>
+
+          <div class="achievement-card">
+            <div class="achievement-header">
+              <div class="ranking-user-avatar" style="background:#f0e8dd;">MJ</div>
+              <div class="achievement-info">
+                <div class="ranking-username">wine_master_mj</div>
+                <div class="achievement-text">World Traveler 달성 - 10개국 컬렉팅</div>
+              </div>
+            </div>
+            <div class="achievement-trophy">
+              <div class="trophy-visual">
+                <svg width="28" height="28" fill="none" stroke="#c9a84c" stroke-width="1.5" viewBox="0 0 24 24"><path d="M6 9H3a1 1 0 0 1-1-1V5a1 1 0 0 1 1-1h3M18 9h3a1 1 0 0 0 1-1V5a1 1 0 0 0-1-1h-3M6 4h12v6a6 6 0 0 1-12 0V4zM12 16v3M8 22h8M10 19h4"/></svg>
+                <span class="trophy-label">World Traveler</span>
+              </div>
+              <div class="trophy-detail">10 countries collected</div>
+            </div>
+            <div class="achievement-time">2시간 전</div>
+          </div>
+
+          <div class="achievement-card">
+            <div class="achievement-header">
+              <div class="ranking-user-avatar" style="background:#d4c5e2;">TK</div>
+              <div class="achievement-info">
+                <div class="ranking-username">tokyo_whisky</div>
+                <div class="achievement-text">Whisky Explorer 달성 - 위스키 10종</div>
+              </div>
+            </div>
+            <div class="achievement-trophy">
+              <div class="trophy-visual">
+                <svg width="28" height="28" fill="none" stroke="#c9a84c" stroke-width="1.5" viewBox="0 0 24 24"><path d="M6 9H3a1 1 0 0 1-1-1V5a1 1 0 0 1 1-1h3M18 9h3a1 1 0 0 0 1-1V5a1 1 0 0 0-1-1h-3M6 4h12v6a6 6 0 0 1-12 0V4zM12 16v3M8 22h8M10 19h4"/></svg>
+                <span class="trophy-label">Whisky Explorer</span>
+              </div>
+              <div class="trophy-detail">10 whiskies collected</div>
+            </div>
+            <div class="achievement-time">5시간 전</div>
+          </div>
+
+          <div class="achievement-card">
+            <div class="achievement-header">
+              <div class="ranking-user-avatar" style="background:#e0ddd8;">HJ</div>
+              <div class="achievement-info">
+                <div class="ranking-username">hajin_wine</div>
+                <div class="achievement-text">Burgundy Lover 달성 - 부르고뉴 5종</div>
+              </div>
+            </div>
+            <div class="achievement-trophy">
+              <div class="trophy-visual">
+                <svg width="28" height="28" fill="none" stroke="#c9a84c" stroke-width="1.5" viewBox="0 0 24 24"><path d="M6 9H3a1 1 0 0 1-1-1V5a1 1 0 0 1 1-1h3M18 9h3a1 1 0 0 0 1-1V5a1 1 0 0 0-1-1h-3M6 4h12v6a6 6 0 0 1-12 0V4zM12 16v3M8 22h8M10 19h4"/></svg>
+                <span class="trophy-label">Burgundy Lover</span>
+              </div>
+              <div class="trophy-detail">5 Burgundy wines collected</div>
+            </div>
+            <div class="achievement-time">어제</div>
+          </div>
+
+          <div class="achievement-card">
+            <div class="achievement-header">
+              <div class="ranking-user-avatar" style="background:#f0e5e0;">SY</div>
+              <div class="achievement-info">
+                <div class="ranking-username">sommelier_sy</div>
+                <div class="achievement-text">50 Bottles 달성</div>
+              </div>
+            </div>
+            <div class="achievement-trophy">
+              <div class="trophy-visual" style="border-color:#7b2d4e;">
+                <svg width="28" height="28" fill="none" stroke="#7b2d4e" stroke-width="1.5" viewBox="0 0 24 24"><path d="M6 9H3a1 1 0 0 1-1-1V5a1 1 0 0 1 1-1h3M18 9h3a1 1 0 0 0 1-1V5a1 1 0 0 0-1-1h-3M6 4h12v6a6 6 0 0 1-12 0V4zM12 16v3M8 22h8M10 19h4"/></svg>
+                <span class="trophy-label" style="color:#7b2d4e;">Expert</span>
+              </div>
+              <div class="trophy-detail">50 bottles milestone</div>
+            </div>
+            <div class="achievement-time">3일 전</div>
+          </div>
+        </div>
+      </div>
+      <div class="tab-bar">
+        <div class="tab-item">
+          <div class="tab-icon"><svg fill="none" stroke="#999" stroke-width="1.8" viewBox="0 0 24 24"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg></div>
+          <span class="label"></span>
+        </div>
+        <div class="tab-item active">
+          <div class="tab-icon"><svg fill="none" stroke="#222" stroke-width="2.2" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg></div>
+          <span class="label"></span>
+        </div>
+        <div class="tab-item">
+          <div class="tab-icon"><svg fill="none" stroke="#999" stroke-width="1.8" viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="3"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></svg></div>
+          <span class="label"></span>
+        </div>
+        <div class="tab-item">
+          <div class="tab-icon"><svg fill="none" stroke="#999" stroke-width="1.8" viewBox="0 0 24 24"><path d="M4 22V12a8 8 0 0 1 16 0v10"/><line x1="4" y1="22" x2="20" y2="22"/><path d="M10.5 9h3M10.5 7h3M10 9v1.5c0 .5-1.5 1.5-1.5 3v4.5a1 1 0 0 0 1 1h5a1 1 0 0 0 1-1v-4.5c0-1.5-1.5-2.5-1.5-3V9" stroke-width="1.5"/></svg></div>
+          <span class="label"></span>
+        </div>
+        <div class="tab-item">
+          <div class="tab-icon"><svg fill="none" stroke="#999" stroke-width="1.8" viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg></div>
+          <span class="label"></span>
+        </div>
+        <div class="tab-item">
+          <div class="tab-icon"><svg fill="none" stroke="#999" stroke-width="1.8" viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg></div>
+          <span class="label"></span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Screen: Gathering List -->
+  <div class="phone-wrapper">
+    <div class="phone-label">Gatherings</div>
+    <div class="phone">
+      <div class="notch"></div>
+      <div class="screen">
+        <div class="header header-border">
+          <h1>Gatherings</h1>
+          <button class="btn-primary">개설</button>
+        </div>
+
+        <div class="gathering-tabs">
+          <div class="cellar-tab active">All</div>
+          <div class="cellar-tab">Wine</div>
+          <div class="cellar-tab">Whisky</div>
+          <div class="cellar-tab">Sake</div>
+        </div>
+
+        <!-- Gathering Card 1 -->
+        <div class="gathering-card">
+          <div class="gathering-img" style="background:linear-gradient(135deg,#e8d5c4,#c9a88a);"></div>
+          <div class="gathering-body">
+            <div class="gathering-category">Wine Tasting</div>
+            <div class="gathering-title">Burgundy Blind Tasting</div>
+            <div class="gathering-host-row">
+              <div class="gathering-host-avatar" style="background:#f0e8dd;">MJ</div>
+              <div class="gathering-host-name">wine_master_mj</div>
+              <div class="gathering-host-badge">Host</div>
+            </div>
+            <div class="gathering-details">
+              <div class="gathering-detail-item">
+                <svg width="14" height="14" fill="none" stroke="#999" stroke-width="1.8" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+                <span>4.15 (화) 19:30</span>
+              </div>
+              <div class="gathering-detail-item">
+                <svg width="14" height="14" fill="none" stroke="#999" stroke-width="1.8" viewBox="0 0 24 24"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
+                <span>Le Bar, 청담동</span>
+              </div>
+              <div class="gathering-detail-item">
+                <svg width="14" height="14" fill="none" stroke="#999" stroke-width="1.8" viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+                <span>4 / 8명</span>
+              </div>
+            </div>
+            <div class="gathering-footer">
+              <button class="btn-primary" style="font-size:13px;padding:8px 20px;width:100%;">상세보기</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Gathering Card 2 -->
+        <div class="gathering-card">
+          <div class="gathering-img" style="background:linear-gradient(135deg,#d4c0a0,#a8865a);"></div>
+          <div class="gathering-body">
+            <div class="gathering-category">Whisky Night</div>
+            <div class="gathering-title">Islay Single Malt 비교 테이스팅</div>
+            <div class="gathering-host-row">
+              <div class="gathering-host-avatar" style="background:#d4c5e2;">TK</div>
+              <div class="gathering-host-name">tokyo_whisky</div>
+              <div class="gathering-host-badge">Host</div>
+            </div>
+            <div class="gathering-details">
+              <div class="gathering-detail-item">
+                <svg width="14" height="14" fill="none" stroke="#999" stroke-width="1.8" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+                <span>4.18 (금) 20:00</span>
+              </div>
+              <div class="gathering-detail-item">
+                <svg width="14" height="14" fill="none" stroke="#999" stroke-width="1.8" viewBox="0 0 24 24"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
+                <span>Bar K, 이태원</span>
+              </div>
+              <div class="gathering-detail-item">
+                <svg width="14" height="14" fill="none" stroke="#999" stroke-width="1.8" viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+                <span>2 / 6명</span>
+              </div>
+            </div>
+            <div class="gathering-footer">
+              <div class="gathering-price">120,000원 / 인</div>
+              <button class="btn-primary" style="font-size:12px;padding:6px 14px;">참가 신청</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Gathering Card 3 -->
+        <div class="gathering-card">
+          <div class="gathering-img" style="background:linear-gradient(135deg,#e8e4d8,#c5c0b0);"></div>
+          <div class="gathering-body">
+            <div class="gathering-category">Sake Pairing</div>
+            <div class="gathering-title">사케 x 오마카세 페어링 모임</div>
+            <div class="gathering-host-row">
+              <div class="gathering-host-avatar" style="background:#e0ddd8;">YR</div>
+              <div class="gathering-host-name">yerin_sake</div>
+              <div class="gathering-host-badge">Host</div>
+            </div>
+            <div class="gathering-details">
+              <div class="gathering-detail-item">
+                <svg width="14" height="14" fill="none" stroke="#999" stroke-width="1.8" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+                <span>4.20 (일) 18:00</span>
+              </div>
+              <div class="gathering-detail-item">
+                <svg width="14" height="14" fill="none" stroke="#999" stroke-width="1.8" viewBox="0 0 24 24"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
+                <span>스시 오마카세, 압구정</span>
+              </div>
+              <div class="gathering-detail-item">
+                <svg width="14" height="14" fill="none" stroke="#999" stroke-width="1.8" viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+                <span>6 / 6명 (마감)</span>
+              </div>
+            </div>
+            <div class="gathering-footer">
+              <button class="btn-outline" style="font-size:13px;padding:8px 20px;width:100%;color:#bbb;border-color:#ddd;">마감</button>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="tab-bar">
+        <div class="tab-item">
+          <div class="tab-icon"><svg fill="none" stroke="#999" stroke-width="1.8" viewBox="0 0 24 24"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg></div>
+          <span class="label"></span>
+        </div>
+        <div class="tab-item">
+          <div class="tab-icon"><svg fill="none" stroke="#999" stroke-width="1.8" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg></div>
+          <span class="label"></span>
+        </div>
+        <div class="tab-item">
+          <div class="tab-icon"><svg fill="none" stroke="#999" stroke-width="1.8" viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="3"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></svg></div>
+          <span class="label"></span>
+        </div>
+        <div class="tab-item">
+          <div class="tab-icon"><svg fill="none" stroke="#999" stroke-width="1.8" viewBox="0 0 24 24"><path d="M4 22V12a8 8 0 0 1 16 0v10"/><line x1="4" y1="22" x2="20" y2="22"/><path d="M10.5 9h3M10.5 7h3M10 9v1.5c0 .5-1.5 1.5-1.5 3v4.5a1 1 0 0 0 1 1h5a1 1 0 0 0 1-1v-4.5c0-1.5-1.5-2.5-1.5-3V9" stroke-width="1.5"/></svg></div>
+          <span class="label"></span>
+        </div>
+        <div class="tab-item">
+          <div class="tab-icon"><svg fill="none" stroke="#999" stroke-width="1.8" viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg></div>
+          <span class="label"></span>
+        </div>
+        <div class="tab-item">
+          <div class="tab-icon"><svg fill="none" stroke="#999" stroke-width="1.8" viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg></div>
+          <span class="label"></span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Screen: Host Manage (Applicant Review) -->
+  <div class="phone-wrapper">
+    <div class="phone-label">Host View</div>
+    <div class="phone">
+      <div class="notch"></div>
+      <div class="screen">
+        <div class="header header-border">
+          <svg width="24" height="24" fill="none" stroke="#222" stroke-width="1.8" viewBox="0 0 24 24"><polyline points="15 18 9 12 15 6"/></svg>
+          <h1 style="font-size:17px;">참가 신청 관리</h1>
+          <div style="width:24px;"></div>
+        </div>
+
+        <div style="padding:16px 20px;background:#fafaf8;border-bottom:1px solid #efefef;">
+          <div style="font-size:15px;font-weight:600;color:#222;">Burgundy Blind Tasting</div>
+          <div style="font-size:12px;color:#999;margin-top:4px;">4.15 (화) 19:30  ·  4 / 8명</div>
+        </div>
+
+        <!-- Pending Applicant 1 -->
+        <div class="applicant-card">
+          <div class="applicant-status-bar pending"></div>
+          <div class="applicant-header">
+            <div class="applicant-avatar" style="background:#e8d5c4;">DH</div>
+            <div class="applicant-info">
+              <div class="applicant-name">daehyun_cellar</div>
+              <div class="applicant-meta">31 bottles  ·  9 countries</div>
+            </div>
+            <div class="applicant-badge-row">
+              <div class="applicant-mini-badge">Collector</div>
+            </div>
+          </div>
+          <div class="applicant-message">
+            "부르고뉴를 좋아해서 신청합니다. 제가 Chambolle-Musigny 2019를 가져갈게요!"
+          </div>
+          <div class="applicant-cave-preview">
+            <div class="applicant-cave-title">Cave 미리보기</div>
+            <div class="applicant-cave-items">
+              <div class="applicant-cave-item" style="background:#f0e8dd;"></div>
+              <div class="applicant-cave-item" style="background:#e8ddd4;"></div>
+              <div class="applicant-cave-item" style="background:#f5eed8;"></div>
+              <div class="applicant-cave-item" style="background:#e0ddd8;"></div>
+            </div>
+          </div>
+          <div class="applicant-actions">
+            <button class="btn-accept">수락</button>
+            <button class="btn-reject">거절</button>
+          </div>
+        </div>
+
+        <!-- Pending Applicant 2 -->
+        <div class="applicant-card">
+          <div class="applicant-status-bar pending"></div>
+          <div class="applicant-header">
+            <div class="applicant-avatar" style="background:#f0e5e0;">JW</div>
+            <div class="applicant-info">
+              <div class="applicant-name">jiwon_wine</div>
+              <div class="applicant-meta">28 bottles  ·  7 countries</div>
+            </div>
+            <div class="applicant-badge-row">
+              <div class="applicant-mini-badge">Wine Lover</div>
+            </div>
+          </div>
+          <div class="applicant-message">
+            "와인 모임 첫 참가입니다. 배우고 싶어서 신청해요!"
+          </div>
+          <div class="applicant-cave-preview">
+            <div class="applicant-cave-title">Cave 미리보기</div>
+            <div class="applicant-cave-items">
+              <div class="applicant-cave-item" style="background:#e8e0d5;"></div>
+              <div class="applicant-cave-item" style="background:#ede8e0;"></div>
+              <div class="applicant-cave-item" style="background:#e5ddd0;"></div>
+              <div class="applicant-cave-item" style="background:#f0ebe5;"></div>
+            </div>
+          </div>
+          <div class="applicant-actions">
+            <button class="btn-accept">수락</button>
+            <button class="btn-reject">거절</button>
+          </div>
+        </div>
+
+        <!-- Approved -->
+        <div class="applicant-card" style="opacity:0.6;">
+          <div class="applicant-status-bar approved"></div>
+          <div class="applicant-header">
+            <div class="applicant-avatar" style="background:#d4c5e2;">SY</div>
+            <div class="applicant-info">
+              <div class="applicant-name">sommelier_sy</div>
+              <div class="applicant-meta">50 bottles  ·  14 countries</div>
+            </div>
+            <div class="applicant-badge-row">
+              <div class="applicant-mini-badge" style="background:#e8f5e9;color:#2e7d32;">수락됨</div>
+            </div>
+          </div>
+        </div>
+
+      </div>
+      <div class="tab-bar">
+        <div class="tab-item">
+          <div class="tab-icon"><svg fill="none" stroke="#999" stroke-width="1.8" viewBox="0 0 24 24"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg></div>
+          <span class="label"></span>
+        </div>
+        <div class="tab-item">
+          <div class="tab-icon"><svg fill="none" stroke="#999" stroke-width="1.8" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg></div>
+          <span class="label"></span>
+        </div>
+        <div class="tab-item">
+          <div class="tab-icon"><svg fill="none" stroke="#999" stroke-width="1.8" viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="3"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></svg></div>
+          <span class="label"></span>
+        </div>
+        <div class="tab-item">
+          <div class="tab-icon"><svg fill="none" stroke="#999" stroke-width="1.8" viewBox="0 0 24 24"><path d="M4 22V12a8 8 0 0 1 16 0v10"/><line x1="4" y1="22" x2="20" y2="22"/><path d="M10.5 9h3M10.5 7h3M10 9v1.5c0 .5-1.5 1.5-1.5 3v4.5a1 1 0 0 0 1 1h5a1 1 0 0 0 1-1v-4.5c0-1.5-1.5-2.5-1.5-3V9" stroke-width="1.5"/></svg></div>
+          <span class="label"></span>
+        </div>
+        <div class="tab-item">
+          <div class="tab-icon"><svg fill="none" stroke="#999" stroke-width="1.8" viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg></div>
+          <span class="label"></span>
+        </div>
+        <div class="tab-item">
+          <div class="tab-icon"><svg fill="none" stroke="#999" stroke-width="1.8" viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg></div>
+          <span class="label"></span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Screen 3: Create -->
+  <div class="phone-wrapper">
+    <div class="phone-label">New Post</div>
+    <div class="phone">
+      <div class="notch"></div>
+      <div class="screen">
+        <div class="header header-border">
+          <h1>새 게시물</h1>
+        </div>
+        <div style="padding: 24px 20px;">
+          <div class="create-options">
+            <div class="create-option">
+              <div class="create-icon">
+                <svg fill="none" stroke="#7b2d4e" stroke-width="1.8" viewBox="0 0 24 24"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
+              </div>
+              <div>
+                <div class="title">사진 촬영</div>
+                <div class="desc">라벨을 찍어 자동 인식</div>
+              </div>
+              <div class="arrow">›</div>
+            </div>
+            <div class="create-option">
+              <div class="create-icon">
+                <svg fill="none" stroke="#7b2d4e" stroke-width="1.8" viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
+              </div>
+              <div>
+                <div class="title">갤러리에서 선택</div>
+                <div class="desc">저장된 사진 올리기</div>
+              </div>
+              <div class="arrow">›</div>
+            </div>
+            <div class="create-option">
+              <div class="create-icon">
+                <svg fill="none" stroke="#7b2d4e" stroke-width="1.8" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+              </div>
+              <div>
+                <div class="title">검색 등록</div>
+                <div class="desc">이름으로 찾아서 Cave에 추가</div>
+              </div>
+              <div class="arrow">›</div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="tab-bar">
+        <div class="tab-item">
+          <div class="tab-icon"><svg fill="none" stroke="#999" stroke-width="1.8" viewBox="0 0 24 24"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg></div>
+          <span class="label"></span>
+        </div>
+        <div class="tab-item">
+          <div class="tab-icon"><svg fill="none" stroke="#999" stroke-width="1.8" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg></div>
+          <span class="label"></span>
+        </div>
+        <div class="tab-item active">
+          <div class="tab-icon"><svg fill="none" stroke="#222" stroke-width="2.2" viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="3"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></svg></div>
+          <span class="label"></span>
+        </div>
+        <div class="tab-item">
+          <div class="tab-icon"><svg fill="none" stroke="#999" stroke-width="1.8" viewBox="0 0 24 24"><path d="M4 22V12a8 8 0 0 1 16 0v10"/><line x1="4" y1="22" x2="20" y2="22"/><path d="M10.5 9h3M10.5 7h3M10 9v1.5c0 .5-1.5 1.5-1.5 3v4.5a1 1 0 0 0 1 1h5a1 1 0 0 0 1-1v-4.5c0-1.5-1.5-2.5-1.5-3V9" stroke-width="1.5"/></svg></div>
+          <span class="label"></span>
+        </div>
+        <div class="tab-item">
+          <div class="tab-icon"><svg fill="none" stroke="#999" stroke-width="1.8" viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg></div>
+          <span class="label"></span>
+        </div>
+        <div class="tab-item">
+          <div class="tab-icon"><svg fill="none" stroke="#999" stroke-width="1.8" viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg></div>
+          <span class="label"></span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Screen 4: My Cellar -->
+  <div class="phone-wrapper">
+    <div class="phone-label">My Cellar</div>
+    <div class="phone">
+      <div class="notch"></div>
+      <div class="screen">
+        <div class="header header-border">
+          <h1>My Cave</h1>
+          <button class="btn-primary">추가</button>
+        </div>
+        <div class="stats-bar">
+          <div class="stat"><div class="num">12</div><div class="label">보유</div></div>
+          <div class="stat"><div class="num">5</div><div class="label">국가</div></div>
+          <div class="stat"><div class="num">8</div><div class="label">품종</div></div>
+          <div class="stat"><div class="num">3</div><div class="label">배지</div></div>
+        </div>
+        <div class="cellar-tabs">
+          <div class="cellar-tab active">All</div>
+          <div class="cellar-tab">Wine</div>
+          <div class="cellar-tab">Whisky</div>
+          <div class="cellar-tab">Sake</div>
+          <div class="cellar-tab">Other</div>
+        </div>
+        <div class="wine-grid">
+          <div class="wine-card">
+            <div class="wine-card-img" style="background:#f0e8dd;"></div>
+            <div class="wine-card-info">
+              <div class="wine-card-name">Opus One 2019</div>
+              <div class="wine-card-meta">Napa Valley  ·  Wine</div>
+              <div class="wine-card-rating">4.5</div>
+            </div>
+          </div>
+          <div class="wine-card">
+            <div class="wine-card-img" style="background:#d4c0a0;"></div>
+            <div class="wine-card-info">
+              <div class="wine-card-name">Yamazaki 18 Year</div>
+              <div class="wine-card-meta">Osaka  ·  Whisky</div>
+              <div class="wine-card-rating">4.9</div>
+            </div>
+          </div>
+          <div class="wine-card">
+            <div class="wine-card-img" style="background:#e8e4d8;"></div>
+            <div class="wine-card-info">
+              <div class="wine-card-name">Juyondai Junmai</div>
+              <div class="wine-card-meta">Yamagata  ·  Sake</div>
+              <div class="wine-card-rating">4.8</div>
+            </div>
+          </div>
+          <div class="wine-card">
+            <div class="wine-card-img" style="background:#f5eed8;"></div>
+            <div class="wine-card-info">
+              <div class="wine-card-name">Dom Perignon 2012</div>
+              <div class="wine-card-meta">Champagne  ·  Wine</div>
+              <div class="wine-card-rating">4.7</div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="tab-bar">
+        <div class="tab-item">
+          <div class="tab-icon"><svg fill="none" stroke="#999" stroke-width="1.8" viewBox="0 0 24 24"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg></div>
+          <span class="label"></span>
+        </div>
+        <div class="tab-item">
+          <div class="tab-icon"><svg fill="none" stroke="#999" stroke-width="1.8" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg></div>
+          <span class="label"></span>
+        </div>
+        <div class="tab-item">
+          <div class="tab-icon"><svg fill="none" stroke="#999" stroke-width="1.8" viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="3"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></svg></div>
+          <span class="label"></span>
+        </div>
+        <div class="tab-item active">
+          <div class="tab-icon"><svg fill="none" stroke="#222" stroke-width="2.2" viewBox="0 0 24 24"><path d="M4 22V12a8 8 0 0 1 16 0v10"/><line x1="4" y1="22" x2="20" y2="22"/><path d="M10.5 9h3M10.5 7h3M10 9v1.5c0 .5-1.5 1.5-1.5 3v4.5a1 1 0 0 0 1 1h5a1 1 0 0 0 1-1v-4.5c0-1.5-1.5-2.5-1.5-3V9" stroke-width="1.8"/></svg></div>
+          <span class="label"></span>
+        </div>
+        <div class="tab-item">
+          <div class="tab-icon"><svg fill="none" stroke="#999" stroke-width="1.8" viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg></div>
+          <span class="label"></span>
+        </div>
+        <div class="tab-item">
+          <div class="tab-icon"><svg fill="none" stroke="#999" stroke-width="1.8" viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg></div>
+          <span class="label"></span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Screen 5: Profile -->
+  <div class="phone-wrapper">
+    <div class="phone-label">Profile</div>
+    <div class="phone">
+      <div class="notch"></div>
+      <div class="screen">
+        <div class="header header-border">
+          <h1>hajin_wine</h1>
+          <svg width="24" height="24" fill="none" stroke="#222" stroke-width="1.8" viewBox="0 0 24 24"><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+        </div>
+        <div class="profile-top">
+          <div class="avatar-lg">H</div>
+          <div class="profile-stats">
+            <div class="stat"><div class="num">24</div><div class="label">게시물</div></div>
+            <div class="stat"><div class="num">156</div><div class="label">팔로워</div></div>
+            <div class="stat"><div class="num">89</div><div class="label">팔로잉</div></div>
+          </div>
+        </div>
+        <div class="profile-info">
+          <div class="profile-name">하진</div>
+          <div class="profile-bio">Wine & Whisky collector<br>Burgundy / Islay lover</div>
+        </div>
+        <div class="profile-actions">
+          <button class="btn-outline">프로필 편집</button>
+          <button class="btn-outline">셀러 공유</button>
+        </div>
+        <div class="badge-row">
+          <div class="badge-item">
+            <div class="badge-circle earned">10</div>
+            <div class="badge-label">Collector</div>
+          </div>
+          <div class="badge-item">
+            <div class="badge-circle earned">Wine</div>
+            <div class="badge-label">Lover</div>
+          </div>
+          <div class="badge-item">
+            <div class="badge-circle earned">5</div>
+            <div class="badge-label">Countries</div>
+          </div>
+          <div class="badge-item">
+            <div class="badge-circle">Whisky</div>
+            <div class="badge-label">Explorer</div>
+          </div>
+          <div class="badge-item">
+            <div class="badge-circle">50</div>
+            <div class="badge-label">Expert</div>
+          </div>
+        </div>
+        <div class="profile-grid">
+          <div class="profile-grid-item" style="background:#f0e8dd;"></div>
+          <div class="profile-grid-item" style="background:#e8ddd4;"></div>
+          <div class="profile-grid-item" style="background:#f5eed8;"></div>
+          <div class="profile-grid-item" style="background:#e0ddd8;"></div>
+          <div class="profile-grid-item" style="background:#f0e5e0;"></div>
+          <div class="profile-grid-item" style="background:#e8e0d5;"></div>
+          <div class="profile-grid-item" style="background:#ede8e0;"></div>
+          <div class="profile-grid-item" style="background:#e5ddd0;"></div>
+          <div class="profile-grid-item" style="background:#f0ebe5;"></div>
+        </div>
+      </div>
+      <div class="tab-bar">
+        <div class="tab-item">
+          <div class="tab-icon"><svg fill="none" stroke="#999" stroke-width="1.8" viewBox="0 0 24 24"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg></div>
+          <span class="label"></span>
+        </div>
+        <div class="tab-item">
+          <div class="tab-icon"><svg fill="none" stroke="#999" stroke-width="1.8" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg></div>
+          <span class="label"></span>
+        </div>
+        <div class="tab-item">
+          <div class="tab-icon"><svg fill="none" stroke="#999" stroke-width="1.8" viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="3"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></svg></div>
+          <span class="label"></span>
+        </div>
+        <div class="tab-item">
+          <div class="tab-icon"><svg fill="none" stroke="#999" stroke-width="1.8" viewBox="0 0 24 24"><path d="M4 22V12a8 8 0 0 1 16 0v10"/><line x1="4" y1="22" x2="20" y2="22"/><path d="M10.5 9h3M10.5 7h3M10 9v1.5c0 .5-1.5 1.5-1.5 3v4.5a1 1 0 0 0 1 1h5a1 1 0 0 0 1-1v-4.5c0-1.5-1.5-2.5-1.5-3V9" stroke-width="1.5"/></svg></div>
+          <span class="label"></span>
+        </div>
+        <div class="tab-item">
+          <div class="tab-icon"><svg fill="none" stroke="#999" stroke-width="1.8" viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg></div>
+          <span class="label"></span>
+        </div>
+        <div class="tab-item active">
+          <div class="tab-icon"><svg fill="none" stroke="#222" stroke-width="2.2" viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg></div>
+          <span class="label"></span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</body>
+</html>

@@ -1,0 +1,581 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+  <title>Cave</title>
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,600;0,700;1,400;1,600&display=swap" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/pretendard@1.3.9/dist/web/static/pretendard.min.css" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+
+    body {
+      font-family: 'Pretendard', -apple-system, sans-serif;
+      background: #000;
+      display: flex; justify-content: center; align-items: flex-start;
+      min-height: 100vh;
+    }
+
+    #app {
+      width: 100%; max-width: 430px;
+      min-height: 100vh;
+      background: #fff;
+      position: relative;
+      overflow-x: hidden;
+    }
+
+    /* ===== HEADER ===== */
+    .header {
+      position: sticky; top: 0; z-index: 50;
+      padding: 12px 20px;
+      background: #fff;
+      border-bottom: 1px solid #efefef;
+      display: flex; justify-content: center; align-items: center;
+      position: relative;
+    }
+    .header-left, .header-right {
+      position: absolute; top: 50%; transform: translateY(-50%);
+    }
+    .header-left { left: 20px; }
+    .header-right { right: 20px; }
+    .header-btn {
+      background: none; border: none; cursor: pointer; padding: 4px;
+    }
+
+    .logo {
+      font-family: 'Playfair Display', serif;
+      font-size: 22px; font-weight: 600; font-style: italic;
+      color: #7b2d4e; letter-spacing: -0.5px;
+    }
+
+    .header-title {
+      font-size: 17px; font-weight: 700; color: #222;
+    }
+
+    /* ===== TAB BAR ===== */
+    .tab-bar {
+      position: fixed; bottom: 0; left: 50%; transform: translateX(-50%);
+      width: 100%; max-width: 430px;
+      height: 70px; background: #fff;
+      border-top: 1px solid #efefef;
+      display: flex; justify-content: space-around; align-items: center;
+      z-index: 100; padding-bottom: 8px;
+    }
+
+    .tab-bar-item {
+      display: flex; flex-direction: column; align-items: center;
+      cursor: pointer; border: none; background: none; padding: 6px 0;
+      font-family: inherit; gap: 0;
+    }
+    .tab-bar-item svg { width: 26px; height: 26px; }
+
+    /* ===== PANELS ===== */
+    .panel { display: none; padding-bottom: 80px; }
+    .panel.active { display: block; }
+
+    /* ===== FEED ===== */
+    .post { border-bottom: 1px solid #efefef; }
+
+    .post-header {
+      display: flex; align-items: center; padding: 12px 16px; gap: 10px;
+    }
+    .post-avatar {
+      width: 36px; height: 36px; border-radius: 18px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 12px; color: #666; font-weight: 600;
+    }
+    .post-user { font-size: 14px; font-weight: 600; color: #222; }
+    .post-location { font-size: 11px; color: #999; margin-top: 1px; }
+    .post-more { margin-left: auto; color: #999; font-size: 18px; letter-spacing: 2px; cursor: pointer; }
+
+    .post-image { width: 100%; height: 390px; }
+
+    .post-actions {
+      display: flex; gap: 16px; padding: 10px 14px; align-items: center;
+    }
+    .post-actions svg { width: 24px; height: 24px; cursor: pointer; }
+    .post-actions .spacer { flex: 1; }
+
+    .post-likes { padding: 0 16px; font-size: 13px; font-weight: 600; color: #222; }
+
+    .post-caption {
+      padding: 4px 16px; font-size: 13px; color: #222; line-height: 18px;
+    }
+    .post-caption b { font-weight: 600; }
+
+    .post-drink-tag {
+      display: inline-flex; align-items: center; gap: 4px;
+      padding: 4px 10px; border-radius: 6px;
+      font-size: 12px; font-weight: 500;
+      margin: 6px 16px 4px; cursor: pointer;
+    }
+    .post-drink-tag.wine { background: #f7f0f3; color: #7b2d4e; }
+    .post-drink-tag.whiskey { background: #f5f0e8; color: #8a6d3b; }
+
+    .post-time { padding: 2px 16px 14px; font-size: 11px; color: #bbb; }
+
+    /* ===== BROWSE ===== */
+    .search-box { margin: 12px 16px; position: relative; }
+    .search-box input {
+      width: 100%; padding: 10px 16px 10px 38px;
+      border: none; border-radius: 10px;
+      font-size: 14px; background: #f5f5f5;
+      font-family: inherit; outline: none;
+    }
+    .search-box input:focus { background: #f0f0f0; }
+    .search-box svg {
+      position: absolute; left: 12px; top: 50%; transform: translateY(-50%);
+      width: 18px; height: 18px; stroke: #999;
+    }
+
+    .cat-scroll { display: flex; gap: 8px; padding: 4px 16px 12px; overflow-x: auto; }
+    .cat-scroll::-webkit-scrollbar { display: none; }
+    .cat-btn {
+      padding: 6px 16px; border-radius: 20px;
+      font-size: 13px; font-weight: 500;
+      border: 1px solid #efefef; background: #fff;
+      color: #999; cursor: pointer; white-space: nowrap;
+      font-family: inherit;
+    }
+    .cat-btn.active { background: #222; color: #fff; border-color: #222; }
+
+    .browse-count { font-size: 12px; color: #bbb; padding: 0 16px 8px; }
+
+    .browse-list { padding: 0; }
+    .browse-item {
+      display: flex; gap: 14px; padding: 12px 16px;
+      border-bottom: 1px solid #f8f8f8; align-items: center;
+    }
+    .browse-thumb {
+      width: 52px; height: 52px; border-radius: 10px;
+      flex-shrink: 0;
+    }
+    .browse-info { flex: 1; min-width: 0; }
+    .browse-name { font-size: 14px; font-weight: 600; color: #222; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .browse-name-ko { font-size: 11px; color: #aaa; margin-top: 1px; }
+    .browse-meta { font-size: 11px; color: #999; margin-top: 3px; }
+    .browse-cat {
+      display: inline-block; font-size: 10px; font-weight: 600;
+      padding: 2px 7px; border-radius: 6px; margin-top: 4px;
+    }
+
+    .browse-add {
+      background: #7b2d4e; color: #fff;
+      border: none; padding: 7px 14px; border-radius: 8px;
+      font-size: 12px; font-weight: 600; cursor: pointer;
+      font-family: inherit; white-space: nowrap; flex-shrink: 0;
+    }
+    .browse-add.added { background: #f0f0f0; color: #999; }
+
+    /* ===== CAVE ===== */
+    .cave-stats {
+      display: flex; justify-content: space-around;
+      padding: 20px 0; margin: 0 20px;
+      border-bottom: 1px solid #efefef;
+    }
+    .cave-stat { text-align: center; }
+    .cave-stat-num { font-size: 22px; font-weight: 700; color: #222; }
+    .cave-stat-label { font-size: 11px; color: #999; margin-top: 2px; font-weight: 500; }
+
+    .cave-tabs {
+      display: flex; border-bottom: 1px solid #efefef; padding: 0 16px;
+    }
+    .cave-tab {
+      padding: 12px 0; font-size: 13px; font-weight: 500;
+      color: #bbb; flex: 1; text-align: center;
+      cursor: pointer; border: none; background: none; font-family: inherit;
+    }
+    .cave-tab.active { color: #222; font-weight: 600; border-bottom: 2px solid #222; }
+
+    .cave-grid {
+      display: grid; grid-template-columns: 1fr 1fr;
+      gap: 10px; padding: 14px 14px;
+    }
+    .cave-card {
+      background: #fff; border-radius: 12px;
+      overflow: hidden; border: 1px solid #f0f0f0;
+    }
+    .cave-card-img { height: 120px; }
+    .cave-card-body { padding: 10px 12px; }
+    .cave-card-name { font-size: 13px; font-weight: 600; color: #222; line-height: 17px; }
+    .cave-card-meta { font-size: 11px; color: #999; margin-top: 3px; }
+    .cave-card-remove {
+      font-size: 11px; color: #ed4956; cursor: pointer;
+      margin-top: 6px; font-weight: 500;
+    }
+
+    .cave-empty {
+      text-align: center; padding: 80px 20px;
+    }
+    .cave-empty-title { font-size: 17px; font-weight: 600; color: #222; margin-bottom: 6px; }
+    .cave-empty-desc { font-size: 14px; color: #999; line-height: 22px; }
+
+    /* ===== TOAST ===== */
+    .toast {
+      position: fixed; bottom: 85px; left: 50%;
+      transform: translateX(-50%); max-width: 300px;
+      background: #222; color: #fff;
+      padding: 12px 24px; border-radius: 25px;
+      font-size: 13px; font-weight: 500; text-align: center;
+      z-index: 200; opacity: 0; transition: opacity 0.3s;
+      pointer-events: none;
+    }
+    .toast.show { opacity: 1; }
+
+    /* Colors by category */
+    .bg-wine { background: #f0e8dd; }
+    .bg-whiskey { background: #e8ddd0; }
+    .bg-sake { background: #e0e8f0; }
+    .bg-cognac { background: #ede5d8; }
+    .bg-other { background: #e8e8e8; }
+    .cat-wine { background: #f7f0f3; color: #7b2d4e; }
+    .cat-whiskey { background: #f5f0e8; color: #8a6d3b; }
+    .cat-sake { background: #eef2f7; color: #3b6d8a; }
+    .cat-cognac { background: #f5efe8; color: #8a5a3b; }
+    .cat-other { background: #f0f0f0; color: #666; }
+
+    /* ===== LOGIN ===== */
+    #login-screen {
+      position: fixed; top: 0; left: 50%; transform: translateX(-50%);
+      width: 100%; max-width: 430px; height: 100vh;
+      background: #fff; z-index: 500;
+      display: flex; flex-direction: column;
+    }
+    #login-screen.hidden { display: none; }
+
+    .login-hero {
+      flex: 1; display: flex; flex-direction: column;
+      align-items: center; justify-content: center;
+    }
+    .login-logo {
+      font-family: 'Playfair Display', serif;
+      font-size: 48px; font-weight: 700; font-style: italic;
+      color: #7b2d4e; letter-spacing: -1px; margin-bottom: 10px;
+    }
+    .login-sub { font-size: 15px; color: #999; font-weight: 400; }
+
+    .login-actions { padding: 0 28px 50px; }
+
+    .login-btn {
+      width: 100%; display: flex; align-items: center; justify-content: center;
+      gap: 10px; padding: 14px; border-radius: 10px;
+      font-size: 15px; font-weight: 500; cursor: pointer;
+      font-family: inherit; border: none;
+    }
+    .login-google { background: #fff; border: 1px solid #ddd; color: #333; }
+    .login-apple { background: #000; color: #fff; margin-top: 10px; }
+
+    .login-divider {
+      display: flex; align-items: center; gap: 16px;
+      margin: 20px 0; color: #ccc; font-size: 12px;
+    }
+    .login-divider::before, .login-divider::after {
+      content: ''; flex: 1; height: 1px; background: #eee;
+    }
+
+    .login-guest {
+      width: 100%; padding: 14px; border-radius: 10px;
+      font-size: 15px; font-weight: 500; cursor: pointer;
+      font-family: inherit; background: none;
+      border: 1px solid #7b2d4e; color: #7b2d4e;
+      text-align: center;
+    }
+
+    .login-terms {
+      font-size: 11px; color: #bbb; text-align: center;
+      margin-top: 20px; line-height: 16px;
+    }
+    .login-terms a { color: #7b2d4e; text-decoration: none; }
+  </style>
+</head>
+<body>
+  <!-- Login Screen -->
+  <div id="login-screen">
+    <div class="login-hero">
+      <div class="login-logo">Cave</div>
+      <div class="login-sub">나만의 주류 취향을 공유하세요</div>
+    </div>
+    <div class="login-actions">
+      <button class="login-btn login-google" onclick="enterApp()">
+        <svg width="20" height="20" viewBox="0 0 24 24"><path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92a5.06 5.06 0 0 1-2.2 3.32v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.1z" fill="#4285F4"/><path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/><path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05"/><path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/></svg>
+        Google로 계속하기
+      </button>
+      <button class="login-btn login-apple" onclick="enterApp()">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="white"><path d="M17.05 20.28c-.98.95-2.05.88-3.08.4-1.09-.5-2.08-.48-3.24 0-1.44.62-2.2.44-3.06-.4C2.79 15.25 3.51 7.59 9.05 7.31c1.35.07 2.29.74 3.08.8 1.18-.24 2.31-.93 3.57-.84 1.51.12 2.65.72 3.4 1.8-3.12 1.87-2.38 5.98.48 7.13-.57 1.5-1.31 2.99-2.54 4.09zM12.03 7.25c-.15-2.23 1.66-4.07 3.74-4.25.29 2.58-2.34 4.5-3.74 4.25z"/></svg>
+        Apple로 계속하기
+      </button>
+      <div class="login-divider">or</div>
+      <button class="login-guest" onclick="enterApp()">둘러보기</button>
+      <div class="login-terms">계속 진행하면 <a href="#">이용약관</a> 및 <a href="#">개인정보처리방침</a>에 동의하게 됩니다.</div>
+    </div>
+  </div>
+
+  <div id="app">
+
+    <!-- Header (changes per tab) -->
+    <div class="header" id="main-header">
+      <div class="logo">Cave</div>
+    </div>
+
+    <!-- Panels -->
+    <div id="panel-feed" class="panel active">
+      <div id="feed-content"></div>
+    </div>
+
+    <div id="panel-browse" class="panel">
+      <div class="search-box">
+        <svg fill="none" stroke="#999" stroke-width="1.8" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+        <input type="text" id="search-input" placeholder="Search wines, whisky, sake..." oninput="searchDrinks()">
+      </div>
+      <div class="cat-scroll" id="cat-scroll"></div>
+      <div class="browse-count" id="browse-count"></div>
+      <div class="browse-list" id="browse-list"></div>
+    </div>
+
+    <div id="panel-cave" class="panel">
+      <div class="cave-stats">
+        <div class="cave-stat"><div class="cave-stat-num" id="s-bottles">0</div><div class="cave-stat-label">Bottles</div></div>
+        <div class="cave-stat"><div class="cave-stat-num" id="s-countries">0</div><div class="cave-stat-label">Countries</div></div>
+        <div class="cave-stat"><div class="cave-stat-num" id="s-categories">0</div><div class="cave-stat-label">Types</div></div>
+      </div>
+      <div class="cave-tabs" id="cave-tabs"></div>
+      <div id="cave-grid-wrap"></div>
+    </div>
+
+    <div id="panel-profile" class="panel" style="text-align:center;padding:80px 20px;">
+      <div style="width:80px;height:80px;border-radius:40px;background:#f0f0f0;margin:0 auto 16px;display:flex;align-items:center;justify-content:center;font-size:28px;font-weight:600;color:#999;">?</div>
+      <div style="font-size:17px;font-weight:600;color:#222;margin-bottom:4px;">Guest Mode</div>
+      <div style="font-size:14px;color:#999;">Sign in to save your Cave</div>
+    </div>
+
+    <!-- Tab Bar -->
+    <div class="tab-bar">
+      <button class="tab-bar-item" onclick="switchTab('feed')">
+        <svg fill="none" stroke="#222" stroke-width="2" viewBox="0 0 24 24" id="icon-feed"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+      </button>
+      <button class="tab-bar-item" onclick="switchTab('browse')">
+        <svg fill="none" stroke="#999" stroke-width="1.8" viewBox="0 0 24 24" id="icon-browse"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+      </button>
+      <button class="tab-bar-item" onclick="switchTab('cave')">
+        <svg fill="none" stroke="#999" stroke-width="1.8" viewBox="0 0 24 24" id="icon-cave"><path d="M4 22V12a8 8 0 0 1 16 0v10"/><line x1="4" y1="22" x2="20" y2="22"/><path d="M10.5 9h3M10.5 7h3M10 9v1.5c0 .5-1.5 1.5-1.5 3v4.5a1 1 0 0 0 1 1h5a1 1 0 0 0 1-1v-4.5c0-1.5-1.5-2.5-1.5-3V9" stroke-width="1.5"/></svg>
+      </button>
+      <button class="tab-bar-item" onclick="switchTab('profile')">
+        <svg fill="none" stroke="#999" stroke-width="1.8" viewBox="0 0 24 24" id="icon-profile"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+      </button>
+    </div>
+
+    <div class="toast" id="toast"></div>
+  </div>
+
+  <script>
+    const SUPABASE_URL = 'https://gdbemhffrxlobwcjztfb.supabase.co';
+    const SUPABASE_KEY = 'sb_publishable_5GmZ3ZnUalgS0OgR8NGhHQ_sCpcXAhd';
+    const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+    let allDrinks = [];
+    let currentCat = 'all';
+    let caveCat = 'all';
+    let myCave = JSON.parse(localStorage.getItem('icave') || '[]');
+
+    const bgMap = { wine:'bg-wine', whiskey:'bg-whiskey', sake:'bg-sake', cognac:'bg-cognac', other:'bg-other' };
+    const catMap = { wine:'cat-wine', whiskey:'cat-whiskey', sake:'cat-sake', cognac:'cat-cognac', other:'cat-other' };
+    const labelMap = { wine:'Wine', whiskey:'Whisky', sake:'Sake', cognac:'Cognac', other:'Other' };
+    const colorMap = { wine:'#f0e8dd', whiskey:'#e8ddd0', sake:'#e0e8f0', cognac:'#ede5d8', other:'#e8e8e8' };
+
+    // ===== FEED =====
+    function renderFeed() {
+      const posts = [
+        { user:'wine_lover_jk', avatar:'JK', avatarBg:'#e8d5c4', loc:'Le Bar, Seoul',
+          img:'linear-gradient(180deg, #e8d5c4 0%, #c9a88a 100%)',
+          likes:42, caption:'2018 Margaux. Silky tannins with blackcurrant notes',
+          tag:'Chateau Margaux 2018', tagType:'wine', time:'2h', liked:true },
+        { user:'tokyo_whisky', avatar:'TK', avatarBg:'#d4c5e2', loc:'Bar K, Itaewon',
+          img:'linear-gradient(180deg, #d4c0a0 0%, #a8865a 100%)',
+          likes:63, caption:'Yamazaki 18. Honey, dried fruit, and perfect oak balance',
+          tag:'Yamazaki 18 Year', tagType:'whiskey', time:'3h', liked:false },
+      ];
+
+      document.getElementById('feed-content').innerHTML = posts.map(p => `
+        <div class="post">
+          <div class="post-header">
+            <div class="post-avatar" style="background:${p.avatarBg};">${p.avatar}</div>
+            <div style="flex:1">
+              <div class="post-user">${p.user}</div>
+              <div class="post-location">${p.loc}</div>
+            </div>
+            <div class="post-more">...</div>
+          </div>
+          <div class="post-image" style="background:${p.img};"></div>
+          <div class="post-actions">
+            <svg fill="${p.liked?'#ed4956':'none'}" stroke="${p.liked?'#ed4956':'#222'}" stroke-width="${p.liked?'0':'1.8'}" viewBox="0 0 24 24"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
+            <svg fill="none" stroke="#222" stroke-width="1.8" viewBox="0 0 24 24"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+            <svg fill="none" stroke="#222" stroke-width="1.8" viewBox="0 0 24 24"><path d="M22 2L11 13M22 2l-7 20-4-9-9-4 20-7z"/></svg>
+            <div class="spacer"></div>
+            <svg fill="none" stroke="#222" stroke-width="1.8" viewBox="0 0 24 24"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg>
+          </div>
+          <div class="post-likes">${p.likes} likes</div>
+          <div class="post-caption"><b>${p.user}</b> ${p.caption}</div>
+          <div class="post-drink-tag ${p.tagType}">
+            <svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><path d="M4 22V12a8 8 0 0 1 16 0v10"/><line x1="4" y1="22" x2="20" y2="22"/></svg>
+            ${p.tag}
+          </div>
+          <div class="post-time">${p.time}</div>
+        </div>
+      `).join('');
+    }
+
+    // ===== BROWSE =====
+    async function loadDrinks() {
+      const { data, error } = await sb.from('wines').select('*').order('name');
+      if (error) { document.getElementById('browse-list').innerHTML = '<div style="padding:40px;text-align:center;color:#999;">'+error.message+'</div>'; return; }
+      allDrinks = data;
+
+      const cats = ['all', ...new Set(data.map(d => d.category))];
+      document.getElementById('cat-scroll').innerHTML = cats.map(c =>
+        `<button class="cat-btn ${c==='all'?'active':''}" onclick="filterCat('${c}',this)">${c==='all'?'All':labelMap[c]||c}</button>`
+      ).join('');
+
+      renderBrowse(data);
+    }
+
+    function renderBrowse(drinks) {
+      document.getElementById('browse-count').textContent = drinks.length + ' items';
+      document.getElementById('browse-list').innerHTML = drinks.map(d => {
+        const inCave = myCave.some(c => c.id === d.id);
+        return `
+        <div class="browse-item">
+          <div class="browse-thumb ${bgMap[d.category]||'bg-other'}"></div>
+          <div class="browse-info">
+            <div class="browse-name">${d.name}</div>
+            ${d.name_ko ? `<div class="browse-name-ko">${d.name_ko}</div>` : ''}
+            <div class="browse-meta">${[d.region,d.country].filter(Boolean).join(', ')}${d.alcohol_pct?' · '+d.alcohol_pct+'%':''}</div>
+            <span class="browse-cat ${catMap[d.category]||'cat-other'}">${labelMap[d.category]||d.category}</span>
+          </div>
+          <button class="browse-add ${inCave?'added':''}" onclick="toggleCave(${d.id})">${inCave?'Added':'+ Add'}</button>
+        </div>`;
+      }).join('');
+    }
+
+    function searchDrinks() {
+      const q = document.getElementById('search-input').value.toLowerCase();
+      let f = allDrinks;
+      if (currentCat !== 'all') f = f.filter(d => d.category === currentCat);
+      if (q) f = f.filter(d =>
+        d.name.toLowerCase().includes(q) ||
+        (d.name_ko && d.name_ko.includes(q)) ||
+        (d.producer && d.producer.toLowerCase().includes(q)) ||
+        (d.region && d.region.toLowerCase().includes(q)) ||
+        (d.country && d.country.toLowerCase().includes(q))
+      );
+      renderBrowse(f);
+    }
+
+    function filterCat(cat, btn) {
+      currentCat = cat;
+      document.querySelectorAll('.cat-btn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      searchDrinks();
+    }
+
+    // ===== CAVE =====
+    function toggleCave(id) {
+      const idx = myCave.findIndex(c => c.id === id);
+      if (idx >= 0) { myCave.splice(idx, 1); showToast('Removed from Cave'); }
+      else {
+        const d = allDrinks.find(w => w.id === id);
+        if (d) { myCave.push(d); showToast('Added to Cave!'); }
+      }
+      localStorage.setItem('icave', JSON.stringify(myCave));
+      searchDrinks();
+    }
+
+    function renderCave() {
+      document.getElementById('s-bottles').textContent = myCave.length;
+      document.getElementById('s-countries').textContent = new Set(myCave.map(w=>w.country).filter(Boolean)).size;
+      document.getElementById('s-categories').textContent = new Set(myCave.map(w=>w.category)).size;
+
+      const cats = ['all', ...new Set(myCave.map(d=>d.category))];
+      document.getElementById('cave-tabs').innerHTML = cats.map(c =>
+        `<button class="cave-tab ${c===caveCat?'active':''}" onclick="filterCaveCat('${c}',this)">${c==='all'?'All':labelMap[c]||c}</button>`
+      ).join('');
+
+      let items = myCave;
+      if (caveCat !== 'all') items = items.filter(d => d.category === caveCat);
+
+      if (items.length === 0) {
+        document.getElementById('cave-grid-wrap').innerHTML = `
+          <div class="cave-empty">
+            <div class="cave-empty-title">Cave is empty</div>
+            <div class="cave-empty-desc">Browse and add drinks<br>to start your collection</div>
+          </div>`;
+        return;
+      }
+
+      document.getElementById('cave-grid-wrap').innerHTML = '<div class="cave-grid">' + items.map(d => `
+        <div class="cave-card">
+          <div class="cave-card-img" style="background:${colorMap[d.category]||'#f0f0f0'};"></div>
+          <div class="cave-card-body">
+            <div class="cave-card-name">${d.name}</div>
+            <div class="cave-card-meta">${d.region||''} · ${labelMap[d.category]||d.category}</div>
+            <div class="cave-card-remove" onclick="removeCave(${d.id})">Remove</div>
+          </div>
+        </div>
+      `).join('') + '</div>';
+    }
+
+    function filterCaveCat(cat, btn) {
+      caveCat = cat;
+      document.querySelectorAll('.cave-tab').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      renderCave();
+    }
+
+    function removeCave(id) {
+      myCave = myCave.filter(c => c.id !== id);
+      localStorage.setItem('icave', JSON.stringify(myCave));
+      renderCave();
+      showToast('Removed from Cave');
+    }
+
+    // ===== NAV =====
+    const tabs = ['feed','browse','cave','profile'];
+    function switchTab(tab) {
+      tabs.forEach(t => {
+        document.getElementById('panel-'+t).classList.remove('active');
+        const icon = document.getElementById('icon-'+t);
+        if (icon) { icon.setAttribute('stroke','#999'); icon.setAttribute('stroke-width','1.8'); }
+      });
+      document.getElementById('panel-'+tab).classList.add('active');
+      const activeIcon = document.getElementById('icon-'+tab);
+      if (activeIcon) { activeIcon.setAttribute('stroke','#222'); activeIcon.setAttribute('stroke-width','2.2'); }
+
+      // Header
+      const h = document.getElementById('main-header');
+      if (tab === 'feed') h.innerHTML = '<div class="logo">Cave</div>';
+      else if (tab === 'browse') h.innerHTML = '<div class="header-title">Discover</div>';
+      else if (tab === 'cave') h.innerHTML = '<div class="header-title">My Cave</div>';
+      else if (tab === 'profile') h.innerHTML = '<div class="header-title">Profile</div>';
+
+      if (tab === 'cave') renderCave();
+      if (tab === 'browse' && allDrinks.length === 0) loadDrinks();
+    }
+
+    function showToast(msg) {
+      const t = document.getElementById('toast');
+      t.textContent = msg;
+      t.classList.add('show');
+      setTimeout(() => t.classList.remove('show'), 1500);
+    }
+
+    // ===== LOGIN =====
+    function enterApp() {
+      document.getElementById('login-screen').classList.add('hidden');
+    }
+
+    // Init
+    renderFeed();
+    loadDrinks();
+  </script>
+</body>
+</html>

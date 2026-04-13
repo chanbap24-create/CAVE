@@ -1,0 +1,12 @@
+{
+  "name": "i-cellar",
+  "private": true,
+  "scripts": {
+    "mobile": "cd apps/mobile && npx expo start",
+    "mobile:ios": "cd apps/mobile && npx expo start --ios",
+    "mobile:android": "cd apps/mobile && npx expo start --android"
+  },
+  "devDependencies": {
+    "pg": "^8.20.0"
+  }
+}

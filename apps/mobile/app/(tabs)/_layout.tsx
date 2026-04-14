@@ -35,9 +35,9 @@ function CreateIcon({ focused }: { focused: boolean }) {
 function CaveIcon({ focused }: { focused: boolean }) {
   return (
     <Svg width={26} height={26} fill="none" stroke={focused ? '#222' : '#999'} strokeWidth={focused ? 2.2 : 1.8} viewBox="0 0 24 24">
-      <Path d="M4 22V12a8 8 0 0 1 16 0v10" />
-      <Line x1={4} y1={22} x2={20} y2={22} />
-      <Path d="M10.5 9h3M10.5 7h3M10 9v1.5c0 .5-1.5 1.5-1.5 3v4.5a1 1 0 0 0 1 1h5a1 1 0 0 0 1-1v-4.5c0-1.5-1.5-2.5-1.5-3V9" strokeWidth={1.5} />
+      <Path d="M3 22V12a9 9 0 0 1 18 0v10" />
+      <Path d="M7 22v-6a5 5 0 0 1 10 0v6" />
+      <Line x1={2} y1={22} x2={22} y2={22} />
     </Svg>
   );
 }
@@ -86,7 +86,7 @@ export default function TabLayout() {
       <Tabs.Screen
         name="create"
         options={{
-          tabBarIcon: ({ focused }) => <CreateIcon focused={focused} />,
+          href: null,
         }}
       />
       <Tabs.Screen

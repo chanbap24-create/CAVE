@@ -3,6 +3,7 @@ import { Slot, useRouter, useSegments } from 'expo-router';
 import { useEffect } from 'react';
 import { StatusBar } from 'expo-status-bar';
 import { AuthProvider, useAuth } from '@/lib/auth';
+import { FollowProvider } from '@/lib/followContext';
 import { View, StyleSheet, ActivityIndicator } from 'react-native';
 import { useFonts, PlayfairDisplay_700Bold_Italic } from '@expo-google-fonts/playfair-display';
 
@@ -46,10 +47,12 @@ export default function RootLayout() {
 
   return (
     <AuthProvider>
-      <View style={styles.container}>
-        <StatusBar style="dark" />
-        <AuthGate />
-      </View>
+      <FollowProvider>
+        <View style={styles.container}>
+          <StatusBar style="dark" />
+          <AuthGate />
+        </View>
+      </FollowProvider>
     </AuthProvider>
   );
 }

@@ -3,6 +3,9 @@ import { View, Text, ScrollView, StyleSheet, Pressable, TextInput, Modal, Alert 
 import { useAuth } from '@/lib/auth';
 import { supabase } from '@/lib/supabase';
 import { useFocusEffect } from 'expo-router';
+import { useMyPosts } from '@/lib/hooks/useMyPosts';
+import { useDeletePost } from '@/lib/hooks/useDeletePost';
+import { PostGrid } from '@/components/PostGrid';
 
 interface Profile {
   username: string;
@@ -22,10 +25,15 @@ export default function ProfileScreen() {
   const [editUsername, setEditUsername] = useState('');
   const [editBio, setEditBio] = useState('');
   const [saving, setSaving] = useState(false);
+  const { posts: myPosts, loadPosts } = useMyPosts();
+  const { deletePost } = useDeletePost(loadPosts);
 
   useFocusEffect(
     useCallback(() => {
-      if (user) loadProfile();
+      if (user) {
+        loadProfile();
+        loadPosts();
+      }
     }, [user])
   );
 
@@ -150,6 +158,11 @@ export default function ProfileScreen() {
             <Text style={styles.infoValue}>{user?.email}</Text>
           </View>
         </View>
+
+        <View style={styles.postsSection}>
+          <Text style={styles.sectionTitle}>Posts</Text>
+        </View>
+        <PostGrid posts={myPosts} onLongPress={(post) => deletePost(post.id)} />
 
         <Pressable style={styles.signOutBtn} onPress={() => {
           Alert.alert('Sign Out', 'Are you sure?', [
@@ -276,6 +289,8 @@ const styles = StyleSheet.create({
   },
   infoLabel: { fontSize: 13, color: '#999' },
   infoValue: { fontSize: 13, fontWeight: '500', color: '#222' },
+
+  postsSection: { paddingHorizontal: 20, paddingTop: 16, paddingBottom: 8 },
 
   signOutBtn: {
     marginHorizontal: 20, marginTop: 24,

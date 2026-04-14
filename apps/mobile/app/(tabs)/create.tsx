@@ -68,7 +68,8 @@ export default function CreateScreen() {
   }
 
   async function submitPost() {
-    if (!user || !imageUri) return;
+    if (!user) return;
+    if (!imageUri) return Alert.alert('Photo required', 'Please select a photo to post');
     setPosting(true);
 
     try {

@@ -1,11 +1,10 @@
 import React, { useEffect, useState, useCallback } from 'react';
-import { View, Text, ScrollView, TextInput, StyleSheet, Pressable, Dimensions, Alert } from 'react-native';
+import { View, Text, ScrollView, TextInput, StyleSheet, Pressable, Alert } from 'react-native';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/lib/auth';
+import { useFeaturedCaves } from '@/lib/hooks/useFeaturedCaves';
+import { FeaturedCaveCard } from '@/components/FeaturedCaveCard';
 import Svg, { Path, Circle, Line } from 'react-native-svg';
-
-const { width } = Dimensions.get('window');
-const CARD_WIDTH = width * 0.52;
 
 const categories = ['All', 'Wine', 'Whisky', 'Sake', 'Cognac', 'Other'];
 const catDbMap: Record<string, string> = { Wine: 'wine', Whisky: 'whiskey', Sake: 'sake', Cognac: 'cognac', Other: 'other' };
@@ -18,17 +17,6 @@ const tagStyles: Record<string, { bg: string; color: string }> = {
   other: { bg: '#f0f0f0', color: '#666' },
 };
 
-const featuredCaves = [
-  { avatar: 'MJ', avatarBg: '#f0e8dd', name: 'wine_master_mj', desc: '10 countries, 52 bottles', badges: ['Collector', 'World Traveler'], gradient: '#e8d5c4' },
-  { avatar: 'TK', avatarBg: '#d4c5e2', name: 'tokyo_whisky', desc: 'Japanese Whisky specialist', badges: ['Whisky Explorer'], gradient: '#d4c0a0' },
-  { avatar: 'YR', avatarBg: '#e0ddd8', name: 'yerin_sake', desc: 'Exploring the world of Sake', badges: ['Sake Lover'], gradient: '#e8e4d8' },
-];
-
-const achievements = [
-  { avatar: 'MJ', avatarBg: '#f0e8dd', name: 'wine_master_mj', text: 'World Traveler', detail: '10 countries collected', time: '2h', color: '#c9a84c' },
-  { avatar: 'TK', avatarBg: '#d4c5e2', name: 'tokyo_whisky', text: 'Whisky Explorer', detail: '10 whiskies collected', time: '5h', color: '#c9a84c' },
-  { avatar: 'HJ', avatarBg: '#e0ddd8', name: 'hajin_wine', text: 'Burgundy Lover', detail: '5 Burgundy wines', time: 'Yesterday', color: '#c9a84c' },
-];
 
 export default function ExploreScreen() {
   const { user } = useAuth();
@@ -37,6 +25,7 @@ export default function ExploreScreen() {
   const [search, setSearch] = useState('');
   const [activeCat, setActiveCat] = useState('All');
   const [showSearch, setShowSearch] = useState(false);
+  const { caves: featuredCaves } = useFeaturedCaves();
 
   useEffect(() => {
     loadDrinks();
@@ -146,51 +135,23 @@ export default function ExploreScreen() {
         </View>
       ) : (
         <ScrollView showsVerticalScrollIndicator={false}>
-          <Text style={styles.sectionTitle}>Featured Caves</Text>
-          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ paddingHorizontal: 20, gap: 12, paddingBottom: 4 }}>
-            {featuredCaves.map((cave, i) => (
-              <Pressable key={i} style={styles.featuredCard}>
-                <View style={[styles.featuredBg, { backgroundColor: cave.gradient }]} />
-                <View style={styles.featuredOverlay}>
-                  <View style={[styles.featuredAvatar, { backgroundColor: cave.avatarBg }]}>
-                    <Text style={styles.featuredAvatarText}>{cave.avatar}</Text>
-                  </View>
-                  <Text style={styles.featuredName}>{cave.name}</Text>
-                  <Text style={styles.featuredDesc}>{cave.desc}</Text>
-                  <View style={styles.featuredBadges}>
-                    {cave.badges.map((b, j) => (
-                      <View key={j} style={styles.featuredBadge}><Text style={styles.featuredBadgeText}>{b}</Text></View>
-                    ))}
-                  </View>
-                </View>
-              </Pressable>
-            ))}
-          </ScrollView>
+          {featuredCaves.length > 0 && (
+            <>
+              <Text style={styles.sectionTitle}>Featured Caves</Text>
+              <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ paddingHorizontal: 20, gap: 12, paddingBottom: 4 }}>
+                {featuredCaves.map(cave => (
+                  <FeaturedCaveCard key={cave.user_id} cave={cave} />
+                ))}
+              </ScrollView>
+            </>
+          )}
 
-          <Text style={[styles.sectionTitle, { marginTop: 8 }]}>Recent Achievements</Text>
-          {achievements.map((a, i) => (
-            <View key={i} style={styles.achievementCard}>
-              <View style={styles.achievementHeader}>
-                <View style={[styles.achievementAvatar, { backgroundColor: a.avatarBg }]}>
-                  <Text style={styles.achievementAvatarText}>{a.avatar}</Text>
-                </View>
-                <View style={{ flex: 1 }}>
-                  <Text style={styles.achievementName}>{a.name}</Text>
-                  <Text style={styles.achievementText}>{a.text} achieved</Text>
-                </View>
-              </View>
-              <View style={styles.trophyRow}>
-                <View style={[styles.trophyVisual, { borderColor: a.color }]}>
-                  <Svg width={24} height={24} fill="none" stroke={a.color} strokeWidth={1.5} viewBox="0 0 24 24">
-                    <Path d="M6 9H3a1 1 0 0 1-1-1V5a1 1 0 0 1 1-1h3M18 9h3a1 1 0 0 0 1-1V5a1 1 0 0 0-1-1h-3M6 4h12v6a6 6 0 0 1-12 0V4zM12 16v3M8 22h8M10 19h4" />
-                  </Svg>
-                  <Text style={[styles.trophyLabel, { color: a.color }]}>{a.text}</Text>
-                </View>
-                <Text style={styles.trophyDetail}>{a.detail}</Text>
-              </View>
-              <Text style={styles.achievementTime}>{a.time}</Text>
+          {featuredCaves.length === 0 && (
+            <View style={styles.emptyDiscover}>
+              <Text style={styles.emptyDiscoverTitle}>No caves yet</Text>
+              <Text style={styles.emptyDiscoverDesc}>Start collecting to appear here</Text>
             </View>
-          ))}
+          )}
           <View style={{ height: 20 }} />
         </ScrollView>
       )}
@@ -230,26 +191,8 @@ const styles = StyleSheet.create({
   addBtnTextAdded: { color: '#999' },
 
   sectionTitle: { fontSize: 15, fontWeight: '700', color: '#222', paddingHorizontal: 20, paddingTop: 20, paddingBottom: 12 },
-  featuredCard: { width: CARD_WIDTH, height: 240, borderRadius: 16, overflow: 'hidden', position: 'relative' },
-  featuredBg: { width: '100%', height: '100%' },
-  featuredOverlay: { position: 'absolute', bottom: 0, left: 0, right: 0, padding: 16, backgroundColor: 'rgba(0,0,0,0.35)' },
-  featuredAvatar: { width: 36, height: 36, borderRadius: 18, alignItems: 'center', justifyContent: 'center', borderWidth: 2, borderColor: '#fff', marginBottom: 6 },
-  featuredAvatarText: { fontSize: 12, fontWeight: '600', color: '#888' },
-  featuredName: { fontSize: 14, fontWeight: '600', color: '#fff' },
-  featuredDesc: { fontSize: 12, color: 'rgba(255,255,255,0.8)', marginTop: 2 },
-  featuredBadges: { flexDirection: 'row', gap: 4, marginTop: 6 },
-  featuredBadge: { backgroundColor: 'rgba(255,255,255,0.2)', paddingHorizontal: 8, paddingVertical: 2, borderRadius: 10 },
-  featuredBadgeText: { fontSize: 10, fontWeight: '600', color: '#fff' },
 
-  achievementCard: { paddingHorizontal: 20, paddingVertical: 16, borderBottomWidth: 1, borderBottomColor: '#efefef' },
-  achievementHeader: { flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 12 },
-  achievementAvatar: { width: 40, height: 40, borderRadius: 20, alignItems: 'center', justifyContent: 'center' },
-  achievementAvatarText: { fontSize: 12, fontWeight: '600', color: '#888' },
-  achievementName: { fontSize: 14, fontWeight: '600', color: '#222' },
-  achievementText: { fontSize: 13, color: '#666', marginTop: 2 },
-  trophyRow: { backgroundColor: '#fafaf8', borderRadius: 12, padding: 14, paddingHorizontal: 16, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
-  trophyVisual: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingHorizontal: 12, paddingVertical: 6, borderWidth: 1.5, borderRadius: 10, backgroundColor: '#fff' },
-  trophyLabel: { fontSize: 13, fontWeight: '700' },
-  trophyDetail: { fontSize: 12, color: '#999' },
-  achievementTime: { fontSize: 11, color: '#bbb', marginTop: 8 },
+  emptyDiscover: { alignItems: 'center', paddingTop: 80 },
+  emptyDiscoverTitle: { fontSize: 17, fontWeight: '600', color: '#222', marginBottom: 6 },
+  emptyDiscoverDesc: { fontSize: 14, color: '#999' },
 });

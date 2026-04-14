@@ -4,6 +4,8 @@ import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/lib/auth';
 import { useFeaturedCaves } from '@/lib/hooks/useFeaturedCaves';
 import { FeaturedCaveCard } from '@/components/FeaturedCaveCard';
+import { TrendingDrinks } from '@/components/TrendingDrinks';
+import { PopularPosts } from '@/components/PopularPosts';
 import Svg, { Path, Circle, Line } from 'react-native-svg';
 
 const categories = ['All', 'Wine', 'Whisky', 'Sake', 'Cognac', 'Other'];
@@ -24,7 +26,6 @@ export default function ExploreScreen() {
   const [myCollection, setMyCollection] = useState<Set<number>>(new Set());
   const [search, setSearch] = useState('');
   const [activeCat, setActiveCat] = useState('All');
-  const [showSearch, setShowSearch] = useState(false);
   const { caves: featuredCaves } = useFeaturedCaves();
 
   useEffect(() => {
@@ -76,26 +77,31 @@ export default function ExploreScreen() {
     <View style={styles.container}>
       <View style={styles.header}>
         <Text style={styles.title}>Discover</Text>
-        <Pressable style={styles.headerBtn} onPress={() => setShowSearch(!showSearch)}>
-          <Svg width={22} height={22} fill="none" stroke="#222" strokeWidth={1.8} viewBox="0 0 24 24">
-            <Circle cx={11} cy={11} r={8} />
-            <Line x1={21} y1={21} x2={16.65} y2={16.65} />
-          </Svg>
-        </Pressable>
       </View>
 
-      {showSearch ? (
+      {/* Search bar always visible */}
+      <View style={styles.searchBox}>
+        <Svg style={styles.searchIcon} width={18} height={18} fill="none" stroke="#bbb" strokeWidth={1.8} viewBox="0 0 24 24">
+          <Circle cx={11} cy={11} r={8} />
+          <Line x1={21} y1={21} x2={16.65} y2={16.65} />
+        </Svg>
+        <TextInput
+          style={styles.searchInput}
+          placeholder="Search wines, whisky, sake..."
+          placeholderTextColor="#bbb"
+          value={search}
+          onChangeText={setSearch}
+        />
+        {search.length > 0 && (
+          <Pressable style={styles.searchClear} onPress={() => setSearch('')}>
+            <Text style={styles.searchClearText}>x</Text>
+          </Pressable>
+        )}
+      </View>
+
+      {/* Search mode: show results */}
+      {search.length > 0 ? (
         <View style={{ flex: 1 }}>
-          <View style={styles.searchBox}>
-            <TextInput
-              style={styles.searchInput}
-              placeholder="Search wines, whisky, sake..."
-              placeholderTextColor="#bbb"
-              value={search}
-              onChangeText={setSearch}
-              autoFocus
-            />
-          </View>
           <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.catScroll} contentContainerStyle={{ paddingHorizontal: 16, gap: 8 }}>
             {categories.map(c => (
               <Pressable key={c} style={[styles.catBtn, activeCat === c && styles.catBtnActive]} onPress={() => setActiveCat(c)}>
@@ -134,24 +140,23 @@ export default function ExploreScreen() {
           </ScrollView>
         </View>
       ) : (
+        /* Discover feed */
         <ScrollView showsVerticalScrollIndicator={false}>
           {featuredCaves.length > 0 && (
             <>
               <Text style={styles.sectionTitle}>Featured Caves</Text>
-              <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ paddingHorizontal: 20, gap: 12, paddingBottom: 4 }}>
+              <View style={styles.caveGrid}>
                 {featuredCaves.map(cave => (
                   <FeaturedCaveCard key={cave.user_id} cave={cave} />
                 ))}
-              </ScrollView>
+              </View>
             </>
           )}
 
-          {featuredCaves.length === 0 && (
-            <View style={styles.emptyDiscover}>
-              <Text style={styles.emptyDiscoverTitle}>No caves yet</Text>
-              <Text style={styles.emptyDiscoverDesc}>Start collecting to appear here</Text>
-            </View>
-          )}
+          <TrendingDrinks />
+
+          <PopularPosts />
+
           <View style={{ height: 20 }} />
         </ScrollView>
       )}
@@ -167,10 +172,12 @@ const styles = StyleSheet.create({
     alignItems: 'center', justifyContent: 'center', position: 'relative',
   },
   title: { fontSize: 17, fontWeight: '700', color: '#222' },
-  headerBtn: { position: 'absolute', right: 20, top: 62 },
 
-  searchBox: { margin: 12, marginHorizontal: 16 },
-  searchInput: { backgroundColor: '#f5f5f5', borderRadius: 10, padding: 10, paddingLeft: 16, fontSize: 14 },
+  searchBox: { margin: 12, marginHorizontal: 16, position: 'relative' },
+  searchIcon: { position: 'absolute', left: 12, top: 10, zIndex: 1 },
+  searchInput: { backgroundColor: '#f5f5f5', borderRadius: 10, padding: 10, paddingLeft: 38, fontSize: 14 },
+  searchClear: { position: 'absolute', right: 12, top: 8 },
+  searchClearText: { fontSize: 16, color: '#999' },
   catScroll: { flexGrow: 0, marginBottom: 4 },
   catBtn: { paddingHorizontal: 16, paddingVertical: 6, borderRadius: 20, borderWidth: 1, borderColor: '#efefef', backgroundColor: '#fff' },
   catBtnActive: { backgroundColor: '#222', borderColor: '#222' },
@@ -191,6 +198,10 @@ const styles = StyleSheet.create({
   addBtnTextAdded: { color: '#999' },
 
   sectionTitle: { fontSize: 15, fontWeight: '700', color: '#222', paddingHorizontal: 20, paddingTop: 20, paddingBottom: 12 },
+  caveGrid: {
+    flexDirection: 'row', flexWrap: 'wrap', gap: 8,
+    paddingHorizontal: 16,
+  },
 
   emptyDiscover: { alignItems: 'center', paddingTop: 80 },
   emptyDiscoverTitle: { fontSize: 17, fontWeight: '600', color: '#222', marginBottom: 6 },

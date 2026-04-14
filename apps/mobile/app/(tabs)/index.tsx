@@ -30,7 +30,7 @@ export default function FeedScreen() {
     const enriched = await Promise.all(postsData.map(async (post) => {
       const [imgRes, profileRes, wineRes] = await Promise.all([
         supabase.from('post_images').select('image_url').eq('post_id', post.id).order('display_order').limit(1),
-        supabase.from('profiles').select('username, display_name').eq('id', post.user_id).single(),
+        supabase.from('profiles').select('username, display_name, avatar_url').eq('id', post.user_id).single(),
         supabase.from('post_wines').select('wine_id').eq('post_id', post.id).limit(1),
       ]);
 

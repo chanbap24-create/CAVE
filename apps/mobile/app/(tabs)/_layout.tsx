@@ -1,7 +1,8 @@
-import React from 'react';
-import { Tabs } from 'expo-router';
+import React, { useCallback } from 'react';
+import { Tabs, useFocusEffect } from 'expo-router';
 import { View, StyleSheet } from 'react-native';
 import { colors } from '@/constants/theme';
+import { useUnreadDM } from '@/lib/hooks/useUnreadDM';
 import Svg, { Path, Circle, Line, Rect, Polyline, Ellipse } from 'react-native-svg';
 
 function HomeIcon({ focused }: { focused: boolean }) {
@@ -29,6 +30,18 @@ function CreateIcon({ focused }: { focused: boolean }) {
       <Line x1={12} y1={8} x2={12} y2={16} />
       <Line x1={8} y1={12} x2={16} y2={12} />
     </Svg>
+  );
+}
+
+function MessageIcon({ focused, hasUnread }: { focused: boolean; hasUnread: boolean }) {
+  return (
+    <View>
+      <Svg width={26} height={26} fill="none" stroke={focused ? '#222' : '#999'} strokeWidth={focused ? 2.2 : 1.8} viewBox="0 0 24 24">
+        <Path d="M22 2L11 13" />
+        <Path d="M22 2L15 22L11 13L2 9L22 2Z" />
+      </Svg>
+      {hasUnread && <View style={styles.unreadDot} />}
+    </View>
   );
 }
 
@@ -63,6 +76,12 @@ function ProfileIcon({ focused }: { focused: boolean }) {
 }
 
 export default function TabLayout() {
+  const { hasUnread, checkUnread } = useUnreadDM();
+
+  useFocusEffect(
+    useCallback(() => { checkUnread(); }, [])
+  );
+
   return (
     <Tabs
       screenOptions={{
@@ -87,6 +106,12 @@ export default function TabLayout() {
         name="create"
         options={{
           href: null,
+        }}
+      />
+      <Tabs.Screen
+        name="messages"
+        options={{
+          tabBarIcon: ({ focused }) => <MessageIcon focused={focused} hasUnread={hasUnread} />,
         }}
       />
       <Tabs.Screen
@@ -118,5 +143,14 @@ const styles = StyleSheet.create({
     borderTopWidth: 1,
     height: 85,
     paddingTop: 8,
+  },
+  unreadDot: {
+    position: 'absolute',
+    top: -2,
+    right: -4,
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: '#ed4956',
   },
 });

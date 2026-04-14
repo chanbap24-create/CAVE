@@ -1,11 +1,14 @@
 import React, { useEffect, useState, useCallback } from 'react';
-import { View, Text, ScrollView, StyleSheet, Pressable, TextInput, Modal, Alert } from 'react-native';
+import { View, Text, ScrollView, StyleSheet, Pressable, TextInput, Modal, Alert, Image } from 'react-native';
+import * as ImagePicker from 'expo-image-picker';
 import { useAuth } from '@/lib/auth';
 import { supabase } from '@/lib/supabase';
 import { useFocusEffect } from 'expo-router';
 import { useMyPosts } from '@/lib/hooks/useMyPosts';
 import { useDeletePost } from '@/lib/hooks/useDeletePost';
+import { useTasteProfile } from '@/lib/hooks/useTasteProfile';
 import { PostGrid } from '@/components/PostGrid';
+import { TasteCard } from '@/components/TasteCard';
 
 interface Profile {
   username: string;
@@ -25,14 +28,17 @@ export default function ProfileScreen() {
   const [editUsername, setEditUsername] = useState('');
   const [editBio, setEditBio] = useState('');
   const [saving, setSaving] = useState(false);
+  const [avatarUri, setAvatarUri] = useState<string | null>(null);
   const { posts: myPosts, loadPosts } = useMyPosts();
   const { deletePost } = useDeletePost(loadPosts);
+  const { taste, loadTaste } = useTasteProfile(user?.id);
 
   useFocusEffect(
     useCallback(() => {
       if (user) {
         loadProfile();
         loadPosts();
+        loadTaste();
       }
     }, [user])
   );
@@ -59,16 +65,57 @@ export default function ProfileScreen() {
     setEditName(profile.display_name || '');
     setEditUsername(profile.username);
     setEditBio(profile.bio || '');
+    setAvatarUri(profile.avatar_url || null);
     setShowEdit(true);
+  }
+
+  async function pickAvatar() {
+    const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (status !== 'granted') return Alert.alert('Permission needed', 'Allow photo access');
+
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ['images'],
+      quality: 0.7,
+      allowsEditing: true,
+      aspect: [1, 1],
+    });
+
+    if (!result.canceled && result.assets[0]) {
+      setAvatarUri(result.assets[0].uri);
+    }
   }
 
   async function saveProfile() {
     if (!user || !editUsername.trim()) return Alert.alert('', 'Username is required');
     setSaving(true);
+
+    let avatarUrl = profile?.avatar_url || null;
+
+    // Upload new avatar if changed
+    if (avatarUri && avatarUri !== profile?.avatar_url) {
+      try {
+        const ext = avatarUri.split('.').pop()?.split('?')[0] || 'jpg';
+        const fileName = `${user.id}/avatar.${ext}`;
+        const response = await fetch(avatarUri);
+        const arrayBuffer = await response.arrayBuffer();
+
+        await supabase.storage.from('post-images').upload(fileName, arrayBuffer, {
+          contentType: `image/${ext === 'jpg' ? 'jpeg' : ext}`,
+          upsert: true,
+        });
+
+        const { data: urlData } = supabase.storage.from('post-images').getPublicUrl(fileName);
+        avatarUrl = urlData.publicUrl;
+      } catch {
+        // Upload failed, keep existing avatar
+      }
+    }
+
     const { error } = await supabase.from('profiles').update({
       display_name: editName.trim() || null,
       username: editUsername.trim(),
       bio: editBio.trim() || null,
+      avatar_url: avatarUrl,
     }).eq('id', user.id);
     setSaving(false);
 
@@ -95,9 +142,13 @@ export default function ProfileScreen() {
 
       <ScrollView>
         <View style={styles.profileTop}>
-          <View style={styles.avatarLg}>
-            <Text style={styles.avatarText}>{initial}</Text>
-          </View>
+          {profile?.avatar_url ? (
+            <Image source={{ uri: profile.avatar_url }} style={styles.avatarLgImg} />
+          ) : (
+            <View style={styles.avatarLg}>
+              <Text style={styles.avatarText}>{initial}</Text>
+            </View>
+          )}
           <View style={styles.profileStats}>
             <View style={styles.stat}>
               <Text style={styles.statNum}>{profile?.post_count || 0}</Text>
@@ -128,7 +179,9 @@ export default function ProfileScreen() {
           </Pressable>
         </View>
 
-        <View style={styles.badgeSection}>
+        {taste && <TasteCard taste={taste} compact />}
+
+      <View style={styles.badgeSection}>
           <Text style={styles.sectionTitle}>Badges</Text>
           <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 10 }}>
             <View style={styles.badgeItem}>
@@ -192,11 +245,16 @@ export default function ProfileScreen() {
               </Pressable>
             </View>
 
-            <View style={styles.modalAvatarRow}>
-              <View style={styles.modalAvatar}>
-                <Text style={styles.modalAvatarText}>{editName?.[0]?.toUpperCase() || '?'}</Text>
-              </View>
-            </View>
+            <Pressable style={styles.modalAvatarRow} onPress={pickAvatar}>
+              {avatarUri ? (
+                <Image source={{ uri: avatarUri }} style={styles.modalAvatarImg} />
+              ) : (
+                <View style={styles.modalAvatar}>
+                  <Text style={styles.modalAvatarText}>{editName?.[0]?.toUpperCase() || '?'}</Text>
+                </View>
+              )}
+              <Text style={styles.changePhotoText}>Change Photo</Text>
+            </Pressable>
 
             <View style={styles.modalForm}>
               <Text style={styles.fieldLabel}>Display Name</Text>
@@ -251,6 +309,7 @@ const styles = StyleSheet.create({
     alignItems: 'center', justifyContent: 'center',
   },
   avatarText: { fontSize: 28, fontWeight: '600', color: '#999' },
+  avatarLgImg: { width: 80, height: 80, borderRadius: 40 },
   profileStats: { flex: 1, flexDirection: 'row', justifyContent: 'center', gap: 20 },
   stat: { alignItems: 'center' },
   statNum: { fontSize: 17, fontWeight: '700', color: '#222' },
@@ -320,6 +379,8 @@ const styles = StyleSheet.create({
     alignItems: 'center', justifyContent: 'center',
   },
   modalAvatarText: { fontSize: 28, fontWeight: '600', color: '#999' },
+  modalAvatarImg: { width: 80, height: 80, borderRadius: 40 },
+  changePhotoText: { fontSize: 13, fontWeight: '600', color: '#7b2d4e', marginTop: 8 },
 
   modalForm: { paddingHorizontal: 20 },
   fieldLabel: { fontSize: 12, fontWeight: '600', color: '#999', marginBottom: 6, marginTop: 16 },

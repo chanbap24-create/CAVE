@@ -1,75 +1,89 @@
 import React from 'react';
-import { View, Text, StyleSheet, Pressable, Dimensions } from 'react-native';
+import { View, Text, StyleSheet, Pressable, Image, ImageBackground } from 'react-native';
 import { useRouter } from 'expo-router';
 import type { FeaturedCave } from '@/lib/hooks/useFeaturedCaves';
-
-const { width } = Dimensions.get('window');
-const CARD_WIDTH = width * 0.52;
-
-const bgByCategory: Record<string, string> = {
-  wine: '#e8d5c4',
-  whiskey: '#d4c0a0',
-  sake: '#d8dce8',
-  cognac: '#ede5d8',
-  other: '#e0e0e0',
-};
 
 export function FeaturedCaveCard({ cave }: { cave: FeaturedCave }) {
   const router = useRouter();
   const initial = cave.display_name?.[0]?.toUpperCase() || cave.username[0]?.toUpperCase() || '?';
-  const bg = bgByCategory[cave.top_category || 'other'] || '#e0e0e0';
-
-  const desc = [
-    cave.countries > 0 ? `${cave.countries} countries` : null,
-    `${cave.collection_count} bottles`,
-  ].filter(Boolean).join(', ');
+  const topBadge = cave.badges[0] || null;
 
   return (
     <Pressable style={styles.card} onPress={() => router.push(`/user/${cave.user_id}`)}>
-      <View style={[styles.bg, { backgroundColor: bg }]} />
-      <View style={styles.overlay}>
-        <View style={styles.avatar}>
-          <Text style={styles.avatarText}>{initial}</Text>
+      {/* Latest post as background */}
+      {cave.latestPostImage ? (
+        <ImageBackground source={{ uri: cave.latestPostImage }} style={styles.cardBg} imageStyle={styles.cardBgImage}>
+          <View style={styles.overlay}>
+            <CardContent cave={cave} initial={initial} topBadge={topBadge} />
+          </View>
+        </ImageBackground>
+      ) : (
+        <View style={[styles.cardBg, { backgroundColor: '#f0f0f0' }]}>
+          <CardContent cave={cave} initial={initial} topBadge={topBadge} />
         </View>
-        <Text style={styles.name}>{cave.username}</Text>
-        <Text style={styles.desc}>{desc}</Text>
-        {cave.badges.length > 0 && (
-          <View style={styles.badges}>
-            {cave.badges.map((b, i) => (
-              <View key={i} style={styles.badge}>
-                <Text style={styles.badgeText}>{b}</Text>
-              </View>
-            ))}
+      )}
+    </Pressable>
+  );
+}
+
+function CardContent({ cave, initial, topBadge }: { cave: FeaturedCave; initial: string; topBadge: string | null }) {
+  const hasImage = !!cave.latestPostImage;
+  const textColor = hasImage ? '#fff' : '#222';
+  const subColor = hasImage ? 'rgba(255,255,255,0.8)' : '#999';
+
+  return (
+    <View style={styles.content}>
+      <View style={styles.topRow}>
+        {cave.avatar_url ? (
+          <Image source={{ uri: cave.avatar_url }} style={styles.avatar} />
+        ) : (
+          <View style={styles.avatarPlaceholder}>
+            <Text style={styles.avatarText}>{initial}</Text>
           </View>
         )}
+        {cave.activeGatherings > 0 && <View style={styles.gatheringDot} />}
       </View>
-    </Pressable>
+      <Text style={[styles.username, { color: textColor }]} numberOfLines={1}>{cave.username}</Text>
+      <Text style={[styles.stat, { color: subColor }]}>{cave.collection_count} bottles · {cave.countries} countries</Text>
+      {topBadge && (
+        <View style={[styles.badge, hasImage && { backgroundColor: 'rgba(255,255,255,0.25)' }]}>
+          <Text style={[styles.badgeText, hasImage && { color: '#fff' }]}>{topBadge}</Text>
+        </View>
+      )}
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
   card: {
-    width: CARD_WIDTH, height: 240, borderRadius: 16,
-    overflow: 'hidden', position: 'relative',
+    width: '31%', borderRadius: 10, overflow: 'hidden',
+    borderWidth: 1, borderColor: '#f0f0f0',
   },
-  bg: { width: '100%', height: '100%' },
+  cardBg: { height: 180, justifyContent: 'flex-end' },
+  cardBgImage: { borderRadius: 11 },
   overlay: {
-    position: 'absolute', bottom: 0, left: 0, right: 0,
-    padding: 16, backgroundColor: 'rgba(0,0,0,0.35)',
+    flex: 1, justifyContent: 'flex-end',
+    backgroundColor: 'rgba(0,0,0,0.3)',
+    borderRadius: 11,
   },
-  avatar: {
-    width: 36, height: 36, borderRadius: 18,
+  content: { padding: 8 },
+  topRow: { position: 'relative', marginBottom: 4, alignSelf: 'flex-start' },
+  avatar: { width: 28, height: 28, borderRadius: 14, borderWidth: 1.5, borderColor: '#fff' },
+  avatarPlaceholder: {
+    width: 28, height: 28, borderRadius: 14, backgroundColor: '#e8e8e8',
     alignItems: 'center', justifyContent: 'center',
-    borderWidth: 2, borderColor: '#fff', marginBottom: 6,
-    backgroundColor: 'rgba(255,255,255,0.2)',
   },
-  avatarText: { fontSize: 12, fontWeight: '600', color: '#fff' },
-  name: { fontSize: 14, fontWeight: '600', color: '#fff' },
-  desc: { fontSize: 12, color: 'rgba(255,255,255,0.8)', marginTop: 2 },
-  badges: { flexDirection: 'row', gap: 4, marginTop: 6, flexWrap: 'wrap' },
+  avatarText: { fontSize: 11, fontWeight: '600', color: '#999' },
+  gatheringDot: {
+    position: 'absolute', bottom: 0, right: -2,
+    width: 10, height: 10, borderRadius: 5,
+    backgroundColor: '#4caf7c', borderWidth: 1.5, borderColor: '#fff',
+  },
+  username: { fontSize: 11, fontWeight: '700' },
+  stat: { fontSize: 9, marginTop: 1 },
   badge: {
-    backgroundColor: 'rgba(255,255,255,0.2)',
-    paddingHorizontal: 8, paddingVertical: 2, borderRadius: 10,
+    backgroundColor: '#f7f0f3', paddingHorizontal: 6, paddingVertical: 1,
+    borderRadius: 6, marginTop: 4, alignSelf: 'flex-start',
   },
-  badgeText: { fontSize: 10, fontWeight: '600', color: '#fff' },
+  badgeText: { fontSize: 9, fontWeight: '600', color: '#7b2d4e' },
 });

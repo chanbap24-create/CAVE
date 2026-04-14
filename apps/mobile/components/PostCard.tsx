@@ -5,6 +5,8 @@ import Svg, { Path } from 'react-native-svg';
 import { useLike } from '@/lib/hooks/useLike';
 import { FollowButton } from './FollowButton';
 import { CommentSheet } from './CommentSheet';
+import { getDMRoom } from '@/lib/hooks/useChat';
+import { useAuth } from '@/lib/auth';
 
 const tagColors: Record<string, { bg: string; color: string }> = {
   wine: { bg: '#f7f0f3', color: '#7b2d4e' },
@@ -31,6 +33,7 @@ interface Props {
 
 export function PostCard({ post }: Props) {
   const router = useRouter();
+  const { user } = useAuth();
   const profile = post.profile;
   const initial = profile?.display_name?.[0]?.toUpperCase() || profile?.username?.[0]?.toUpperCase() || '?';
   const wine = post.wine;
@@ -41,8 +44,14 @@ export function PostCard({ post }: Props) {
   return (
     <View style={styles.post}>
       <View style={styles.postHeader}>
-        <Pressable style={styles.avatar} onPress={() => router.push(`/user/${post.user_id}`)}>
-          <Text style={styles.avatarText}>{initial}</Text>
+        <Pressable onPress={() => router.push(`/user/${post.user_id}`)}>
+          {profile?.avatar_url ? (
+            <Image source={{ uri: profile.avatar_url }} style={styles.avatarImg} />
+          ) : (
+            <View style={styles.avatar}>
+              <Text style={styles.avatarText}>{initial}</Text>
+            </View>
+          )}
         </Pressable>
         <Pressable style={{ flex: 1 }} onPress={() => router.push(`/user/${post.user_id}`)}>
           <Text style={styles.userName}>{profile?.username || 'unknown'}</Text>
@@ -74,9 +83,15 @@ export function PostCard({ post }: Props) {
             <Path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
           </Svg>
         </Pressable>
-        <Svg width={24} height={24} fill="none" stroke="#222" strokeWidth={1.8} viewBox="0 0 24 24">
-          <Path d="M22 2L11 13M22 2l-7 20-4-9-9-4 20-7z" />
-        </Svg>
+        <Pressable onPress={async () => {
+          if (!user || user.id === post.user_id) return;
+          const roomId = await getDMRoom(user.id, post.user_id);
+          if (roomId) router.push(`/chat/${roomId}?title=${encodeURIComponent(profile?.username || 'Chat')}`);
+        }}>
+          <Svg width={24} height={24} fill="none" stroke="#222" strokeWidth={1.8} viewBox="0 0 24 24">
+            <Path d="M22 2L11 13M22 2l-7 20-4-9-9-4 20-7z" />
+          </Svg>
+        </Pressable>
         <View style={{ flex: 1 }} />
         <Svg width={24} height={24} fill="none" stroke="#222" strokeWidth={1.8} viewBox="0 0 24 24">
           <Path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z" />
@@ -124,6 +139,7 @@ const styles = StyleSheet.create({
     alignItems: 'center', justifyContent: 'center',
   },
   avatarText: { fontSize: 12, fontWeight: '600', color: '#666' },
+  avatarImg: { width: 36, height: 36, borderRadius: 18 },
   userName: { fontSize: 14, fontWeight: '600', color: '#222' },
   more: { fontSize: 18, color: '#999', letterSpacing: 2 },
   postImage: { width: '100%', height: 390 },

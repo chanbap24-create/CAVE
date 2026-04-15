@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { View, Text, StyleSheet, Image, Pressable } from 'react-native';
+import { VideoPlayer } from './VideoPlayer';
 import { useRouter } from 'expo-router';
 import Svg, { Path } from 'react-native-svg';
 import { useLike } from '@/lib/hooks/useLike';
@@ -60,7 +61,11 @@ export function PostCard({ post }: Props) {
         <Text style={styles.more}>...</Text>
       </View>
 
-      {post.image_url ? (
+      {post.video_playback_id ? (
+        <View style={{ width: '100%', height: 390 }}>
+          <VideoPlayer playbackId={post.video_playback_id} controls />
+        </View>
+      ) : post.image_url ? (
         <Image source={{ uri: post.image_url }} style={styles.postImage} resizeMode="cover" />
       ) : (
         <View style={[styles.postImage, { backgroundColor: '#f5f5f5' }]} />

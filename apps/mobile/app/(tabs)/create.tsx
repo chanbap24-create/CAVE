@@ -1,37 +1,64 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, Pressable, TextInput, Image, Alert, ScrollView, ActivityIndicator } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
+import { Video, ResizeMode } from 'expo-av';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/lib/auth';
 import { useRouter } from 'expo-router';
+import { useVideoUpload } from '@/lib/hooks/useVideoUpload';
 import Svg, { Path, Circle, Rect, Polyline, Line } from 'react-native-svg';
+
+function CreateVideoPreview({ uri }: { uri: string }) {
+  return (
+    <Video
+      source={{ uri }}
+      style={{ width: '100%', aspectRatio: 1 }}
+      resizeMode={ResizeMode.COVER}
+      shouldPlay
+      isLooping
+      isMuted
+    />
+  );
+}
 
 export default function CreateScreen() {
   const { user } = useAuth();
   const router = useRouter();
   const [step, setStep] = useState<'pick' | 'compose'>('pick');
   const [imageUri, setImageUri] = useState<string | null>(null);
+  const [videoUri, setVideoUri] = useState<string | null>(null);
+  const [mediaType, setMediaType] = useState<'image' | 'video'>('image');
   const [caption, setCaption] = useState('');
   const [posting, setPosting] = useState(false);
+  const { uploadVideo, uploading: videoUploading, progress: videoProgress } = useVideoUpload();
 
   // Wine tagging
   const [tagSearch, setTagSearch] = useState('');
   const [tagResults, setTagResults] = useState<any[]>([]);
   const [taggedWine, setTaggedWine] = useState<any>(null);
 
-  async function pickFromGallery() {
+  async function pickFromGallery(type: 'image' | 'video' = 'image') {
     const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (status !== 'granted') return Alert.alert('Permission needed', 'Allow photo access to share');
 
     const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ['images'],
+      mediaTypes: type === 'video' ? ['videos'] : ['images'],
       quality: 0.8,
       allowsEditing: true,
-      aspect: [1, 1],
+      aspect: type === 'image' ? [1, 1] : undefined,
+      videoMaxDuration: 60,
     });
 
     if (!result.canceled && result.assets[0]) {
-      setImageUri(result.assets[0].uri);
+      if (type === 'video') {
+        setVideoUri(result.assets[0].uri);
+        setImageUri(null);
+        setMediaType('video');
+      } else {
+        setImageUri(result.assets[0].uri);
+        setVideoUri(null);
+        setMediaType('image');
+      }
       setStep('compose');
     }
   }
@@ -69,31 +96,38 @@ export default function CreateScreen() {
 
   async function submitPost() {
     if (!user) return;
-    if (!imageUri) return Alert.alert('Photo required', 'Please select a photo to post');
+    if (!imageUri && !videoUri) return Alert.alert('Media required', 'Please select a photo or video');
     setPosting(true);
 
     try {
-      // Upload image
-      const ext = imageUri.split('.').pop()?.split('?')[0] || 'jpg';
-      const fileName = `${user.id}/${Date.now()}.${ext}`;
-      const response = await fetch(imageUri);
-      const arrayBuffer = await response.arrayBuffer();
-
-      const { error: uploadError } = await supabase.storage
-        .from('post-images')
-        .upload(fileName, arrayBuffer, {
-          contentType: `image/${ext === 'jpg' ? 'jpeg' : ext}`,
-          upsert: true,
-        });
-
       let imageUrl = '';
-      if (uploadError) {
-        console.log('Upload error:', uploadError.message);
-        // Fallback: save local URI (won't show for others but post still works)
-        imageUrl = imageUri;
-      } else {
-        const { data: urlData } = supabase.storage.from('post-images').getPublicUrl(fileName);
-        imageUrl = urlData.publicUrl;
+      let videoPlaybackId: string | null = null;
+
+      if (mediaType === 'video' && videoUri) {
+        // Upload video to Mux
+        const result = await uploadVideo(videoUri);
+        if (!result) throw new Error('Video upload failed');
+        videoPlaybackId = result.playbackId;
+      } else if (imageUri) {
+        // Upload image
+        const ext = imageUri.split('.').pop()?.split('?')[0] || 'jpg';
+        const fileName = `${user.id}/${Date.now()}.${ext}`;
+        const response = await fetch(imageUri);
+        const arrayBuffer = await response.arrayBuffer();
+
+        const { error: uploadError } = await supabase.storage
+          .from('post-images')
+          .upload(fileName, arrayBuffer, {
+            contentType: `image/${ext === 'jpg' ? 'jpeg' : ext}`,
+            upsert: true,
+          });
+
+        if (uploadError) {
+          imageUrl = imageUri;
+        } else {
+          const { data: urlData } = supabase.storage.from('post-images').getPublicUrl(fileName);
+          imageUrl = urlData.publicUrl;
+        }
       }
 
       // Create post
@@ -102,18 +136,22 @@ export default function CreateScreen() {
         .insert({
           user_id: user.id,
           caption: caption.trim() || null,
+          media_type: mediaType,
+          video_playback_id: videoPlaybackId,
         })
         .select()
         .single();
 
       if (postError) throw postError;
 
-      // Add image
-      await supabase.from('post_images').insert({
-        post_id: post.id,
-        image_url: imageUrl,
-        display_order: 0,
-      });
+      // Add image (only for image posts)
+      if (imageUrl) {
+        await supabase.from('post_images').insert({
+          post_id: post.id,
+          image_url: imageUrl,
+          display_order: 0,
+        });
+      }
 
       // Tag wine if selected
       if (taggedWine) {
@@ -127,6 +165,8 @@ export default function CreateScreen() {
         { text: 'OK', onPress: () => {
           setStep('pick');
           setImageUri(null);
+          setVideoUri(null);
+          setMediaType('image');
           setCaption('');
           setTaggedWine(null);
           setTagSearch('');
@@ -161,7 +201,7 @@ export default function CreateScreen() {
             <Text style={styles.arrow}>›</Text>
           </Pressable>
 
-          <Pressable style={styles.option} onPress={pickFromGallery}>
+          <Pressable style={styles.option} onPress={() => pickFromGallery('image')}>
             <View style={styles.iconWrap}>
               <Svg width={22} height={22} fill="none" stroke="#7b2d4e" strokeWidth={1.8} viewBox="0 0 24 24">
                 <Rect x={3} y={3} width={18} height={18} rx={2} ry={2} />
@@ -170,8 +210,22 @@ export default function CreateScreen() {
               </Svg>
             </View>
             <View style={{ flex: 1 }}>
-              <Text style={styles.optTitle}>Choose from Gallery</Text>
+              <Text style={styles.optTitle}>Photo from Gallery</Text>
               <Text style={styles.optDesc}>Select a saved photo</Text>
+            </View>
+            <Text style={styles.arrow}>›</Text>
+          </Pressable>
+
+          <Pressable style={styles.option} onPress={() => pickFromGallery('video')}>
+            <View style={styles.iconWrap}>
+              <Svg width={22} height={22} fill="none" stroke="#7b2d4e" strokeWidth={1.8} viewBox="0 0 24 24">
+                <Path d="M23 7l-7 5 7 5V7z" />
+                <Rect x={1} y={5} width={15} height={14} rx={2} ry={2} />
+              </Svg>
+            </View>
+            <View style={{ flex: 1 }}>
+              <Text style={styles.optTitle}>Video from Gallery</Text>
+              <Text style={styles.optDesc}>Share a video (max 60s)</Text>
             </View>
             <Text style={styles.arrow}>›</Text>
           </Pressable>
@@ -184,13 +238,16 @@ export default function CreateScreen() {
   return (
     <View style={styles.container}>
       <View style={styles.header}>
-        <Pressable onPress={() => { setStep('pick'); setImageUri(null); }}>
+        <Pressable onPress={() => { setStep('pick'); setImageUri(null); setVideoUri(null); setMediaType('image'); }}>
           <Text style={styles.backBtn}>Back</Text>
         </Pressable>
         <Text style={styles.title}>New Post</Text>
-        <Pressable onPress={submitPost} disabled={posting}>
-          {posting ? (
-            <ActivityIndicator size="small" color="#7b2d4e" />
+        <Pressable onPress={submitPost} disabled={posting || videoUploading}>
+          {posting || videoUploading ? (
+            <View style={{ alignItems: 'center' }}>
+              <ActivityIndicator size="small" color="#7b2d4e" />
+              {videoUploading && <Text style={{ fontSize: 10, color: '#7b2d4e', marginTop: 2 }}>{videoProgress}%</Text>}
+            </View>
           ) : (
             <Text style={styles.shareBtn}>Share</Text>
           )}
@@ -200,6 +257,9 @@ export default function CreateScreen() {
       <ScrollView keyboardShouldPersistTaps="handled">
         {imageUri && (
           <Image source={{ uri: imageUri }} style={styles.previewImage} />
+        )}
+        {videoUri && (
+          <CreateVideoPreview uri={videoUri} />
         )}
 
         <View style={styles.composeSection}>

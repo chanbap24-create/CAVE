@@ -8,6 +8,7 @@ export interface PopularPost {
   like_count: number;
   created_at: string;
   image_url: string | null;
+  video_playback_id: string | null;
   username: string;
   avatar_url: string | null;
 }
@@ -21,7 +22,7 @@ export function usePopularPosts() {
 
     const { data } = await supabase
       .from('posts')
-      .select('id, user_id, caption, like_count, created_at')
+      .select('id, user_id, caption, like_count, created_at, video_playback_id')
       .eq('is_public', true)
       .gt('like_count', 0)
       .order('like_count', { ascending: false })
@@ -31,7 +32,7 @@ export function usePopularPosts() {
       // Fallback: recent posts
       const { data: recent } = await supabase
         .from('posts')
-        .select('id, user_id, caption, like_count, created_at')
+        .select('id, user_id, caption, like_count, created_at, video_playback_id')
         .eq('is_public', true)
         .order('created_at', { ascending: false })
         .limit(10);
@@ -50,9 +51,15 @@ export function usePopularPosts() {
         supabase.from('profiles').select('username, avatar_url').eq('id', post.user_id).single(),
       ]);
 
+      // For video posts, use Mux thumbnail
+      let imageUrl = imgRes.data?.[0]?.image_url || null;
+      if (!imageUrl && post.video_playback_id) {
+        imageUrl = `https://image.mux.com/${post.video_playback_id}/thumbnail.jpg?width=320&height=320&fit_mode=crop`;
+      }
+
       return {
         ...post,
-        image_url: imgRes.data?.[0]?.image_url || null,
+        image_url: imageUrl,
         username: profileRes.data?.username || 'unknown',
         avatar_url: profileRes.data?.avatar_url || null,
       };

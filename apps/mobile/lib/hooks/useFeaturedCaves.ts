@@ -12,6 +12,7 @@ export interface FeaturedCave {
   badges: string[];
   activeGatherings: number;
   latestPostImage: string | null;
+  latestVideoPlaybackId: string | null;
 }
 
 export function useFeaturedCaves() {
@@ -78,22 +79,26 @@ export function useFeaturedCaves() {
 
       const activeGatherings = (hostCount || 0) + (joinedData?.length || 0);
 
-      // Latest post image
+      // Latest post image (support video thumbnail)
       const { data: latestPost } = await supabase
         .from('posts')
-        .select('id')
+        .select('id, video_playback_id')
         .eq('user_id', p.id)
         .order('created_at', { ascending: false })
         .limit(1);
 
       let latestPostImage: string | null = null;
       if (latestPost?.[0]) {
-        const { data: img } = await supabase
-          .from('post_images')
-          .select('image_url')
-          .eq('post_id', latestPost[0].id)
-          .limit(1);
-        latestPostImage = img?.[0]?.image_url || null;
+        if (latestPost[0].video_playback_id) {
+          latestPostImage = `https://image.mux.com/${latestPost[0].video_playback_id}/thumbnail.jpg?width=400&height=500&fit_mode=crop`;
+        } else {
+          const { data: img } = await supabase
+            .from('post_images')
+            .select('image_url')
+            .eq('post_id', latestPost[0].id)
+            .limit(1);
+          latestPostImage = img?.[0]?.image_url || null;
+        }
       }
 
       return {
@@ -104,6 +109,7 @@ export function useFeaturedCaves() {
         collection_count: p.collection_count,
         activeGatherings,
         latestPostImage,
+        latestVideoPlaybackId: latestPost?.[0]?.video_playback_id || null,
         countries: countries.size,
         top_category: topCategory,
         badges,

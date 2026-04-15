@@ -1,5 +1,6 @@
 import React from 'react';
 import { View, Text, StyleSheet, Pressable, Image, ImageBackground } from 'react-native';
+import { VideoPlayer } from './VideoPlayer';
 import { useRouter } from 'expo-router';
 import type { FeaturedCave } from '@/lib/hooks/useFeaturedCaves';
 
@@ -11,7 +12,14 @@ export function FeaturedCaveCard({ cave }: { cave: FeaturedCave }) {
   return (
     <Pressable style={styles.card} onPress={() => router.push(`/user/${cave.user_id}`)}>
       {/* Latest post as background */}
-      {cave.latestPostImage ? (
+      {cave.latestVideoPlaybackId ? (
+        <View style={styles.cardBg}>
+          <VideoPlayer playbackId={cave.latestVideoPlaybackId!} style={styles.videoBg} />
+          <View style={[styles.overlay, styles.videoOverlay]}>
+            <CardContent cave={cave} initial={initial} topBadge={topBadge} />
+          </View>
+        </View>
+      ) : cave.latestPostImage ? (
         <ImageBackground source={{ uri: cave.latestPostImage }} style={styles.cardBg} imageStyle={styles.cardBgImage}>
           <View style={styles.overlay}>
             <CardContent cave={cave} initial={initial} topBadge={topBadge} />
@@ -59,8 +67,10 @@ const styles = StyleSheet.create({
     width: '31%', borderRadius: 10, overflow: 'hidden',
     borderWidth: 1, borderColor: '#f0f0f0',
   },
-  cardBg: { height: 180, justifyContent: 'flex-end' },
+  cardBg: { height: 180, justifyContent: 'flex-end', overflow: 'hidden' },
   cardBgImage: { borderRadius: 11 },
+  videoBg: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 },
+  videoOverlay: { position: 'absolute', bottom: 0, left: 0, right: 0 },
   overlay: {
     flex: 1, justifyContent: 'flex-end',
     backgroundColor: 'rgba(0,0,0,0.3)',

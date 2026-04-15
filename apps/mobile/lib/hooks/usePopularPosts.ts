@@ -20,53 +20,47 @@ export function usePopularPosts() {
   const loadPopular = useCallback(async () => {
     setLoading(true);
 
+    // Single query, fallback by ordering
     const { data } = await supabase
       .from('posts')
       .select('id, user_id, caption, like_count, created_at, video_playback_id')
       .eq('is_public', true)
-      .gt('like_count', 0)
       .order('like_count', { ascending: false })
+      .order('created_at', { ascending: false })
       .limit(10);
 
-    if (!data || data.length === 0) {
-      // Fallback: recent posts
-      const { data: recent } = await supabase
-        .from('posts')
-        .select('id, user_id, caption, like_count, created_at, video_playback_id')
-        .eq('is_public', true)
-        .order('created_at', { ascending: false })
-        .limit(10);
-      if (recent) await enrichPosts(recent);
-    } else {
-      await enrichPosts(data);
-    }
+    if (!data || data.length === 0) { setLoading(false); return; }
 
-    setLoading(false);
-  }, []);
+    const postIds = data.map(p => p.id);
+    const userIds = [...new Set(data.map(p => p.user_id))];
 
-  async function enrichPosts(rawPosts: any[]) {
-    const enriched = await Promise.all(rawPosts.map(async (post) => {
-      const [imgRes, profileRes] = await Promise.all([
-        supabase.from('post_images').select('image_url').eq('post_id', post.id).limit(1),
-        supabase.from('profiles').select('username, avatar_url').eq('id', post.user_id).single(),
-      ]);
+    // Batch queries
+    const [imgRes, profileRes] = await Promise.all([
+      supabase.from('post_images').select('post_id, image_url').in('post_id', postIds),
+      supabase.from('profiles').select('id, username, avatar_url').in('id', userIds),
+    ]);
 
-      // For video posts, use Mux thumbnail
-      let imageUrl = imgRes.data?.[0]?.image_url || null;
+    const imgMap = new Map<number, string>();
+    (imgRes.data || []).forEach(img => { if (!imgMap.has(img.post_id)) imgMap.set(img.post_id, img.image_url); });
+    const profileMap = new Map((profileRes.data || []).map(p => [p.id, p]));
+
+    const enriched: PopularPost[] = data.map(post => {
+      let imageUrl = imgMap.get(post.id) || null;
       if (!imageUrl && post.video_playback_id) {
         imageUrl = `https://image.mux.com/${post.video_playback_id}/thumbnail.jpg?width=320&height=320&fit_mode=crop`;
       }
-
+      const profile = profileMap.get(post.user_id);
       return {
         ...post,
         image_url: imageUrl,
-        username: profileRes.data?.username || 'unknown',
-        avatar_url: profileRes.data?.avatar_url || null,
+        username: profile?.username || 'unknown',
+        avatar_url: profile?.avatar_url || null,
       };
-    }));
+    });
 
     setPosts(enriched);
-  }
+    setLoading(false);
+  }, []);
 
   return { posts, loading, loadPopular };
 }

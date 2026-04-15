@@ -42,20 +42,34 @@ export function PostCard({ post }: Props) {
   const { liked, count, toggleLike } = useLike(post.id, post.like_count || 0);
   const [showComments, setShowComments] = useState(false);
 
+  // Determine highest badge
+  const collectionCount = profile?.collection_count || 0;
+  let topBadge: { name: string; bg: string; color: string } | null = null;
+  if (collectionCount >= 100) topBadge = { name: 'Master', bg: '#f0ecf8', color: '#7860a8' };
+  else if (collectionCount >= 50) topBadge = { name: 'Expert', bg: '#fdf8ec', color: '#b8933a' };
+  else if (collectionCount >= 10) topBadge = { name: 'Collector', bg: '#f7f0f3', color: '#7b2d4e' };
+
   return (
     <View style={styles.post}>
       <View style={styles.postHeader}>
         <Pressable onPress={() => router.push(`/user/${post.user_id}`)}>
           {profile?.avatar_url ? (
-            <Image source={{ uri: profile.avatar_url }} style={styles.avatarImg} />
+            <View style={collectionCount >= 50 ? styles.avatarGlow : undefined}>
+              <Image source={{ uri: profile.avatar_url }} style={[styles.avatarImg, collectionCount >= 50 && styles.avatarGoldBorder]} />
+            </View>
           ) : (
-            <View style={styles.avatar}>
+            <View style={[styles.avatar, collectionCount >= 50 && styles.avatarGoldBorder]}>
               <Text style={styles.avatarText}>{initial}</Text>
             </View>
           )}
         </Pressable>
-        <Pressable style={{ flex: 1 }} onPress={() => router.push(`/user/${post.user_id}`)}>
+        <Pressable style={{ flex: 1, flexDirection: 'row', alignItems: 'center', gap: 6 }} onPress={() => router.push(`/user/${post.user_id}`)}>
           <Text style={styles.userName}>{profile?.username || 'unknown'}</Text>
+          {topBadge && (
+            <View style={[styles.userBadge, { backgroundColor: topBadge.bg }]}>
+              <Text style={[styles.userBadgeText, { color: topBadge.color }]}>{topBadge.name}</Text>
+            </View>
+          )}
         </Pressable>
         <FollowButton targetUserId={post.user_id} size="small" />
         <Text style={styles.more}>...</Text>
@@ -145,7 +159,20 @@ const styles = StyleSheet.create({
   },
   avatarText: { fontSize: 12, fontWeight: '600', color: '#666' },
   avatarImg: { width: 36, height: 36, borderRadius: 18 },
+  avatarGlow: {
+    borderRadius: 22, padding: 2,
+    shadowColor: '#c9a84c',
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0.6,
+    shadowRadius: 6,
+    elevation: 8,
+  },
+  avatarGoldBorder: {
+    borderWidth: 2, borderColor: '#c9a84c',
+  },
   userName: { fontSize: 14, fontWeight: '600', color: '#222' },
+  userBadge: { backgroundColor: '#f7f0f3', paddingHorizontal: 6, paddingVertical: 1, borderRadius: 6 },
+  userBadgeText: { fontSize: 9, fontWeight: '600', color: '#7b2d4e' },
   more: { fontSize: 18, color: '#999', letterSpacing: 2 },
   postImage: { width: '100%', height: 390 },
   actions: {

@@ -56,7 +56,21 @@ export default function UserProfileScreen() {
             <Polyline points="15 18 9 12 15 6" />
           </Svg>
         </Pressable>
-        <Text style={styles.headerTitle}>{profile.username}</Text>
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+          <Text style={styles.headerTitle}>{profile.username}</Text>
+          {(() => {
+            const cc = profile.collection_count || 0;
+            let b = null;
+            if (cc >= 100) b = { name: 'Master', bg: '#f0ecf8', color: '#7860a8' };
+            else if (cc >= 50) b = { name: 'Expert', bg: '#fdf8ec', color: '#b8933a' };
+            else if (cc >= 10) b = { name: 'Collector', bg: '#f7f0f3', color: '#7b2d4e' };
+            return b ? (
+              <View style={[styles.headerBadge, { backgroundColor: b.bg }]}>
+                <Text style={[styles.headerBadgeText, { color: b.color }]}>{b.name}</Text>
+              </View>
+            ) : null;
+          })()}
+        </View>
         <View style={{ width: 24 }} />
       </View>
 
@@ -153,6 +167,8 @@ const styles = StyleSheet.create({
   },
   backBtn: { padding: 4 },
   headerTitle: { fontSize: 17, fontWeight: '700', color: '#222' },
+  headerBadge: { paddingHorizontal: 8, paddingVertical: 2, borderRadius: 8 },
+  headerBadgeText: { fontSize: 10, fontWeight: '600' },
 
   profileTop: { flexDirection: 'row', alignItems: 'center', padding: 20, gap: 20 },
   avatarLg: {

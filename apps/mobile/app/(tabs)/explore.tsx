@@ -26,15 +26,20 @@ export default function ExploreScreen() {
   const [myCollection, setMyCollection] = useState<Set<number>>(new Set());
   const [search, setSearch] = useState('');
   const [activeCat, setActiveCat] = useState('All');
-  const { caves: featuredCaves } = useFeaturedCaves();
+  const { caves: featuredCaves, refresh: loadFeatured } = useFeaturedCaves();
 
   useEffect(() => {
     loadDrinks();
+    loadFeatured();
     if (user) loadMyCollection();
   }, [user]);
 
-  async function loadDrinks() {
-    const { data } = await supabase.from('wines').select('*').order('name');
+  async function loadDrinks(query?: string) {
+    let q = supabase.from('wines').select('id, name, name_ko, category, country, region, alcohol_pct').order('name').limit(50);
+    if (query && query.length >= 2) {
+      q = q.or(`name.ilike.%${query}%,name_ko.ilike.%${query}%,region.ilike.%${query}%,country.ilike.%${query}%`);
+    }
+    const { data } = await q;
     if (data) setDrinks(data);
   }
 
@@ -66,12 +71,8 @@ export default function ExploreScreen() {
     }
   }
 
-  const filtered = drinks.filter(d => {
-    const matchCat = activeCat === 'All' || d.category === catDbMap[activeCat];
-    const q = search.toLowerCase();
-    const matchSearch = !q || d.name.toLowerCase().includes(q) || (d.name_ko && d.name_ko.includes(q)) || (d.region && d.region.toLowerCase().includes(q));
-    return matchCat && matchSearch;
-  });
+  // Server-side filtering, just apply category filter client-side
+  const filtered = activeCat === 'All' ? drinks : drinks.filter(d => d.category === catDbMap[activeCat]);
 
   return (
     <View style={styles.container}>
@@ -90,7 +91,7 @@ export default function ExploreScreen() {
           placeholder="Search wines, whisky, sake..."
           placeholderTextColor="#bbb"
           value={search}
-          onChangeText={setSearch}
+          onChangeText={(text) => { setSearch(text); loadDrinks(text); }}
         />
         {search.length > 0 && (
           <Pressable style={styles.searchClear} onPress={() => setSearch('')}>

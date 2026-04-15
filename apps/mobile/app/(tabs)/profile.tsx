@@ -133,11 +133,23 @@ export default function ProfileScreen() {
   }
 
   const initial = profile?.display_name?.[0]?.toUpperCase() || user?.email?.[0]?.toUpperCase() || '?';
+  const cc = profile?.collection_count || 0;
+  let myBadge: { name: string; bg: string; color: string } | null = null;
+  if (cc >= 100) myBadge = { name: 'Master', bg: '#f0ecf8', color: '#7860a8' };
+  else if (cc >= 50) myBadge = { name: 'Expert', bg: '#fdf8ec', color: '#b8933a' };
+  else if (cc >= 10) myBadge = { name: 'Collector', bg: '#f7f0f3', color: '#7b2d4e' };
 
   return (
     <View style={styles.container}>
       <View style={styles.header}>
-        <Text style={styles.headerUsername}>{profile?.username || 'Profile'}</Text>
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+          <Text style={styles.headerUsername}>{profile?.username || 'Profile'}</Text>
+          {myBadge && (
+            <View style={[styles.headerBadge, { backgroundColor: myBadge.bg }]}>
+              <Text style={[styles.headerBadgeText, { color: myBadge.color }]}>{myBadge.name}</Text>
+            </View>
+          )}
+        </View>
       </View>
 
       <ScrollView>
@@ -184,20 +196,29 @@ export default function ProfileScreen() {
       <View style={styles.badgeSection}>
           <Text style={styles.sectionTitle}>Badges</Text>
           <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 10 }}>
-            <View style={styles.badgeItem}>
-              <View style={[styles.badgeCircle, profile && profile.collection_count >= 10 && styles.badgeEarned]}>
-                <Text style={[styles.badgeNum, profile && profile.collection_count >= 10 && styles.badgeNumEarned]}>10</Text>
+            {[
+              { name: 'Collector', target: 10, bg: '#f7f0f3', color: '#7b2d4e', bgEarned: '#7b2d4e' },
+              { name: 'Expert', target: 50, bg: '#fdf8ec', color: '#b8933a', bgEarned: '#b8933a' },
+              { name: 'Master', target: 100, bg: '#f0ecf8', color: '#7860a8', bgEarned: '#7860a8' },
+            ].map(b => {
+              const earned = cc >= b.target;
+              return (
+                <View key={b.name} style={styles.badgeItem}>
+                  <View style={[styles.badgeCircle, earned && { borderColor: b.bgEarned, backgroundColor: b.bg }]}>
+                    <Text style={[styles.badgeNum, earned && { color: b.color }]}>{b.target}</Text>
+                  </View>
+                  <Text style={[styles.badgeLabel, earned && { color: b.color }]}>{b.name}</Text>
+                </View>
+              );
+            })}
+            {taste && taste.topCountries.length >= 5 && (
+              <View style={styles.badgeItem}>
+                <View style={[styles.badgeCircle, { borderColor: '#3b6d8a', backgroundColor: '#eef2f7' }]}>
+                  <Text style={[styles.badgeNum, { color: '#3b6d8a' }]}>5</Text>
+                </View>
+                <Text style={[styles.badgeLabel, { color: '#3b6d8a' }]}>Traveler</Text>
               </View>
-              <Text style={styles.badgeLabel}>Collector</Text>
-            </View>
-            <View style={styles.badgeItem}>
-              <View style={styles.badgeCircle}><Text style={styles.badgeNum}>5</Text></View>
-              <Text style={styles.badgeLabel}>Countries</Text>
-            </View>
-            <View style={styles.badgeItem}>
-              <View style={styles.badgeCircle}><Text style={styles.badgeNum}>50</Text></View>
-              <Text style={styles.badgeLabel}>Expert</Text>
-            </View>
+            )}
           </ScrollView>
         </View>
 
@@ -302,6 +323,8 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   headerUsername: { fontSize: 17, fontWeight: '700', color: '#222' },
+  headerBadge: { paddingHorizontal: 8, paddingVertical: 2, borderRadius: 8 },
+  headerBadgeText: { fontSize: 10, fontWeight: '600' },
 
   profileTop: { flexDirection: 'row', alignItems: 'center', padding: 20, gap: 20 },
   avatarLg: {

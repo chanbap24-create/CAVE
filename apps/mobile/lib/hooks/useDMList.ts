@@ -24,71 +24,79 @@ export function useDMList() {
     if (!user) return;
     setLoading(true);
 
-    // Get my chat memberships
+    // 1. Get my memberships
     const { data: memberships } = await supabase
       .from('chat_members')
       .select('room_id, last_read_at')
       .eq('user_id', user.id);
 
-    if (!memberships || memberships.length === 0) { setLoading(false); return; }
+    if (!memberships || memberships.length === 0) { setRooms([]); setLoading(false); return; }
 
     const roomIds = memberships.map(m => m.room_id);
     const readMap = new Map(memberships.map(m => [m.room_id, m.last_read_at]));
 
-    // Get DM rooms only
+    // 2. Get DM rooms only
     const { data: dmRooms } = await supabase
       .from('chat_rooms')
       .select('id')
       .in('id', roomIds)
       .eq('type', 'dm');
 
-    if (!dmRooms || dmRooms.length === 0) { setLoading(false); return; }
+    if (!dmRooms || dmRooms.length === 0) { setRooms([]); setLoading(false); return; }
 
     const dmRoomIds = dmRooms.map(r => r.id);
 
-    // Build room list
-    const result: DMRoom[] = [];
+    // 3. Batch: get all members of DM rooms (to find other users)
+    const { data: allMembers } = await supabase
+      .from('chat_members')
+      .select('room_id, user_id')
+      .in('room_id', dmRoomIds)
+      .neq('user_id', user.id);
 
-    for (const roomId of dmRoomIds) {
-      // Get other member
-      const { data: members } = await supabase
-        .from('chat_members')
-        .select('user_id')
-        .eq('room_id', roomId)
-        .neq('user_id', user.id)
-        .limit(1);
+    if (!allMembers) { setRooms([]); setLoading(false); return; }
 
-      if (!members?.[0]) continue;
+    const otherUserIds = [...new Set(allMembers.map(m => m.user_id))];
+    const roomToUser = new Map(allMembers.map(m => [m.room_id, m.user_id]));
 
-      const { data: profile } = await supabase
-        .from('profiles')
-        .select('id, username, display_name, avatar_url')
-        .eq('id', members[0].user_id)
-        .single();
+    // 4. Batch: get all profiles
+    const { data: profiles } = await supabase
+      .from('profiles')
+      .select('id, username, display_name, avatar_url')
+      .in('id', otherUserIds);
 
-      if (!profile) continue;
+    const profileMap = new Map(profiles?.map(p => [p.id, p]) || []);
 
-      // Get last message
-      const { data: lastMsg } = await supabase
-        .from('chat_messages')
-        .select('content, created_at')
-        .eq('room_id', roomId)
-        .order('created_at', { ascending: false })
-        .limit(1);
+    // 5. Batch: get last message per room
+    const { data: allMessages } = await supabase
+      .from('chat_messages')
+      .select('room_id, content, created_at')
+      .in('room_id', dmRoomIds)
+      .order('created_at', { ascending: false });
 
+    // Group by room, take first (latest)
+    const lastMsgMap = new Map<number, { content: string; created_at: string }>();
+    (allMessages || []).forEach(msg => {
+      if (!lastMsgMap.has(msg.room_id)) lastMsgMap.set(msg.room_id, msg);
+    });
+
+    // Build result
+    const result: DMRoom[] = dmRoomIds.map(roomId => {
+      const otherUserId = roomToUser.get(roomId);
+      const profile = otherUserId ? profileMap.get(otherUserId) : null;
+      const lastMsg = lastMsgMap.get(roomId);
       const lastReadAt = readMap.get(roomId);
-      const unread = lastMsg?.[0] && lastReadAt
-        ? new Date(lastMsg[0].created_at) > new Date(lastReadAt)
+      const unread = lastMsg && lastReadAt
+        ? new Date(lastMsg.created_at) > new Date(lastReadAt)
         : false;
 
-      result.push({
+      return {
         room_id: roomId,
-        other_user: profile,
-        last_message: lastMsg?.[0]?.content || null,
-        last_message_at: lastMsg?.[0]?.created_at || null,
+        other_user: profile || { id: otherUserId || '', username: 'unknown', display_name: null, avatar_url: null },
+        last_message: lastMsg?.content || null,
+        last_message_at: lastMsg?.created_at || null,
         unread,
-      });
-    }
+      };
+    }).filter(r => r.other_user.id);
 
     // Sort by last message time
     result.sort((a, b) => {

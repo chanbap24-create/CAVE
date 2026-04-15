@@ -37,7 +37,7 @@ export function useGatherings() {
     const hostIds = [...new Set(data.map(g => g.host_id))];
     const { data: profiles } = await supabase
       .from('profiles')
-      .select('id, username, display_name, avatar_url')
+      .select('id, username, display_name, avatar_url, collection_count')
       .in('id', hostIds);
 
     const profileMap = new Map(profiles?.map(p => [p.id, p]) || []);

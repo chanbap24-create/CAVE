@@ -12,9 +12,17 @@ export default function FeedScreen() {
   const [posts, setPosts] = useState<any[] | null>(null);
   const [refreshing, setRefreshing] = useState(false);
   const { unreadCount, loadUnreadCount } = useNotifications();
+  const lastLoadRef = React.useRef(0);
 
   useFocusEffect(
-    useCallback(() => { loadPosts(); loadUnreadCount(); }, [])
+    useCallback(() => {
+      const now = Date.now();
+      if (now - lastLoadRef.current > 30000) { // 30초 캐시
+        loadPosts();
+        lastLoadRef.current = now;
+      }
+      loadUnreadCount();
+    }, [])
   );
 
   async function loadPosts() {
@@ -25,27 +33,36 @@ export default function FeedScreen() {
       .order('created_at', { ascending: false })
       .limit(20);
 
-    if (!postsData) return;
+    if (!postsData || postsData.length === 0) { setPosts([]); return; }
 
-    const enriched = await Promise.all(postsData.map(async (post) => {
-      const [imgRes, profileRes, wineRes] = await Promise.all([
-        supabase.from('post_images').select('image_url').eq('post_id', post.id).order('display_order').limit(1),
-        supabase.from('profiles').select('username, display_name, avatar_url').eq('id', post.user_id).single(),
-        supabase.from('post_wines').select('wine_id').eq('post_id', post.id).limit(1),
-      ]);
+    const postIds = postsData.map(p => p.id);
+    const userIds = [...new Set(postsData.map(p => p.user_id))];
 
-      let wine = null;
-      if (wineRes.data?.[0]) {
-        const { data: w } = await supabase.from('wines').select('id, name, category').eq('id', wineRes.data[0].wine_id).single();
-        wine = w;
-      }
+    // Batch queries
+    const [imgRes, profileRes, wineTagRes] = await Promise.all([
+      supabase.from('post_images').select('post_id, image_url').in('post_id', postIds),
+      supabase.from('profiles').select('id, username, display_name, avatar_url, collection_count').in('id', userIds),
+      supabase.from('post_wines').select('post_id, wine_id').in('post_id', postIds),
+    ]);
 
-      return {
-        ...post,
-        image_url: imgRes.data?.[0]?.image_url || null,
-        profile: profileRes.data,
-        wine,
-      };
+    // Batch fetch wines
+    const wineIds = [...new Set((wineTagRes.data || []).map(w => w.wine_id))];
+    let wineMap = new Map();
+    if (wineIds.length > 0) {
+      const { data: wines } = await supabase.from('wines').select('id, name, category').in('id', wineIds);
+      wineMap = new Map(wines?.map(w => [w.id, w]) || []);
+    }
+
+    const imgMap = new Map();
+    (imgRes.data || []).forEach(img => { if (!imgMap.has(img.post_id)) imgMap.set(img.post_id, img.image_url); });
+    const profileMap = new Map((profileRes.data || []).map(p => [p.id, p]));
+    const wineTagMap = new Map((wineTagRes.data || []).map(wt => [wt.post_id, wt.wine_id]));
+
+    const enriched = postsData.map(post => ({
+      ...post,
+      image_url: imgMap.get(post.id) || null,
+      profile: profileMap.get(post.user_id) || null,
+      wine: wineTagMap.has(post.id) ? wineMap.get(wineTagMap.get(post.id)) || null : null,
     }));
 
     setPosts(enriched);

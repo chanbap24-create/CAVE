@@ -38,6 +38,18 @@ export function GatheringCard({ gathering, onPress }: Props) {
             <View style={styles.hostAvatar}><Text style={styles.hostAvatarText}>{hostInitial}</Text></View>
           )}
           <Text style={styles.hostName}>{host?.username || 'unknown'}</Text>
+          {(() => {
+            const cc = (host as any)?.collection_count || 0;
+            let b = null;
+            if (cc >= 100) b = { name: 'Master', bg: '#f0ecf8', color: '#7860a8' };
+            else if (cc >= 50) b = { name: 'Expert', bg: '#fdf8ec', color: '#b8933a' };
+            else if (cc >= 10) b = { name: 'Collector', bg: '#f7f0f3', color: '#7b2d4e' };
+            return b ? (
+              <View style={[styles.hostBadge, { backgroundColor: b.bg }]}>
+                <Text style={[styles.hostBadgeText, { color: b.color }]}>{b.name}</Text>
+              </View>
+            ) : null;
+          })()}
           <View style={styles.hostBadge}><Text style={styles.hostBadgeText}>Host</Text></View>
         </View>
 

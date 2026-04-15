@@ -7,7 +7,12 @@ import type { FeaturedCave } from '@/lib/hooks/useFeaturedCaves';
 export function FeaturedCaveCard({ cave }: { cave: FeaturedCave }) {
   const router = useRouter();
   const initial = cave.display_name?.[0]?.toUpperCase() || cave.username[0]?.toUpperCase() || '?';
-  const topBadge = cave.badges[0] || null;
+  // Determine badge with color
+  let topBadge: { name: string; bg: string; color: string } | null = null;
+  if (cave.collection_count >= 100) topBadge = { name: 'Master', bg: 'rgba(120,96,168,0.3)', color: '#c0a8f0' };
+  else if (cave.collection_count >= 50) topBadge = { name: 'Expert', bg: 'rgba(184,147,58,0.3)', color: '#e8d080' };
+  else if (cave.collection_count >= 10) topBadge = { name: 'Collector', bg: 'rgba(123,45,78,0.3)', color: '#e0a0b8' };
+  else if (cave.badges[0]) topBadge = { name: cave.badges[0], bg: 'rgba(255,255,255,0.2)', color: '#fff' };
 
   return (
     <Pressable style={styles.card} onPress={() => router.push(`/user/${cave.user_id}`)}>
@@ -43,19 +48,20 @@ function CardContent({ cave, initial, topBadge }: { cave: FeaturedCave; initial:
     <View style={styles.content}>
       <View style={styles.topRow}>
         {cave.avatar_url ? (
-          <Image source={{ uri: cave.avatar_url }} style={styles.avatar} />
+          <View style={cave.collection_count >= 50 ? styles.avatarGlow : undefined}>
+            <Image source={{ uri: cave.avatar_url }} style={[styles.avatar, cave.collection_count >= 50 && styles.avatarGoldBorder]} />
+          </View>
         ) : (
-          <View style={styles.avatarPlaceholder}>
+          <View style={[styles.avatarPlaceholder, cave.collection_count >= 50 && styles.avatarGoldBorder]}>
             <Text style={styles.avatarText}>{initial}</Text>
           </View>
         )}
         {cave.activeGatherings > 0 && <View style={styles.gatheringDot} />}
       </View>
       <Text style={[styles.username, { color: textColor }]} numberOfLines={1}>{cave.username}</Text>
-      <Text style={[styles.stat, { color: subColor }]}>{cave.collection_count} bottles · {cave.countries} countries</Text>
       {topBadge && (
-        <View style={[styles.badge, hasImage && { backgroundColor: 'rgba(255,255,255,0.25)' }]}>
-          <Text style={[styles.badgeText, hasImage && { color: '#fff' }]}>{topBadge}</Text>
+        <View style={[styles.badge, { backgroundColor: topBadge.bg }]}>
+          <Text style={[styles.badgeText, { color: topBadge.color }]}>{topBadge.name}</Text>
         </View>
       )}
     </View>
@@ -84,6 +90,15 @@ const styles = StyleSheet.create({
     alignItems: 'center', justifyContent: 'center',
   },
   avatarText: { fontSize: 11, fontWeight: '600', color: '#999' },
+  avatarGlow: {
+    borderRadius: 16, padding: 1,
+    shadowColor: '#c9a84c',
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0.6,
+    shadowRadius: 5,
+    elevation: 8,
+  },
+  avatarGoldBorder: { borderWidth: 1.5, borderColor: '#c9a84c' },
   gatheringDot: {
     position: 'absolute', bottom: 0, right: -2,
     width: 10, height: 10, borderRadius: 5,

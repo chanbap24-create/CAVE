@@ -85,7 +85,21 @@ export default function GatheringDetailScreen() {
               </View>
             )}
             <View>
-              <Text style={styles.hostName}>{host?.username}</Text>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                <Text style={styles.hostName}>{host?.username}</Text>
+                {(() => {
+                  const cc = host?.collection_count || 0;
+                  let b = null;
+                  if (cc >= 100) b = { name: 'Master', bg: '#f0ecf8', color: '#7860a8' };
+                  else if (cc >= 50) b = { name: 'Expert', bg: '#fdf8ec', color: '#b8933a' };
+                  else if (cc >= 10) b = { name: 'Collector', bg: '#f7f0f3', color: '#7b2d4e' };
+                  return b ? (
+                    <View style={{ backgroundColor: b.bg, paddingHorizontal: 6, paddingVertical: 1, borderRadius: 6 }}>
+                      <Text style={{ fontSize: 9, fontWeight: '600', color: b.color }}>{b.name}</Text>
+                    </View>
+                  ) : null;
+                })()}
+              </View>
               <Text style={styles.hostLabel}>Host</Text>
             </View>
           </View>

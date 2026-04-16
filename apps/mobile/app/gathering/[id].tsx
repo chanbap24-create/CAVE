@@ -4,6 +4,7 @@ import { useLocalSearchParams, useRouter } from 'expo-router';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/lib/auth';
 import { useGatheringDetail } from '@/lib/hooks/useGatheringDetail';
+import { getAvatarRingColor, getTopBadge } from '@/lib/tierUtils';
 import { getGatheringChatRoom } from '@/lib/hooks/useChat';
 import { ApplicantRow } from '@/components/ApplicantRow';
 import Svg, { Path, Circle, Line, Rect, Polyline } from 'react-native-svg';
@@ -77,24 +78,23 @@ export default function GatheringDetailScreen() {
           {gathering.description && <Text style={styles.desc}>{gathering.description}</Text>}
 
           <View style={styles.hostRow}>
-            {host?.avatar_url ? (
-              <View style={host?.collection_count >= 50 ? styles.avatarGlow : undefined}>
-                <Image source={{ uri: host.avatar_url }} style={[styles.hostAvatarImg, host?.collection_count >= 50 && styles.avatarGoldBorder]} />
-              </View>
-            ) : (
-              <View style={[styles.hostAvatar, host?.collection_count >= 50 && styles.avatarGoldBorder]}>
-                <Text style={styles.hostAvatarText}>{host?.display_name?.[0]?.toUpperCase() || '?'}</Text>
-              </View>
-            )}
+            {(() => {
+              const rc = getAvatarRingColor(host?.collection_count || 0);
+              return host?.avatar_url ? (
+                <View style={rc ? [styles.avatarGlow, { shadowColor: rc }] : undefined}>
+                  <Image source={{ uri: host.avatar_url }} style={[styles.hostAvatarImg, rc && { borderWidth: 2, borderColor: rc }]} />
+                </View>
+              ) : (
+                <View style={[styles.hostAvatar, rc && { borderWidth: 2, borderColor: rc }]}>
+                  <Text style={styles.hostAvatarText}>{host?.display_name?.[0]?.toUpperCase() || '?'}</Text>
+                </View>
+              );
+            })()}
             <View>
               <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
                 <Text style={styles.hostName}>{host?.username}</Text>
                 {(() => {
-                  const cc = host?.collection_count || 0;
-                  let b = null;
-                  if (cc >= 100) b = { name: 'Master', bg: '#f0ecf8', color: '#7860a8' };
-                  else if (cc >= 50) b = { name: 'Expert', bg: '#faf0d0', color: '#a07818' };
-                  else if (cc >= 10) b = { name: 'Collector', bg: '#f7f0f3', color: '#7b2d4e' };
+                  const b = getTopBadge(host?.collection_count || 0);
                   return b ? (
                     <View style={{ backgroundColor: b.bg, paddingHorizontal: 6, paddingVertical: 1, borderRadius: 6 }}>
                       <Text style={{ fontSize: 9, fontWeight: '600', color: b.color }}>{b.name}</Text>

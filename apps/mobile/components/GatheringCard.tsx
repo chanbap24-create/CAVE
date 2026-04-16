@@ -2,6 +2,7 @@ import React from 'react';
 import { View, Text, StyleSheet, Pressable, Image } from 'react-native';
 import Svg, { Path, Circle, Line, Rect } from 'react-native-svg';
 import type { Gathering } from '@/lib/hooks/useGatherings';
+import { getAvatarRingColor, getTopBadge } from '@/lib/tierUtils';
 
 function formatDate(dateStr: string | null) {
   if (!dateStr) return '';
@@ -32,20 +33,19 @@ export function GatheringCard({ gathering, onPress }: Props) {
         <Text style={styles.title}>{g.title}</Text>
 
         <View style={styles.hostRow}>
-          {host?.avatar_url ? (
-            <View style={(host as any)?.collection_count >= 50 ? styles.avatarGlow : undefined}>
-              <Image source={{ uri: host.avatar_url }} style={[styles.hostAvatarImg, (host as any)?.collection_count >= 50 && styles.avatarGoldBorder]} />
-            </View>
-          ) : (
-            <View style={[styles.hostAvatar, (host as any)?.collection_count >= 50 && styles.avatarGoldBorder]}><Text style={styles.hostAvatarText}>{hostInitial}</Text></View>
-          )}
+          {(() => {
+            const rc = getAvatarRingColor((host as any)?.collection_count || 0);
+            return host?.avatar_url ? (
+              <View style={rc ? [styles.avatarGlow, { shadowColor: rc }] : undefined}>
+                <Image source={{ uri: host.avatar_url }} style={[styles.hostAvatarImg, rc && { borderWidth: 1.5, borderColor: rc }]} />
+              </View>
+            ) : (
+              <View style={[styles.hostAvatar, rc && { borderWidth: 1.5, borderColor: rc }]}><Text style={styles.hostAvatarText}>{hostInitial}</Text></View>
+            );
+          })()}
           <Text style={styles.hostName}>{host?.username || 'unknown'}</Text>
           {(() => {
-            const cc = (host as any)?.collection_count || 0;
-            let b = null;
-            if (cc >= 100) b = { name: 'Master', bg: '#f0ecf8', color: '#7860a8' };
-            else if (cc >= 50) b = { name: 'Expert', bg: '#faf0d0', color: '#a07818' };
-            else if (cc >= 10) b = { name: 'Collector', bg: '#f7f0f3', color: '#7b2d4e' };
+            const b = getTopBadge((host as any)?.collection_count || 0);
             return b ? (
               <View style={[styles.hostBadge, { backgroundColor: b.bg }]}>
                 <Text style={[styles.hostBadgeText, { color: b.color }]}>{b.name}</Text>

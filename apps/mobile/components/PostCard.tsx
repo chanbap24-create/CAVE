@@ -8,6 +8,7 @@ import { FollowButton } from './FollowButton';
 import { CommentSheet } from './CommentSheet';
 import { getDMRoom } from '@/lib/hooks/useChat';
 import { useAuth } from '@/lib/auth';
+import { getAvatarRingColor, getTopBadge } from '@/lib/tierUtils';
 import { MentionText } from './MentionText';
 import { PhotoTagOverlay } from './PhotoTagOverlay';
 import { PhotoTagEditor } from './PhotoTagEditor';
@@ -51,23 +52,20 @@ export function PostCard({ post }: Props) {
 
   React.useEffect(() => { loadTags(); }, [post.id]);
 
-  // Determine highest badge
   const collectionCount = profile?.collection_count || 0;
-  let topBadge: { name: string; bg: string; color: string } | null = null;
-  if (collectionCount >= 100) topBadge = { name: 'Master', bg: '#f0ecf8', color: '#7860a8' };
-  else if (collectionCount >= 50) topBadge = { name: 'Expert', bg: '#faf0d0', color: '#a07818' };
-  else if (collectionCount >= 10) topBadge = { name: 'Collector', bg: '#f7f0f3', color: '#7b2d4e' };
+  const ringColor = getAvatarRingColor(collectionCount);
+  const topBadge = getTopBadge(collectionCount);
 
   return (
     <View style={styles.post}>
       <View style={styles.postHeader}>
         <Pressable onPress={() => router.push(`/user/${post.user_id}`)}>
           {profile?.avatar_url ? (
-            <View style={collectionCount >= 50 ? styles.avatarGlow : undefined}>
-              <Image source={{ uri: profile.avatar_url }} style={[styles.avatarImg, collectionCount >= 50 && styles.avatarGoldBorder]} />
+            <View style={ringColor ? [styles.avatarGlow, { shadowColor: ringColor }] : undefined}>
+              <Image source={{ uri: profile.avatar_url }} style={[styles.avatarImg, ringColor && { borderWidth: 2, borderColor: ringColor }]} />
             </View>
           ) : (
-            <View style={[styles.avatar, collectionCount >= 50 && styles.avatarGoldBorder]}>
+            <View style={[styles.avatar, ringColor && { borderWidth: 2, borderColor: ringColor }]}>
               <Text style={styles.avatarText}>{initial}</Text>
             </View>
           )}

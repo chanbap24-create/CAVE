@@ -3,6 +3,7 @@ import { View, Text, ScrollView, StyleSheet, Pressable, TextInput, Modal, Alert,
 import * as ImagePicker from 'expo-image-picker';
 import { useAuth } from '@/lib/auth';
 import { supabase } from '@/lib/supabase';
+import { getAvatarRingColor, getTopBadge } from '@/lib/tierUtils';
 import { useFocusEffect } from 'expo-router';
 import { useMyPosts } from '@/lib/hooks/useMyPosts';
 import { useDeletePost } from '@/lib/hooks/useDeletePost';
@@ -138,10 +139,8 @@ export default function ProfileScreen() {
 
   const initial = profile?.display_name?.[0]?.toUpperCase() || user?.email?.[0]?.toUpperCase() || '?';
   const cc = profile?.collection_count || 0;
-  let myBadge: { name: string; bg: string; color: string } | null = null;
-  if (cc >= 100) myBadge = { name: 'Master', bg: '#f0ecf8', color: '#7860a8' };
-  else if (cc >= 50) myBadge = { name: 'Expert', bg: '#faf0d0', color: '#a07818' };
-  else if (cc >= 10) myBadge = { name: 'Collector', bg: '#f7f0f3', color: '#7b2d4e' };
+  const myBadge = getTopBadge(cc);
+  const ringColor = getAvatarRingColor(cc);
 
   return (
     <View style={styles.container}>
@@ -159,11 +158,11 @@ export default function ProfileScreen() {
       <ScrollView>
         <View style={styles.profileTop}>
           {profile?.avatar_url ? (
-            <View style={cc >= 50 ? styles.avatarGlow : undefined}>
-              <Image source={{ uri: profile.avatar_url }} style={[styles.avatarLgImg, cc >= 50 && styles.avatarGoldBorder]} />
+            <View style={ringColor ? [styles.avatarGlow, { shadowColor: ringColor }] : undefined}>
+              <Image source={{ uri: profile.avatar_url }} style={[styles.avatarLgImg, ringColor && { borderWidth: 2, borderColor: ringColor }]} />
             </View>
           ) : (
-            <View style={[styles.avatarLg, cc >= 50 && styles.avatarGoldBorder]}>
+            <View style={[styles.avatarLg, ringColor && { borderWidth: 2, borderColor: ringColor }]}>
               <Text style={styles.avatarText}>{initial}</Text>
             </View>
           )}

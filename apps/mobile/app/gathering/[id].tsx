@@ -78,9 +78,11 @@ export default function GatheringDetailScreen() {
 
           <View style={styles.hostRow}>
             {host?.avatar_url ? (
-              <Image source={{ uri: host.avatar_url }} style={styles.hostAvatarImg} />
+              <View style={host?.collection_count >= 50 ? styles.avatarGlow : undefined}>
+                <Image source={{ uri: host.avatar_url }} style={[styles.hostAvatarImg, host?.collection_count >= 50 && styles.avatarGoldBorder]} />
+              </View>
             ) : (
-              <View style={styles.hostAvatar}>
+              <View style={[styles.hostAvatar, host?.collection_count >= 50 && styles.avatarGoldBorder]}>
                 <Text style={styles.hostAvatarText}>{host?.display_name?.[0]?.toUpperCase() || '?'}</Text>
               </View>
             )}
@@ -91,7 +93,7 @@ export default function GatheringDetailScreen() {
                   const cc = host?.collection_count || 0;
                   let b = null;
                   if (cc >= 100) b = { name: 'Master', bg: '#f0ecf8', color: '#7860a8' };
-                  else if (cc >= 50) b = { name: 'Expert', bg: '#fdf8ec', color: '#b8933a' };
+                  else if (cc >= 50) b = { name: 'Expert', bg: '#faf0d0', color: '#a07818' };
                   else if (cc >= 10) b = { name: 'Collector', bg: '#f7f0f3', color: '#7b2d4e' };
                   return b ? (
                     <View style={{ backgroundColor: b.bg, paddingHorizontal: 6, paddingVertical: 1, borderRadius: 6 }}>
@@ -251,6 +253,15 @@ const styles = StyleSheet.create({
   },
   hostAvatarImg: { width: 44, height: 44, borderRadius: 22 },
   hostAvatarText: { fontSize: 16, fontWeight: '600', color: '#999' },
+  avatarGlow: {
+    borderRadius: 24, padding: 1,
+    shadowColor: '#c9a84c',
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0.6,
+    shadowRadius: 6,
+    elevation: 8,
+  },
+  avatarGoldBorder: { borderWidth: 2, borderColor: '#c9a84c' },
   hostName: { fontSize: 15, fontWeight: '600', color: '#222' },
   hostLabel: { fontSize: 11, color: '#7b2d4e', fontWeight: '500' },
 

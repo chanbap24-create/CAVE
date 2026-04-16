@@ -6,6 +6,7 @@ import { PostCard } from '@/components/PostCard';
 import { FeedSkeleton } from '@/components/FeedSkeleton';
 import { useNotifications } from '@/lib/hooks/useNotifications';
 import Svg, { Path, Line } from 'react-native-svg';
+import { Ionicons } from '@expo/vector-icons';
 
 export default function FeedScreen() {
   const router = useRouter();
@@ -85,10 +86,7 @@ export default function FeedScreen() {
         </Pressable>
         <Text style={styles.logo}>Cave</Text>
         <Pressable style={styles.headerRight} onPress={() => router.push('/notifications')}>
-          <Svg width={24} height={24} fill="none" stroke="#222" strokeWidth={1.8} viewBox="0 0 24 24">
-            <Path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" />
-            <Path d="M13.73 21a2 2 0 0 1-3.46 0" />
-          </Svg>
+          <Ionicons name="notifications-outline" size={24} color="#262626" />
           {unreadCount > 0 && (
             <View style={styles.badge}>
               <Text style={styles.badgeText}>{unreadCount > 9 ? '9+' : unreadCount}</Text>
@@ -117,14 +115,13 @@ const styles = StyleSheet.create({
   header: {
     paddingTop: 60, paddingHorizontal: 20, paddingBottom: 14,
     borderBottomWidth: 1, borderBottomColor: '#efefef',
-    alignItems: 'center', justifyContent: 'center',
-    position: 'relative',
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
   },
   headerLeft: {
-    position: 'absolute', left: 20, top: 62,
+    width: 30,
   },
   headerRight: {
-    position: 'absolute', right: 20, top: 62,
+    width: 30, alignItems: 'flex-end' as const,
   },
   badge: {
     position: 'absolute', top: -4, right: -6,

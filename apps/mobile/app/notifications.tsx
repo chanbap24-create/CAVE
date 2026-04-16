@@ -61,7 +61,13 @@ export default function NotificationsScreen() {
               key={n.id}
               style={[styles.item, !n.is_read && styles.itemUnread]}
               onPress={() => {
-                if (n.type === 'follow' && n.actor_id) router.push(`/user/${n.actor_id}`);
+                if (n.type === 'follow' && n.actor_id) {
+                  router.push(`/user/${n.actor_id}`);
+                } else if (['like', 'comment', 'mention'].includes(n.type) && n.reference_id && n.reference_type === 'post') {
+                  router.push(`/post/${n.reference_id}`);
+                } else if (['gathering_invite', 'gathering_approved', 'gathering_rejected'].includes(n.type) && n.reference_id) {
+                  router.push(`/gathering/${n.reference_id}`);
+                }
               }}
             >
               <View style={styles.avatar}>

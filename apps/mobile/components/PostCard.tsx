@@ -2,13 +2,16 @@ import React, { useState } from 'react';
 import { View, Text, StyleSheet, Image, Pressable } from 'react-native';
 import { VideoPlayer } from './VideoPlayer';
 import { useRouter } from 'expo-router';
-import Svg, { Path } from 'react-native-svg';
+import Svg, { Path, Circle, Line } from 'react-native-svg';
 import { useLike } from '@/lib/hooks/useLike';
 import { FollowButton } from './FollowButton';
 import { CommentSheet } from './CommentSheet';
 import { getDMRoom } from '@/lib/hooks/useChat';
 import { useAuth } from '@/lib/auth';
 import { MentionText } from './MentionText';
+import { PhotoTagOverlay } from './PhotoTagOverlay';
+import { PhotoTagEditor } from './PhotoTagEditor';
+import { usePhotoTags } from '@/lib/hooks/usePhotoTags';
 
 const tagColors: Record<string, { bg: string; color: string }> = {
   wine: { bg: '#f7f0f3', color: '#7b2d4e' },
@@ -42,12 +45,17 @@ export function PostCard({ post }: Props) {
   const tc = wine ? (tagColors[wine.category] || tagColors.other) : null;
   const { liked, count, toggleLike } = useLike(post.id, post.like_count || 0);
   const [showComments, setShowComments] = useState(false);
+  const [showTags, setShowTags] = useState(false);
+  const [showTagEditor, setShowTagEditor] = useState(false);
+  const { tags, loadTags } = usePhotoTags(post.id);
+
+  React.useEffect(() => { loadTags(); }, [post.id]);
 
   // Determine highest badge
   const collectionCount = profile?.collection_count || 0;
   let topBadge: { name: string; bg: string; color: string } | null = null;
   if (collectionCount >= 100) topBadge = { name: 'Master', bg: '#f0ecf8', color: '#7860a8' };
-  else if (collectionCount >= 50) topBadge = { name: 'Expert', bg: '#fdf8ec', color: '#b8933a' };
+  else if (collectionCount >= 50) topBadge = { name: 'Expert', bg: '#faf0d0', color: '#a07818' };
   else if (collectionCount >= 10) topBadge = { name: 'Collector', bg: '#f7f0f3', color: '#7b2d4e' };
 
   return (
@@ -73,7 +81,6 @@ export function PostCard({ post }: Props) {
           )}
         </Pressable>
         <FollowButton targetUserId={post.user_id} size="small" />
-        <Text style={styles.more}>...</Text>
       </View>
 
       {post.video_playback_id ? (
@@ -81,7 +88,15 @@ export function PostCard({ post }: Props) {
           <VideoPlayer playbackId={post.video_playback_id} controls />
         </View>
       ) : post.image_url ? (
-        <Image source={{ uri: post.image_url }} style={styles.postImage} resizeMode="cover" />
+        <Pressable style={{ position: 'relative' }} onPress={() => tags.length > 0 && setShowTags(!showTags)}>
+          <Image source={{ uri: post.image_url }} style={styles.postImage} resizeMode="cover" />
+          <PhotoTagOverlay tags={tags} visible={showTags} />
+          {tags.length > 0 && !showTags && (
+            <View style={styles.tagIndicator}>
+              <Text style={styles.tagIndicatorText}>{tags.length}</Text>
+            </View>
+          )}
+        </Pressable>
       ) : (
         <View style={[styles.postImage, { backgroundColor: '#f5f5f5' }]} />
       )}
@@ -113,9 +128,16 @@ export function PostCard({ post }: Props) {
           </Svg>
         </Pressable>
         <View style={{ flex: 1 }} />
-        <Svg width={24} height={24} fill="none" stroke="#222" strokeWidth={1.8} viewBox="0 0 24 24">
-          <Path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z" />
-        </Svg>
+        {user?.id === post.user_id && post.image_url && !post.video_playback_id && (
+          <Pressable onPress={() => setShowTagEditor(true)}>
+            <Svg width={24} height={24} fill="none" stroke="#222" strokeWidth={1.8} viewBox="0 0 24 24">
+              <Path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
+              <Circle cx={12} cy={7} r={4} />
+              <Line x1={19} y1={11} x2={19} y2={17} />
+              <Line x1={16} y1={14} x2={22} y2={14} />
+            </Svg>
+          </Pressable>
+        )}
       </View>
 
       <View style={styles.postBody}>
@@ -144,6 +166,16 @@ export function PostCard({ post }: Props) {
         onClose={() => setShowComments(false)}
         postId={post.id}
       />
+
+      {showTagEditor && post.image_url && (
+        <PhotoTagEditor
+          visible={showTagEditor}
+          onClose={() => setShowTagEditor(false)}
+          postId={post.id}
+          imageUrl={post.image_url}
+          onTagAdded={loadTags}
+        />
+      )}
     </View>
   );
 }
@@ -176,6 +208,12 @@ const styles = StyleSheet.create({
   userBadgeText: { fontSize: 9, fontWeight: '600', color: '#7b2d4e' },
   more: { fontSize: 18, color: '#999', letterSpacing: 2 },
   postImage: { width: '100%', height: 390 },
+  tagIndicator: {
+    position: 'absolute', bottom: 10, left: 10,
+    backgroundColor: 'rgba(0,0,0,0.6)', borderRadius: 12,
+    width: 24, height: 24, alignItems: 'center', justifyContent: 'center',
+  },
+  tagIndicatorText: { color: '#fff', fontSize: 10, fontWeight: '700' },
   actions: {
     flexDirection: 'row', alignItems: 'center',
     gap: 16, paddingHorizontal: 14, paddingVertical: 10,

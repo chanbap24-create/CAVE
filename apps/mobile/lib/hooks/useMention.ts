@@ -15,7 +15,7 @@ export function useMention() {
   function detectMention(text: string, cursorPos?: number) {
     const pos = cursorPos ?? text.length;
     const before = text.slice(0, pos);
-    const match = before.match(/@(\w*)$/);
+    const match = before.match(/@([^\s@]*)$/);
 
     if (match) {
       const query = match[1];
@@ -32,13 +32,13 @@ export function useMention() {
     const { data } = await supabase
       .from('profiles')
       .select('id, username, display_name, avatar_url')
-      .ilike('username', `%${query}%`)
+      .or(`username.ilike.%${query}%,display_name.ilike.%${query}%`)
       .limit(5);
     if (data) setSuggestions(data);
   }
 
   function applyMention(text: string, user: MentionUser): string {
-    const replaced = text.replace(/@(\w*)$/, `@${user.username} `);
+    const replaced = text.replace(/@([^\s@]*)$/, `@${user.username} `);
     setSuggestions([]);
     setMentionQuery(null);
     return replaced;

@@ -33,16 +33,18 @@ export function GatheringCard({ gathering, onPress }: Props) {
 
         <View style={styles.hostRow}>
           {host?.avatar_url ? (
-            <Image source={{ uri: host.avatar_url }} style={styles.hostAvatarImg} />
+            <View style={(host as any)?.collection_count >= 50 ? styles.avatarGlow : undefined}>
+              <Image source={{ uri: host.avatar_url }} style={[styles.hostAvatarImg, (host as any)?.collection_count >= 50 && styles.avatarGoldBorder]} />
+            </View>
           ) : (
-            <View style={styles.hostAvatar}><Text style={styles.hostAvatarText}>{hostInitial}</Text></View>
+            <View style={[styles.hostAvatar, (host as any)?.collection_count >= 50 && styles.avatarGoldBorder]}><Text style={styles.hostAvatarText}>{hostInitial}</Text></View>
           )}
           <Text style={styles.hostName}>{host?.username || 'unknown'}</Text>
           {(() => {
             const cc = (host as any)?.collection_count || 0;
             let b = null;
             if (cc >= 100) b = { name: 'Master', bg: '#f0ecf8', color: '#7860a8' };
-            else if (cc >= 50) b = { name: 'Expert', bg: '#fdf8ec', color: '#b8933a' };
+            else if (cc >= 50) b = { name: 'Expert', bg: '#faf0d0', color: '#a07818' };
             else if (cc >= 10) b = { name: 'Collector', bg: '#f7f0f3', color: '#7b2d4e' };
             return b ? (
               <View style={[styles.hostBadge, { backgroundColor: b.bg }]}>
@@ -106,6 +108,15 @@ const styles = StyleSheet.create({
   },
   hostAvatarImg: { width: 28, height: 28, borderRadius: 14 },
   hostAvatarText: { fontSize: 10, fontWeight: '600', color: '#888' },
+  avatarGlow: {
+    borderRadius: 16, padding: 1,
+    shadowColor: '#c9a84c',
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0.6,
+    shadowRadius: 5,
+    elevation: 8,
+  },
+  avatarGoldBorder: { borderWidth: 1.5, borderColor: '#c9a84c' },
   hostName: { fontSize: 13, fontWeight: '600', color: '#222' },
   hostBadge: { backgroundColor: '#f7f0f3', paddingHorizontal: 8, paddingVertical: 2, borderRadius: 8 },
   hostBadgeText: { fontSize: 10, fontWeight: '600', color: '#7b2d4e' },

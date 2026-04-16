@@ -3,6 +3,7 @@ import { Tabs, useFocusEffect } from 'expo-router';
 import { View, StyleSheet } from 'react-native';
 import { colors } from '@/constants/theme';
 import { useUnreadDM } from '@/lib/hooks/useUnreadDM';
+import { useUnreadGathering } from '@/lib/hooks/useUnreadGathering';
 import Svg, { Path, Circle, Line, Rect, Polyline, Ellipse } from 'react-native-svg';
 
 function HomeIcon({ focused }: { focused: boolean }) {
@@ -55,14 +56,17 @@ function CaveIcon({ focused }: { focused: boolean }) {
   );
 }
 
-function GatheringsIcon({ focused }: { focused: boolean }) {
+function GatheringsIcon({ focused, hasUnread }: { focused: boolean; hasUnread: boolean }) {
   return (
-    <Svg width={26} height={26} fill="none" stroke={focused ? '#222' : '#999'} strokeWidth={focused ? 2.2 : 1.8} viewBox="0 0 24 24">
-      <Path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
-      <Circle cx={9} cy={7} r={4} />
-      <Path d="M23 21v-2a4 4 0 0 0-3-3.87" />
-      <Path d="M16 3.13a4 4 0 0 1 0 7.75" />
-    </Svg>
+    <View>
+      <Svg width={26} height={26} fill="none" stroke={focused ? '#222' : '#999'} strokeWidth={focused ? 2.2 : 1.8} viewBox="0 0 24 24">
+        <Path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
+        <Circle cx={9} cy={7} r={4} />
+        <Path d="M23 21v-2a4 4 0 0 0-3-3.87" />
+        <Path d="M16 3.13a4 4 0 0 1 0 7.75" />
+      </Svg>
+      {hasUnread && <View style={styles.unreadDot} />}
+    </View>
   );
 }
 
@@ -77,9 +81,10 @@ function ProfileIcon({ focused }: { focused: boolean }) {
 
 export default function TabLayout() {
   const { hasUnread, checkUnread } = useUnreadDM();
+  const { hasUnread: hasUnreadGathering, checkUnread: checkUnreadGathering } = useUnreadGathering();
 
   useFocusEffect(
-    useCallback(() => { checkUnread(); }, [])
+    useCallback(() => { checkUnread(); checkUnreadGathering(); }, [])
   );
 
   return (
@@ -123,7 +128,7 @@ export default function TabLayout() {
       <Tabs.Screen
         name="gatherings"
         options={{
-          tabBarIcon: ({ focused }) => <GatheringsIcon focused={focused} />,
+          tabBarIcon: ({ focused }) => <GatheringsIcon focused={focused} hasUnread={hasUnreadGathering} />,
         }}
       />
       <Tabs.Screen

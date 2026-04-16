@@ -7,6 +7,8 @@ import { useFocusEffect } from 'expo-router';
 import { useMyPosts } from '@/lib/hooks/useMyPosts';
 import { useDeletePost } from '@/lib/hooks/useDeletePost';
 import { useTasteProfile } from '@/lib/hooks/useTasteProfile';
+import { useUserBadges } from '@/lib/hooks/useUserBadges';
+import { BadgeList } from '@/components/BadgeList';
 import { PostGrid } from '@/components/PostGrid';
 import { TasteCard } from '@/components/TasteCard';
 
@@ -32,6 +34,7 @@ export default function ProfileScreen() {
   const { posts: myPosts, loadPosts } = useMyPosts();
   const { deletePost } = useDeletePost(loadPosts);
   const { taste, loadTaste } = useTasteProfile(user?.id);
+  const { badges: userBadges, allBadges, loadBadges } = useUserBadges(user?.id);
 
   useFocusEffect(
     useCallback(() => {
@@ -39,6 +42,7 @@ export default function ProfileScreen() {
         loadProfile();
         loadPosts();
         loadTaste();
+        loadBadges();
       }
     }, [user])
   );
@@ -136,7 +140,7 @@ export default function ProfileScreen() {
   const cc = profile?.collection_count || 0;
   let myBadge: { name: string; bg: string; color: string } | null = null;
   if (cc >= 100) myBadge = { name: 'Master', bg: '#f0ecf8', color: '#7860a8' };
-  else if (cc >= 50) myBadge = { name: 'Expert', bg: '#fdf8ec', color: '#b8933a' };
+  else if (cc >= 50) myBadge = { name: 'Expert', bg: '#faf0d0', color: '#a07818' };
   else if (cc >= 10) myBadge = { name: 'Collector', bg: '#f7f0f3', color: '#7b2d4e' };
 
   return (
@@ -155,9 +159,11 @@ export default function ProfileScreen() {
       <ScrollView>
         <View style={styles.profileTop}>
           {profile?.avatar_url ? (
-            <Image source={{ uri: profile.avatar_url }} style={styles.avatarLgImg} />
+            <View style={cc >= 50 ? styles.avatarGlow : undefined}>
+              <Image source={{ uri: profile.avatar_url }} style={[styles.avatarLgImg, cc >= 50 && styles.avatarGoldBorder]} />
+            </View>
           ) : (
-            <View style={styles.avatarLg}>
+            <View style={[styles.avatarLg, cc >= 50 && styles.avatarGoldBorder]}>
               <Text style={styles.avatarText}>{initial}</Text>
             </View>
           )}
@@ -194,32 +200,11 @@ export default function ProfileScreen() {
         {taste && <TasteCard taste={taste} compact />}
 
       <View style={styles.badgeSection}>
-          <Text style={styles.sectionTitle}>Badges</Text>
-          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 10 }}>
-            {[
-              { name: 'Collector', target: 10, bg: '#f7f0f3', color: '#7b2d4e', bgEarned: '#7b2d4e' },
-              { name: 'Expert', target: 50, bg: '#fdf8ec', color: '#b8933a', bgEarned: '#b8933a' },
-              { name: 'Master', target: 100, bg: '#f0ecf8', color: '#7860a8', bgEarned: '#7860a8' },
-            ].map(b => {
-              const earned = cc >= b.target;
-              return (
-                <View key={b.name} style={styles.badgeItem}>
-                  <View style={[styles.badgeCircle, earned && { borderColor: b.bgEarned, backgroundColor: b.bg }]}>
-                    <Text style={[styles.badgeNum, earned && { color: b.color }]}>{b.target}</Text>
-                  </View>
-                  <Text style={[styles.badgeLabel, earned && { color: b.color }]}>{b.name}</Text>
-                </View>
-              );
-            })}
-            {taste && taste.topCountries.length >= 5 && (
-              <View style={styles.badgeItem}>
-                <View style={[styles.badgeCircle, { borderColor: '#3b6d8a', backgroundColor: '#eef2f7' }]}>
-                  <Text style={[styles.badgeNum, { color: '#3b6d8a' }]}>5</Text>
-                </View>
-                <Text style={[styles.badgeLabel, { color: '#3b6d8a' }]}>Traveler</Text>
-              </View>
-            )}
-          </ScrollView>
+          <Text style={styles.sectionTitle}>Badges ({userBadges.length}/{allBadges.length})</Text>
+          <BadgeList
+            allBadges={allBadges}
+            earnedIds={new Set(userBadges.map(b => b.badge_id))}
+          />
         </View>
 
         <View style={styles.infoSection}>
@@ -333,6 +318,15 @@ const styles = StyleSheet.create({
   },
   avatarText: { fontSize: 28, fontWeight: '600', color: '#999' },
   avatarLgImg: { width: 80, height: 80, borderRadius: 40 },
+  avatarGlow: {
+    borderRadius: 44, padding: 2,
+    shadowColor: '#c9a84c',
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0.6,
+    shadowRadius: 6,
+    elevation: 8,
+  },
+  avatarGoldBorder: { borderWidth: 2, borderColor: '#c9a84c' },
   profileStats: { flex: 1, flexDirection: 'row', justifyContent: 'center', gap: 20 },
   stat: { alignItems: 'center' },
   statNum: { fontSize: 17, fontWeight: '700', color: '#222' },

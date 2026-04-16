@@ -5,9 +5,12 @@ import { useAuth } from '@/lib/auth';
 import { supabase } from '@/lib/supabase';
 import { useFocusEffect } from 'expo-router';
 import { useTasteProfile } from '@/lib/hooks/useTasteProfile';
+import { useMyPicks } from '@/lib/hooks/useMyPicks';
+import { MyPicksSection } from '@/components/MyPicksSection';
 import Svg, { Line } from 'react-native-svg';
 import { TasteCard } from '@/components/TasteCard';
 import { AddToCaveSheet } from '@/components/AddToCaveSheet';
+import { useBadgeChecker } from '@/lib/hooks/useBadgeChecker';
 
 const bgColors: Record<string, string> = { wine: '#f0e8dd', whiskey: '#e8ddd0', sake: '#e0e8f0', cognac: '#ede5d8', other: '#e8e8e8' };
 const typeColors: Record<string, string> = { wine: '#7b2d4e', whiskey: '#8a6d3b', sake: '#3b6d8a', cognac: '#8a5a3b', other: '#999' };
@@ -23,10 +26,12 @@ export default function CellarScreen() {
   const [refreshing, setRefreshing] = useState(false);
   const [showAdd, setShowAdd] = useState(false);
   const { taste, loadTaste } = useTasteProfile(user?.id);
+  const { picks, loadPicks, addPick, removePick } = useMyPicks();
+  const { checkAndAwardBadges } = useBadgeChecker();
 
   useFocusEffect(
     useCallback(() => {
-      if (user) { loadCollections(); loadTaste(); }
+      if (user) { loadCollections(); loadTaste(); loadPicks(); }
     }, [user])
   );
 
@@ -93,6 +98,14 @@ export default function CellarScreen() {
         </View>
       </View>
 
+      <MyPicksSection
+        picks={picks}
+        editable
+        onAdd={addPick}
+        onRemove={removePick}
+        wines={collections}
+      />
+
       {taste && <TasteCard taste={taste} compact />}
 
       <View style={styles.tabRow}>
@@ -140,7 +153,7 @@ export default function CellarScreen() {
       <AddToCaveSheet
         visible={showAdd}
         onClose={() => setShowAdd(false)}
-        onAdded={() => { loadCollections(); loadTaste(); }}
+        onAdded={() => { loadCollections(); loadTaste(); checkAndAwardBadges(); }}
         existingIds={new Set(collections.map(c => c.wine_id))}
       />
     </View>

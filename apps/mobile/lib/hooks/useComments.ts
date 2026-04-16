@@ -74,6 +74,29 @@ export function useComments(postId: number) {
       content: content.trim(),
     });
 
+    // Send mention notifications from comment
+    const mentions = content.match(/@([^\s@]+)/g);
+    if (mentions) {
+      const usernames = mentions.map(m => m.replace('@', ''));
+      const { data: mentionedUsers } = await supabase
+        .from('profiles')
+        .select('id')
+        .in('username', usernames);
+      if (mentionedUsers) {
+        const notifs = mentionedUsers
+          .filter(u => u.id !== user.id)
+          .map(u => ({
+            user_id: u.id,
+            type: 'mention' as const,
+            actor_id: user.id,
+            reference_id: postId.toString(),
+            reference_type: 'post',
+            body: 'mentioned you in a comment',
+          }));
+        if (notifs.length > 0) await supabase.from('notifications').insert(notifs);
+      }
+    }
+
     await loadComments();
   }
 

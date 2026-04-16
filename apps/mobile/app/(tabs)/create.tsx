@@ -165,7 +165,7 @@ export default function CreateScreen() {
       }
 
       // Send mention notifications
-      const mentions = caption.match(/@(\w+)/g);
+      const mentions = caption.match(/@([^\s@]+)/g);
       if (mentions) {
         const usernames = mentions.map(m => m.replace('@', ''));
         const { data: mentionedUsers } = await supabase

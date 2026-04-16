@@ -61,11 +61,17 @@ export function useTasteProfile(userId?: string) {
     const badgeProgress: TasteProfile['badgeProgress'] = [];
 
     if (total < 10) badgeProgress.push({ name: 'Collector', current: total, target: 10 });
+    else if (total < 30) badgeProgress.push({ name: 'Enthusiast', current: total, target: 30 });
     else if (total < 50) badgeProgress.push({ name: 'Expert', current: total, target: 50 });
-    else if (total < 100) badgeProgress.push({ name: 'Master', current: total, target: 100 });
+    else if (total < 100) badgeProgress.push({ name: 'Connoisseur', current: total, target: 100 });
+    else if (total < 300) badgeProgress.push({ name: 'Master', current: total, target: 300 });
+    else if (total < 500) badgeProgress.push({ name: 'Grand Master', current: total, target: 500 });
+    else if (total < 1000) badgeProgress.push({ name: 'Legend', current: total, target: 1000 });
 
-    if (uniqueCountries < 5) badgeProgress.push({ name: 'World Traveler', current: uniqueCountries, target: 5 });
+    if (uniqueCountries < 3) badgeProgress.push({ name: 'Passport', current: uniqueCountries, target: 3 });
+    else if (uniqueCountries < 5) badgeProgress.push({ name: 'Traveler', current: uniqueCountries, target: 5 });
     else if (uniqueCountries < 10) badgeProgress.push({ name: 'Globe Trotter', current: uniqueCountries, target: 10 });
+    else if (uniqueCountries < 20) badgeProgress.push({ name: 'World Master', current: uniqueCountries, target: 20 });
 
     setTaste({ categoryBreakdown, topCountries, totalBottles: total, badgeProgress });
     setLoading(false);

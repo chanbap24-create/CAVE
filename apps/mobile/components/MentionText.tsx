@@ -11,7 +11,7 @@ interface Props {
 export function MentionText({ text, style }: Props) {
   const router = useRouter();
 
-  const parts = text.split(/(@\w+)/g);
+  const parts = text.split(/(@[^\s@]+)/g);
 
   async function handleMentionPress(username: string) {
     const cleanUsername = username.replace('@', '');

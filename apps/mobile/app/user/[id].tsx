@@ -7,6 +7,8 @@ import { FollowButton } from '@/components/FollowButton';
 import { TasteCard } from '@/components/TasteCard';
 import { useTasteProfile } from '@/lib/hooks/useTasteProfile';
 import { useUserGatherings } from '@/lib/hooks/useUserGatherings';
+import { useUserPicks } from '@/lib/hooks/useUserPicks';
+import { MyPicksSection } from '@/components/MyPicksSection';
 import { getDMRoom } from '@/lib/hooks/useChat';
 import Svg, { Path, Polyline } from 'react-native-svg';
 
@@ -18,6 +20,7 @@ export default function UserProfileScreen() {
   const [collections, setCollections] = useState<any[]>([]);
   const { taste, loadTaste } = useTasteProfile(id);
   const { gatherings: userGatherings, loadGatherings: loadUserGatherings } = useUserGatherings(id);
+  const { picks: userPicks, loadPicks: loadUserPicks } = useUserPicks(id);
 
   useEffect(() => {
     if (id) {
@@ -25,6 +28,7 @@ export default function UserProfileScreen() {
       loadCollections();
       loadTaste();
       loadUserGatherings();
+      loadUserPicks();
     }
   }, [id]);
 
@@ -62,7 +66,7 @@ export default function UserProfileScreen() {
             const cc = profile.collection_count || 0;
             let b = null;
             if (cc >= 100) b = { name: 'Master', bg: '#f0ecf8', color: '#7860a8' };
-            else if (cc >= 50) b = { name: 'Expert', bg: '#fdf8ec', color: '#b8933a' };
+            else if (cc >= 50) b = { name: 'Expert', bg: '#faf0d0', color: '#a07818' };
             else if (cc >= 10) b = { name: 'Collector', bg: '#f7f0f3', color: '#7b2d4e' };
             return b ? (
               <View style={[styles.headerBadge, { backgroundColor: b.bg }]}>
@@ -77,9 +81,11 @@ export default function UserProfileScreen() {
       <ScrollView>
         <View style={styles.profileTop}>
           {profile.avatar_url ? (
-            <Image source={{ uri: profile.avatar_url }} style={styles.avatarLgImg} />
+            <View style={profile.collection_count >= 50 ? styles.avatarGlow : undefined}>
+              <Image source={{ uri: profile.avatar_url }} style={[styles.avatarLgImg, profile.collection_count >= 50 && styles.avatarGoldBorder]} />
+            </View>
           ) : (
-            <View style={styles.avatarLg}>
+            <View style={[styles.avatarLg, profile.collection_count >= 50 && styles.avatarGoldBorder]}>
               <Text style={styles.avatarText}>{initial}</Text>
             </View>
           )}
@@ -116,6 +122,8 @@ export default function UserProfileScreen() {
             </Pressable>
           )}
         </View>
+
+        {userPicks.length > 0 && <MyPicksSection picks={userPicks} />}
 
         {taste && <TasteCard taste={taste} />}
 
@@ -177,6 +185,15 @@ const styles = StyleSheet.create({
   },
   avatarText: { fontSize: 28, fontWeight: '600', color: '#999' },
   avatarLgImg: { width: 80, height: 80, borderRadius: 40 },
+  avatarGlow: {
+    borderRadius: 44, padding: 2,
+    shadowColor: '#c9a84c',
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0.6,
+    shadowRadius: 6,
+    elevation: 8,
+  },
+  avatarGoldBorder: { borderWidth: 2, borderColor: '#c9a84c' },
   profileStats: { flex: 1, flexDirection: 'row', justifyContent: 'center', gap: 20 },
   stat: { alignItems: 'center' },
   statNum: { fontSize: 17, fontWeight: '700', color: '#222' },

@@ -19,6 +19,10 @@ const typeMessages: Record<string, string> = {
   comment: 'commented on your post',
   follow: 'started following you',
   badge_earned: 'You earned a badge!',
+  mention: 'mentioned you',
+  gathering_invite: 'wants to join your gathering',
+  gathering_approved: 'approved your request',
+  gathering_rejected: 'declined your request',
 };
 
 export default function NotificationsScreen() {

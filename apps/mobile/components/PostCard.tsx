@@ -8,6 +8,7 @@ import { FollowButton } from './FollowButton';
 import { CommentSheet } from './CommentSheet';
 import { getDMRoom } from '@/lib/hooks/useChat';
 import { useAuth } from '@/lib/auth';
+import { MentionText } from './MentionText';
 
 const tagColors: Record<string, { bg: string; color: string }> = {
   wine: { bg: '#f7f0f3', color: '#7b2d4e' },
@@ -125,10 +126,10 @@ export function PostCard({ post }: Props) {
           </Pressable>
         )}
         {post.caption ? (
-          <Text style={styles.caption}>
+          <View style={{ flexDirection: 'row', flexWrap: 'wrap', paddingHorizontal: 16, paddingVertical: 4 }}>
             <Text style={styles.bold}>{profile?.username} </Text>
-            {post.caption}
-          </Text>
+            <MentionText text={post.caption} style={styles.caption} />
+          </View>
         ) : null}
         {wine && tc && (
           <View style={[styles.drinkTag, { backgroundColor: tc.bg }]}>

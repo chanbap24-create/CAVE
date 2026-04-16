@@ -6,6 +6,8 @@ import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/lib/auth';
 import { useRouter } from 'expo-router';
 import { useVideoUpload } from '@/lib/hooks/useVideoUpload';
+import { useMention } from '@/lib/hooks/useMention';
+import { MentionSuggestions } from '@/components/MentionSuggestions';
 import Svg, { Path, Circle, Rect, Polyline, Line } from 'react-native-svg';
 
 function CreateVideoPreview({ uri }: { uri: string }) {
@@ -31,6 +33,7 @@ export default function CreateScreen() {
   const [caption, setCaption] = useState('');
   const [posting, setPosting] = useState(false);
   const { uploadVideo, uploading: videoUploading, progress: videoProgress } = useVideoUpload();
+  const { suggestions, detectMention, applyMention } = useMention();
 
   // Wine tagging
   const [tagSearch, setTagSearch] = useState('');
@@ -161,6 +164,29 @@ export default function CreateScreen() {
         });
       }
 
+      // Send mention notifications
+      const mentions = caption.match(/@(\w+)/g);
+      if (mentions) {
+        const usernames = mentions.map(m => m.replace('@', ''));
+        const { data: mentionedUsers } = await supabase
+          .from('profiles')
+          .select('id')
+          .in('username', usernames);
+        if (mentionedUsers) {
+          const notifs = mentionedUsers
+            .filter(u => u.id !== user.id)
+            .map(u => ({
+              user_id: u.id,
+              type: 'mention' as const,
+              actor_id: user.id,
+              reference_id: post.id.toString(),
+              reference_type: 'post',
+              body: 'mentioned you in a post',
+            }));
+          if (notifs.length > 0) await supabase.from('notifications').insert(notifs);
+        }
+      }
+
       Alert.alert('Posted!', 'Your post has been shared', [
         { text: 'OK', onPress: () => {
           setStep('pick');
@@ -262,13 +288,16 @@ export default function CreateScreen() {
           <CreateVideoPreview uri={videoUri} />
         )}
 
+        <MentionSuggestions suggestions={suggestions} onSelect={(user) => {
+          setCaption(applyMention(caption, user));
+        }} />
         <View style={styles.composeSection}>
           <TextInput
             style={styles.captionInput}
-            placeholder="Write a caption..."
+            placeholder="Write a caption... use @ to tag"
             placeholderTextColor="#bbb"
             value={caption}
-            onChangeText={setCaption}
+            onChangeText={(text) => { setCaption(text); detectMention(text); }}
             multiline
             maxLength={500}
           />

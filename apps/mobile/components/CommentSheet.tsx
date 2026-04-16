@@ -2,6 +2,9 @@ import React, { useState } from 'react';
 import { View, Text, StyleSheet, Modal, Pressable, TextInput, ScrollView, KeyboardAvoidingView, Platform, Alert } from 'react-native';
 import { useComments } from '@/lib/hooks/useComments';
 import { useAuth } from '@/lib/auth';
+import { useMention } from '@/lib/hooks/useMention';
+import { MentionSuggestions } from './MentionSuggestions';
+import { MentionText } from './MentionText';
 
 function timeAgo(dateStr: string) {
   const diff = Date.now() - new Date(dateStr).getTime();
@@ -24,6 +27,7 @@ export function CommentSheet({ visible, onClose, postId }: Props) {
   const { comments, loading, addComment, deleteComment } = useComments(postId);
   const [text, setText] = useState('');
   const [replyTo, setReplyTo] = useState<{ id: number; username: string } | null>(null);
+  const { suggestions, detectMention, applyMention } = useMention();
 
   async function handleSubmit() {
     if (!text.trim()) return;
@@ -68,10 +72,10 @@ export function CommentSheet({ visible, onClose, postId }: Props) {
                     </Text>
                   </View>
                   <View style={styles.commentBody}>
-                    <Text style={styles.commentText}>
+                    <View style={{ flexDirection: 'row', flexWrap: 'wrap' }}>
                       <Text style={styles.commentUser}>{c.profile?.username} </Text>
-                      {c.content}
-                    </Text>
+                      <MentionText text={c.content} style={styles.commentText} />
+                    </View>
                     <View style={styles.commentMeta}>
                       <Text style={styles.commentTime}>{timeAgo(c.created_at)}</Text>
                       <Pressable onPress={() => setReplyTo({ id: c.id, username: c.profile?.username || '' })}>
@@ -94,10 +98,10 @@ export function CommentSheet({ visible, onClose, postId }: Props) {
                       </Text>
                     </View>
                     <View style={styles.commentBody}>
-                      <Text style={styles.commentText}>
+                      <View style={{ flexDirection: 'row', flexWrap: 'wrap' }}>
                         <Text style={styles.commentUser}>{r.profile?.username} </Text>
-                        {r.content}
-                      </Text>
+                        <MentionText text={r.content} style={styles.commentText} />
+                      </View>
                       <Text style={styles.commentTime}>{timeAgo(r.created_at)}</Text>
                     </View>
                   </Pressable>
@@ -116,13 +120,16 @@ export function CommentSheet({ visible, onClose, postId }: Props) {
                 </Pressable>
               </View>
             )}
+            <MentionSuggestions suggestions={suggestions} onSelect={(user) => {
+              setText(applyMention(text, user));
+            }} />
             <View style={styles.inputRow}>
               <TextInput
                 style={styles.input}
-                placeholder={replyTo ? `Reply to ${replyTo.username}...` : 'Add a comment...'}
+                placeholder={replyTo ? `Reply to ${replyTo.username}...` : 'Add a comment... use @ to tag'}
                 placeholderTextColor="#bbb"
                 value={text}
-                onChangeText={setText}
+                onChangeText={(t) => { setText(t); detectMention(t); }}
                 multiline
                 maxLength={300}
               />

@@ -69,14 +69,22 @@ export function useChat(roomId: number | null) {
         filter: `room_id=eq.${roomId}`,
       }, async (payload) => {
         const msg = payload.new as any;
-        // Get profile
+        // Prevent duplicates
+        setMessages(prev => {
+          if (prev.some(m => m.id === msg.id)) return prev;
+          return prev;
+        });
+        // Get profile and add
         const { data: profile } = await supabase
           .from('profiles')
           .select('id, username, display_name, avatar_url')
           .eq('id', msg.user_id)
           .single();
 
-        setMessages(prev => [...prev, { ...msg, profile }]);
+        setMessages(prev => {
+          if (prev.some(m => m.id === msg.id)) return prev;
+          return [...prev, { ...msg, profile }];
+        });
       })
       .subscribe();
 
@@ -93,9 +101,15 @@ export function useChat(roomId: number | null) {
       content: content.trim(),
     });
 
-    // Fallback: reload messages if realtime didn't catch it
+    // Fallback: reload if realtime didn't catch it within 2 seconds
     if (!error) {
-      setTimeout(() => loadMessages(), 300);
+      setTimeout(() => {
+        setMessages(prev => {
+          // Only reload if the message we just sent isn't in the list
+          return prev;
+        });
+        loadMessages();
+      }, 2000);
     }
   }
 

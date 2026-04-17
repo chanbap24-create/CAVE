@@ -39,7 +39,7 @@ export function FeaturedCaveCard({ cave }: { cave: FeaturedCave }) {
   );
 }
 
-function CardContent({ cave, initial, topBadge }: { cave: FeaturedCave; initial: string; topBadge: string | null }) {
+function CardContent({ cave, initial, topBadge }: { cave: FeaturedCave; initial: string; topBadge: { name: string; bg: string; color: string } | null }) {
   const hasImage = !!cave.latestPostImage;
   const textColor = hasImage ? '#fff' : '#222';
   const subColor = hasImage ? 'rgba(255,255,255,0.8)' : '#999';

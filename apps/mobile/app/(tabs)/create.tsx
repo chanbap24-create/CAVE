@@ -7,6 +7,7 @@ import { useAuth } from '@/lib/auth';
 import { useRouter } from 'expo-router';
 import { useVideoUpload } from '@/lib/hooks/useVideoUpload';
 import { useMention } from '@/lib/hooks/useMention';
+import { uploadImage } from '@/lib/utils/imageUpload';
 import { MentionSuggestions } from '@/components/MentionSuggestions';
 import Svg, { Path, Circle, Rect, Polyline, Line } from 'react-native-svg';
 
@@ -112,25 +113,8 @@ export default function CreateScreen() {
         if (!result) throw new Error('Video upload failed');
         videoPlaybackId = result.playbackId;
       } else if (imageUri) {
-        // Upload image
-        const ext = imageUri.split('.').pop()?.split('?')[0] || 'jpg';
-        const fileName = `${user.id}/${Date.now()}.${ext}`;
-        const response = await fetch(imageUri);
-        const arrayBuffer = await response.arrayBuffer();
-
-        const { error: uploadError } = await supabase.storage
-          .from('post-images')
-          .upload(fileName, arrayBuffer, {
-            contentType: `image/${ext === 'jpg' ? 'jpeg' : ext}`,
-            upsert: true,
-          });
-
-        if (uploadError) {
-          imageUrl = imageUri;
-        } else {
-          const { data: urlData } = supabase.storage.from('post-images').getPublicUrl(fileName);
-          imageUrl = urlData.publicUrl;
-        }
+        const uploaded = await uploadImage(imageUri, user.id);
+        imageUrl = uploaded || imageUri;
       }
 
       // Create post

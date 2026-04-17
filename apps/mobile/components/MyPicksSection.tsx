@@ -1,8 +1,8 @@
 import React, { useState } from 'react';
 import { View, Text, StyleSheet, Pressable, Image, ScrollView, Modal, TextInput, Alert } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
-import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/lib/auth';
+import { uploadImage } from '@/lib/utils/imageUpload';
 import type { MyPick } from '@/lib/hooks/useMyPicks';
 
 interface Props {
@@ -39,21 +39,8 @@ export function MyPicksSection({ picks, editable = false, onAdd, onRemove, wines
     setAdding(true);
 
     // Upload photo
-    let photoUrl = photoUri;
-    try {
-      const ext = photoUri.split('.').pop()?.split('?')[0] || 'jpg';
-      const fileName = `${user.id}/picks/${Date.now()}.${ext}`;
-      const response = await fetch(photoUri);
-      const arrayBuffer = await response.arrayBuffer();
-      const { error } = await supabase.storage.from('post-images').upload(fileName, arrayBuffer, {
-        contentType: `image/${ext === 'jpg' ? 'jpeg' : ext}`,
-        upsert: true,
-      });
-      if (!error) {
-        const { data } = supabase.storage.from('post-images').getPublicUrl(fileName);
-        photoUrl = data.publicUrl;
-      }
-    } catch {}
+    const uploaded = await uploadImage(photoUri, `${user.id}/picks`);
+    const photoUrl = uploaded || photoUri;
 
     await onAdd?.(selectedWine.wine_id || selectedWine.id, photoUrl, memo);
     setShowAdd(false);

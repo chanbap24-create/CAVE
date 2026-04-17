@@ -9,6 +9,7 @@ export interface Notification {
   body: string | null;
   reference_id: string | null;
   reference_type: string | null;
+  actor_id: string | null;
   is_read: boolean;
   created_at: string;
   actor?: { username: string; display_name: string | null };

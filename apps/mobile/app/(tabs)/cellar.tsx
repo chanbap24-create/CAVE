@@ -12,11 +12,13 @@ import { TasteCard } from '@/components/TasteCard';
 import { AddToCaveSheet } from '@/components/AddToCaveSheet';
 import { useBadgeChecker } from '@/lib/hooks/useBadgeChecker';
 
-const bgColors: Record<string, string> = { wine: '#f0e8dd', whiskey: '#e8ddd0', sake: '#e0e8f0', cognac: '#ede5d8', other: '#e8e8e8' };
+import { CATEGORY_BG_COLORS, CATEGORY_TAG_STYLES, CATEGORY_LABELS, CATEGORY_DB_MAP } from '@/lib/constants/drinkCategories';
+
+const bgColors = CATEGORY_BG_COLORS;
 const typeColors: Record<string, string> = { wine: '#7b2d4e', whiskey: '#8a6d3b', sake: '#3b6d8a', cognac: '#8a5a3b', other: '#999' };
-const labelMap: Record<string, string> = { wine: 'Wine', whiskey: 'Whisky', sake: 'Sake', cognac: 'Cognac', other: 'Other' };
+const labelMap = CATEGORY_LABELS;
 const caveTabs = ['All', 'Wine', 'Whisky', 'Sake', 'Other'];
-const catDbMap: Record<string, string> = { Wine: 'wine', Whisky: 'whiskey', Sake: 'sake', Other: 'other' };
+const catDbMap = CATEGORY_DB_MAP;
 
 export default function CellarScreen() {
   const router = useRouter();

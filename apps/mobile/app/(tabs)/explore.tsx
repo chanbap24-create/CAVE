@@ -8,16 +8,12 @@ import { TrendingDrinks } from '@/components/TrendingDrinks';
 import { PopularPosts } from '@/components/PopularPosts';
 import Svg, { Path, Circle, Line } from 'react-native-svg';
 
-const categories = ['All', 'Wine', 'Whisky', 'Sake', 'Cognac', 'Other'];
-const catDbMap: Record<string, string> = { Wine: 'wine', Whisky: 'whiskey', Sake: 'sake', Cognac: 'cognac', Other: 'other' };
-const bgColors: Record<string, string> = { wine: '#f0e8dd', whiskey: '#e8ddd0', sake: '#e0e8f0', cognac: '#ede5d8', other: '#e8e8e8' };
-const tagStyles: Record<string, { bg: string; color: string }> = {
-  wine: { bg: '#f7f0f3', color: '#7b2d4e' },
-  whiskey: { bg: '#f5f0e8', color: '#8a6d3b' },
-  sake: { bg: '#eef2f7', color: '#3b6d8a' },
-  cognac: { bg: '#f5efe8', color: '#8a5a3b' },
-  other: { bg: '#f0f0f0', color: '#666' },
-};
+import { CATEGORY_FILTERS, CATEGORY_DB_MAP, CATEGORY_BG_COLORS, CATEGORY_TAG_STYLES, getCategoryLabel } from '@/lib/constants/drinkCategories';
+
+const categories = CATEGORY_FILTERS;
+const catDbMap = CATEGORY_DB_MAP;
+const bgColors = CATEGORY_BG_COLORS;
+const tagStyles = CATEGORY_TAG_STYLES;
 
 
 export default function ExploreScreen() {

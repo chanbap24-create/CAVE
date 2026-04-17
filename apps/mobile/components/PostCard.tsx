@@ -14,24 +14,10 @@ import { PhotoTagOverlay } from './PhotoTagOverlay';
 import { PhotoTagEditor } from './PhotoTagEditor';
 import { usePhotoTags } from '@/lib/hooks/usePhotoTags';
 
-const tagColors: Record<string, { bg: string; color: string }> = {
-  wine: { bg: '#f7f0f3', color: '#7b2d4e' },
-  whiskey: { bg: '#f5f0e8', color: '#8a6d3b' },
-  sake: { bg: '#eef2f7', color: '#3b6d8a' },
-  cognac: { bg: '#f5efe8', color: '#8a5a3b' },
-  other: { bg: '#f0f0f0', color: '#666' },
-};
+import { CATEGORY_TAG_STYLES } from '@/lib/constants/drinkCategories';
+import { timeAgo } from '@/lib/utils/dateUtils';
 
-function timeAgo(dateStr: string) {
-  const diff = Date.now() - new Date(dateStr).getTime();
-  const mins = Math.floor(diff / 60000);
-  if (mins < 1) return 'just now';
-  if (mins < 60) return `${mins}m`;
-  const hrs = Math.floor(mins / 60);
-  if (hrs < 24) return `${hrs}h`;
-  const days = Math.floor(hrs / 24);
-  return `${days}d`;
-}
+const tagColors = CATEGORY_TAG_STYLES;
 
 interface Props {
   post: any;

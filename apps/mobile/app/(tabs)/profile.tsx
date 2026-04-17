@@ -4,6 +4,7 @@ import * as ImagePicker from 'expo-image-picker';
 import { useAuth } from '@/lib/auth';
 import { supabase } from '@/lib/supabase';
 import { getAvatarRingColor, getTopBadge } from '@/lib/tierUtils';
+import { uploadImage } from '@/lib/utils/imageUpload';
 import { useFocusEffect } from 'expo-router';
 import { useMyPosts } from '@/lib/hooks/useMyPosts';
 import { useDeletePost } from '@/lib/hooks/useDeletePost';
@@ -16,6 +17,7 @@ import { TasteCard } from '@/components/TasteCard';
 interface Profile {
   username: string;
   display_name: string | null;
+  avatar_url: string | null;
   bio: string | null;
   follower_count: number;
   following_count: number;
@@ -98,22 +100,8 @@ export default function ProfileScreen() {
 
     // Upload new avatar if changed
     if (avatarUri && avatarUri !== profile?.avatar_url) {
-      try {
-        const ext = avatarUri.split('.').pop()?.split('?')[0] || 'jpg';
-        const fileName = `${user.id}/avatar.${ext}`;
-        const response = await fetch(avatarUri);
-        const arrayBuffer = await response.arrayBuffer();
-
-        await supabase.storage.from('post-images').upload(fileName, arrayBuffer, {
-          contentType: `image/${ext === 'jpg' ? 'jpeg' : ext}`,
-          upsert: true,
-        });
-
-        const { data: urlData } = supabase.storage.from('post-images').getPublicUrl(fileName);
-        avatarUrl = urlData.publicUrl;
-      } catch {
-        // Upload failed, keep existing avatar
-      }
+      const uploaded = await uploadImage(avatarUri, `${user.id}`);
+      if (uploaded) avatarUrl = uploaded;
     }
 
     const { error } = await supabase.from('profiles').update({
@@ -145,27 +133,27 @@ export default function ProfileScreen() {
   return (
     <View style={styles.container}>
       <View style={styles.header}>
-        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-          <Text style={styles.headerUsername}>{profile?.username || 'Profile'}</Text>
-          {myBadge && (
-            <View style={[styles.headerBadge, { backgroundColor: myBadge.bg }]}>
-              <Text style={[styles.headerBadgeText, { color: myBadge.color }]}>{myBadge.name}</Text>
-            </View>
-          )}
-        </View>
+        <Text style={styles.headerUsername}>{profile?.display_name || profile?.username || 'Profile'}</Text>
       </View>
 
       <ScrollView>
         <View style={styles.profileTop}>
-          {profile?.avatar_url ? (
-            <View style={ringColor ? [styles.avatarGlow, { shadowColor: ringColor }] : undefined}>
-              <Image source={{ uri: profile.avatar_url }} style={[styles.avatarLgImg, ringColor && { borderWidth: 2, borderColor: ringColor }]} />
-            </View>
-          ) : (
-            <View style={[styles.avatarLg, ringColor && { borderWidth: 2, borderColor: ringColor }]}>
-              <Text style={styles.avatarText}>{initial}</Text>
-            </View>
-          )}
+          <View style={{ alignItems: 'center' }}>
+            {profile?.avatar_url ? (
+              <View style={ringColor ? [styles.avatarGlow, { shadowColor: ringColor }] : undefined}>
+                <Image source={{ uri: profile.avatar_url }} style={[styles.avatarLgImg, ringColor && { borderWidth: 2, borderColor: ringColor }]} />
+              </View>
+            ) : (
+              <View style={[styles.avatarLg, ringColor && { borderWidth: 2, borderColor: ringColor }]}>
+                <Text style={styles.avatarText}>{initial}</Text>
+              </View>
+            )}
+            {myBadge && (
+              <View style={[styles.avatarBadge, { backgroundColor: myBadge.bg }]}>
+                <Text style={[styles.avatarBadgeText, { color: myBadge.color }]}>{myBadge.name}</Text>
+              </View>
+            )}
+          </View>
           <View style={styles.profileStats}>
             <View style={styles.stat}>
               <Text style={styles.statNum}>{profile?.post_count || 0}</Text>
@@ -183,7 +171,7 @@ export default function ProfileScreen() {
         </View>
 
         <View style={styles.profileInfo}>
-          <Text style={styles.profileName}>{profile?.display_name || 'Set your name'}</Text>
+          <Text style={styles.profileUsername}>@{profile?.username}</Text>
           {profile?.bio ? <Text style={styles.profileBio}>{profile.bio}</Text> : null}
         </View>
 
@@ -310,13 +298,15 @@ const styles = StyleSheet.create({
   headerBadge: { paddingHorizontal: 8, paddingVertical: 2, borderRadius: 8 },
   headerBadgeText: { fontSize: 10, fontWeight: '600' },
 
-  profileTop: { flexDirection: 'row', alignItems: 'center', padding: 20, gap: 20 },
+  profileTop: { flexDirection: 'row', alignItems: 'flex-start', paddingHorizontal: 20, paddingTop: 16, paddingBottom: 8, gap: 20 },
   avatarLg: {
     width: 80, height: 80, borderRadius: 40, backgroundColor: '#f0f0f0',
     alignItems: 'center', justifyContent: 'center',
   },
   avatarText: { fontSize: 28, fontWeight: '600', color: '#999' },
   avatarLgImg: { width: 80, height: 80, borderRadius: 40 },
+  avatarBadge: { paddingHorizontal: 8, paddingVertical: 2, borderRadius: 8, marginTop: 4 },
+  avatarBadgeText: { fontSize: 10, fontWeight: '600' },
   avatarGlow: {
     borderRadius: 44, padding: 2,
     shadowColor: '#c9a84c',
@@ -333,6 +323,7 @@ const styles = StyleSheet.create({
 
   profileInfo: { paddingHorizontal: 20, paddingBottom: 16 },
   profileName: { fontSize: 14, fontWeight: '600', color: '#222' },
+  profileUsername: { fontSize: 13, color: '#999' },
   profileBio: { fontSize: 13, color: '#666', marginTop: 4, lineHeight: 18 },
 
   actions: { flexDirection: 'row', paddingHorizontal: 20, paddingBottom: 16, gap: 8 },

@@ -2,17 +2,7 @@ import React, { useCallback } from 'react';
 import { View, Text, ScrollView, StyleSheet, Pressable, Image, RefreshControl } from 'react-native';
 import { useRouter, useFocusEffect } from 'expo-router';
 import { useDMList } from '@/lib/hooks/useDMList';
-
-function timeAgo(dateStr: string | null) {
-  if (!dateStr) return '';
-  const diff = Date.now() - new Date(dateStr).getTime();
-  const mins = Math.floor(diff / 60000);
-  if (mins < 1) return 'now';
-  if (mins < 60) return `${mins}m`;
-  const hrs = Math.floor(mins / 60);
-  if (hrs < 24) return `${hrs}h`;
-  return `${Math.floor(hrs / 24)}d`;
-}
+import { timeAgo } from '@/lib/utils/dateUtils';
 
 export default function MessagesScreen() {
   const router = useRouter();

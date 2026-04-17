@@ -41,7 +41,7 @@ export default function PostDetailScreen() {
   return (
     <View style={styles.container}>
       <View style={styles.header}>
-        <Pressable onPress={() => router.back()}>
+        <Pressable onPress={() => router.canGoBack() ? router.back() : router.replace('/(tabs)/explore')}>
           <Svg width={24} height={24} fill="none" stroke="#222" strokeWidth={1.8} viewBox="0 0 24 24">
             <Polyline points="15 18 9 12 15 6" />
           </Svg>

@@ -3,15 +3,11 @@ import { View, Text, StyleSheet, Modal, Pressable, TextInput, ScrollView } from 
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/lib/auth';
 
-const bgColors: Record<string, string> = { wine: '#f0e8dd', whiskey: '#e8ddd0', sake: '#e0e8f0', cognac: '#ede5d8', other: '#e8e8e8' };
-const tagStyles: Record<string, { bg: string; color: string }> = {
-  wine: { bg: '#f7f0f3', color: '#7b2d4e' },
-  whiskey: { bg: '#f5f0e8', color: '#8a6d3b' },
-  sake: { bg: '#eef2f7', color: '#3b6d8a' },
-  cognac: { bg: '#f5efe8', color: '#8a5a3b' },
-  other: { bg: '#f0f0f0', color: '#666' },
-};
-const labelMap: Record<string, string> = { wine: 'Wine', whiskey: 'Whisky', sake: 'Sake', cognac: 'Cognac', other: 'Other' };
+import { CATEGORY_BG_COLORS, CATEGORY_TAG_STYLES, CATEGORY_LABELS } from '@/lib/constants/drinkCategories';
+
+const bgColors = CATEGORY_BG_COLORS;
+const tagStyles = CATEGORY_TAG_STYLES;
+const labelMap = CATEGORY_LABELS;
 
 interface Props {
   visible: boolean;

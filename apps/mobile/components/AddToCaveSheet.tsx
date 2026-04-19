@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
 import { View, Text, StyleSheet, Modal, Pressable, TextInput, ScrollView } from 'react-native';
 import { supabase } from '@/lib/supabase';
-import { useAuth } from '@/lib/auth';
+import { sanitizeSearch } from '@/lib/utils/searchUtils';
+import { useAddToCave } from '@/lib/hooks/useAddToCave';
 
 import { CATEGORY_BG_COLORS, CATEGORY_TAG_STYLES, CATEGORY_LABELS } from '@/lib/constants/drinkCategories';
 
@@ -17,33 +18,30 @@ interface Props {
 }
 
 export function AddToCaveSheet({ visible, onClose, onAdded, existingIds }: Props) {
-  const { user } = useAuth();
   const [search, setSearch] = useState('');
   const [results, setResults] = useState<any[]>([]);
-  const [adding, setAdding] = useState<number | null>(null);
+  const [addingId, setAddingId] = useState<number | null>(null);
+  const { addExisting } = useAddToCave();
 
   async function searchDrinks(query: string) {
     setSearch(query);
     if (query.length < 2) { setResults([]); return; }
+    const q = sanitizeSearch(query);
     const { data } = await supabase
       .from('wines')
       .select('*')
-      .or(`name.ilike.%${query}%,name_ko.ilike.%${query}%,producer.ilike.%${query}%`)
+      .or(`name.ilike.%${q}%,name_ko.ilike.%${q}%,producer.ilike.%${q}%`)
       .order('name')
       .limit(20);
     if (data) setResults(data);
   }
 
   async function addToCave(wineId: number) {
-    if (!user || adding) return;
-    setAdding(wineId);
-    await supabase.from('collections').insert({
-      user_id: user.id,
-      wine_id: wineId,
-      source: 'search',
-    });
-    setAdding(null);
-    onAdded();
+    if (addingId) return;
+    setAddingId(wineId);
+    const ok = await addExisting({ wineId, source: 'search' });
+    setAddingId(null);
+    if (ok) onAdded();
   }
 
   function handleClose() {
@@ -95,9 +93,9 @@ export function AddToCaveSheet({ visible, onClose, onAdded, existingIds }: Props
                   </View>
                 ) : (
                   <Pressable
-                    style={[styles.addBtn, adding === d.id && { opacity: 0.5 }]}
+                    style={[styles.addBtn, addingId === d.id && { opacity: 0.5 }]}
                     onPress={() => addToCave(d.id)}
-                    disabled={adding === d.id}
+                    disabled={addingId === d.id}
                   >
                     <Text style={styles.addBtnText}>+ Add</Text>
                   </Pressable>

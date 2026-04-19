@@ -10,7 +10,10 @@ import { MyPicksSection } from '@/components/MyPicksSection';
 import Svg, { Line } from 'react-native-svg';
 import { TasteCard } from '@/components/TasteCard';
 import { AddToCaveSheet } from '@/components/AddToCaveSheet';
+import { AddToCaveMenu } from '@/components/AddToCaveMenu';
+import { LabelScanSheet } from '@/components/LabelScanSheet';
 import { useBadgeChecker } from '@/lib/hooks/useBadgeChecker';
+import { ScreenHeader } from '@/components/ScreenHeader';
 
 import { CATEGORY_BG_COLORS, CATEGORY_TAG_STYLES, CATEGORY_LABELS, CATEGORY_DB_MAP } from '@/lib/constants/drinkCategories';
 
@@ -26,7 +29,9 @@ export default function CellarScreen() {
   const [collections, setCollections] = useState<any[]>([]);
   const [activeCat, setActiveCat] = useState('All');
   const [refreshing, setRefreshing] = useState(false);
-  const [showAdd, setShowAdd] = useState(false);
+  const [showMenu, setShowMenu] = useState(false);
+  const [showSearch, setShowSearch] = useState(false);
+  const [showScan, setShowScan] = useState(false);
   const { taste, loadTaste } = useTasteProfile(user?.id);
   const { picks, loadPicks, addPick, removePick } = useMyPicks();
   const { checkAndAwardBadges } = useBadgeChecker();
@@ -75,15 +80,18 @@ export default function CellarScreen() {
 
   return (
     <View style={styles.container}>
-      <View style={styles.header}>
-        <Pressable style={styles.headerLeft} onPress={() => setShowAdd(true)}>
-          <Svg width={24} height={24} fill="none" stroke="#222" strokeWidth={1.8} viewBox="0 0 24 24">
-            <Line x1={12} y1={5} x2={12} y2={19} />
-            <Line x1={5} y1={12} x2={19} y2={12} />
-          </Svg>
-        </Pressable>
-        <Text style={styles.title}>My Cave</Text>
-      </View>
+      <ScreenHeader
+        variant="centered"
+        title="My Cave"
+        left={
+          <Pressable onPress={() => setShowMenu(true)} hitSlop={8}>
+            <Svg width={24} height={24} fill="none" stroke="#222" strokeWidth={1.8} viewBox="0 0 24 24">
+              <Line x1={12} y1={5} x2={12} y2={19} />
+              <Line x1={5} y1={12} x2={19} y2={12} />
+            </Svg>
+          </Pressable>
+        }
+      />
 
       <View style={styles.stats}>
         <View style={styles.stat}>
@@ -152,11 +160,24 @@ export default function CellarScreen() {
         </ScrollView>
       )}
 
+      <AddToCaveMenu
+        visible={showMenu}
+        onClose={() => setShowMenu(false)}
+        onSearch={() => setShowSearch(true)}
+        onScan={() => setShowScan(true)}
+      />
+
       <AddToCaveSheet
-        visible={showAdd}
-        onClose={() => setShowAdd(false)}
+        visible={showSearch}
+        onClose={() => setShowSearch(false)}
         onAdded={() => { loadCollections(); loadTaste(); checkAndAwardBadges(); }}
         existingIds={new Set(collections.map(c => c.wine_id))}
+      />
+
+      <LabelScanSheet
+        visible={showScan}
+        onClose={() => setShowScan(false)}
+        onAdded={() => { loadCollections(); loadTaste(); checkAndAwardBadges(); }}
       />
     </View>
   );
@@ -164,14 +185,6 @@ export default function CellarScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#fff' },
-  header: {
-    paddingTop: 60, paddingHorizontal: 20, paddingBottom: 14,
-    borderBottomWidth: 1, borderBottomColor: '#efefef',
-    alignItems: 'center',
-  },
-  title: { fontSize: 17, fontWeight: '700', color: '#222' },
-  headerLeft: { position: 'absolute', left: 20, bottom: 10 },
-
   stats: {
     flexDirection: 'row', justifyContent: 'space-around',
     paddingVertical: 20, marginHorizontal: 20,

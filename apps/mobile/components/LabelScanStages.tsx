@@ -4,6 +4,7 @@ import { Image } from 'expo-image';
 import { useMediaPicker } from '@/lib/hooks/useMediaPicker';
 import { MIN_VISION_CONFIDENCE } from '@/lib/constants/wineVision';
 import { LabelReviewForm, type ReviewFormValue } from '@/components/LabelReviewForm';
+import { ShareToggleRow } from '@/components/ShareToggleRow';
 import type { WineMatchResult } from '@/lib/types/wine';
 
 type Media = ReturnType<typeof useMediaPicker>;
@@ -79,6 +80,12 @@ export interface ReviewStageProps {
   onFormChange: (v: ReviewFormValue) => void;
   onSave: () => void;
   saving: boolean;
+  /** Share toggle — when true, saving also creates a community post. */
+  share: boolean;
+  onShareChange: (share: boolean) => void;
+  /** Optional caption for the shared post (only used when share=true). */
+  shareCaption: string;
+  onShareCaptionChange: (caption: string) => void;
 }
 
 export function ReviewStage(p: ReviewStageProps) {
@@ -105,8 +112,17 @@ export function ReviewStage(p: ReviewStageProps) {
         </View>
       )}
 
+      <ShareToggleRow
+        share={p.share}
+        caption={p.shareCaption}
+        onShareChange={p.onShareChange}
+        onCaptionChange={p.onShareCaptionChange}
+      />
+
       <Pressable style={[styles.saveBtn, p.saving && { opacity: 0.5 }]} onPress={p.onSave} disabled={p.saving}>
-        <Text style={styles.saveBtnText}>{p.saving ? 'Saving…' : 'Add to Cave'}</Text>
+        <Text style={styles.saveBtnText}>
+          {p.saving ? 'Saving…' : p.share ? 'Add to Cave & Share' : 'Add to Cave'}
+        </Text>
       </Pressable>
       <View style={{ height: 24 }} />
     </ScrollView>

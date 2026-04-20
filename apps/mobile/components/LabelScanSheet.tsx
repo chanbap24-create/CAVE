@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { View, Text, StyleSheet, Modal, Pressable, Alert } from 'react-native';
+import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/lib/auth';
 import { useMediaPicker } from '@/lib/hooks/useMediaPicker';
 import { useWineLabelScan } from '@/lib/hooks/useWineLabelScan';
@@ -22,6 +23,8 @@ export function LabelScanSheet({ visible, onClose, onAdded }: Props) {
   const cave = useAddToCave();
   const [form, setForm] = useState<ReviewFormValue | null>(null);
   const [useMatchId, setUseMatchId] = useState<number | null>(null);
+  const [share, setShare] = useState(false);
+  const [shareCaption, setShareCaption] = useState('');
 
   useEffect(() => {
     if (media.imageUri) scan.scan(media.imageUri);
@@ -39,6 +42,8 @@ export function LabelScanSheet({ visible, onClose, onAdded }: Props) {
     scan.reset();
     setForm(null);
     setUseMatchId(null);
+    setShare(false);
+    setShareCaption('');
     onClose();
   }
 
@@ -61,14 +66,17 @@ export function LabelScanSheet({ visible, onClose, onAdded }: Props) {
   }
 
   async function handleSave() {
-    if (!form) return;
+    if (!form || !user) return;
+
     if (useMatchId) {
       const photoUrl = await uploadScanPhoto();
       const ok = await cave.addExisting({ wineId: useMatchId, source: 'photo', photoUrl });
       if (!ok) return Alert.alert('Error', 'Could not add to cave');
+      if (share) await createSharePost(useMatchId, photoUrl, user.id, shareCaption);
       onAdded(); handleClose();
       return;
     }
+
     if (!form.name.trim()) return Alert.alert('Name required', 'Please enter the name');
     const photoUrl = await uploadScanPhoto();
     const isYear = form.vintageType === 'year';
@@ -88,6 +96,7 @@ export function LabelScanSheet({ visible, onClose, onAdded }: Props) {
       photoUrl,
     });
     if (!result) return Alert.alert('Error', 'Could not save wine');
+    if (share) await createSharePost(result.id, photoUrl, user.id, shareCaption);
     onAdded(); handleClose();
   }
 
@@ -111,12 +120,51 @@ export function LabelScanSheet({ visible, onClose, onAdded }: Props) {
             onFormChange={setForm}
             onSave={handleSave}
             saving={cave.adding}
+            share={share}
+            onShareChange={setShare}
+            shareCaption={shareCaption}
+            onShareCaptionChange={setShareCaption}
           />
         )}
         {scan.status === 'error' && <ErrorStage message={scan.error} onRetry={() => media.reset()} />}
       </View>
     </Modal>
   );
+}
+
+/**
+ * Creates a community post for a just-added cellar bottle. Failures are
+ * logged but non-fatal — the cellar entry is already saved, and a missed
+ * post is less bad than blocking the user on a secondary action.
+ */
+async function createSharePost(
+  wineId: number,
+  photoUrl: string | null,
+  userId: string,
+  caption: string,
+) {
+  const body = caption.trim();
+  const { data: post, error: postError } = await supabase
+    .from('posts')
+    .insert({
+      user_id: userId,
+      caption: body || null,
+      media_type: 'image',
+    })
+    .select('id')
+    .single();
+  if (postError || !post) {
+    console.error('[shareFromScan] post insert failed:', postError?.message);
+    return;
+  }
+  if (photoUrl) {
+    await supabase.from('post_images').insert({
+      post_id: post.id,
+      image_url: photoUrl,
+      display_order: 0,
+    });
+  }
+  await supabase.from('post_wines').insert({ post_id: post.id, wine_id: wineId });
 }
 
 const styles = StyleSheet.create({

@@ -28,9 +28,17 @@ export function useCreateGathering(onCreated?: () => void) {
     if (!input.title.trim()) { Alert.alert('', 'Title is required'); return false; }
     if (!input.location.trim()) { Alert.alert('', 'Location is required'); return false; }
 
-    // cost_share requires at least one host wine (including blind slots).
-    if (input.gatheringType === 'cost_share' && input.hostSlots.length === 0) {
-      Alert.alert('', 'Cost share 모임은 최소 한 병의 와인을 준비해야 합니다');
+    // cost_share + byob both require at least one host wine commit.
+    // cost_share: host preps for everyone (can include blind).
+    // byob: host is a bringer too.
+    // donation: optional.
+    if (input.gatheringType !== 'donation' && input.hostSlots.length === 0) {
+      Alert.alert(
+        '',
+        input.gatheringType === 'byob'
+          ? '가져갈 와인을 최소 한 병 선택해주세요'
+          : 'Cost share 모임은 최소 한 병의 와인을 준비해야 합니다',
+      );
       return false;
     }
 

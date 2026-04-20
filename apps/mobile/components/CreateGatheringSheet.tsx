@@ -59,7 +59,13 @@ export function CreateGatheringSheet({ visible, onClose, onCreated }: Props) {
             </Pressable>
           </View>
 
-          <GatheringForm value={form} onChange={setForm} />
+          <GatheringForm
+            value={form}
+            onChange={setForm}
+            onSubmit={handleCreate}
+            submitting={creating}
+            submitLabel="Create Gathering"
+          />
         </View>
       </KeyboardAvoidingView>
     </Modal>

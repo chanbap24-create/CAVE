@@ -20,21 +20,21 @@ export interface HostWineSlot {
 interface Props {
   slots: HostWineSlot[];
   onChange: (slots: HostWineSlot[]) => void;
-  /** Required (cost_share) vs optional (donation). Min slots is enforced
-   *  by the caller via validation — this component just renders. */
+  /** Required (cost_share / byob) vs optional (donation). Min slots is
+   *  enforced by the caller via validation — this component just renders. */
   requireAtLeastOne?: boolean;
+  /** BYOB brings the host's own bottle — "blind" doesn't apply there. */
+  allowBlind?: boolean;
 }
 
 /**
  * Host-side wine slot list for gathering creation.
  *
- * cost_share: host MUST commit at least one slot (enforced by caller).
- * donation:   optional, 0+ slots.
- *
- * Each slot is either a specific bottle (picked from the host's cellar)
- * or a blind placeholder (host reveals manually on gathering day).
+ * cost_share: host MUST commit at least one slot; blind allowed.
+ * byob:       host MUST commit one bottle (they're a bringer too); no blind.
+ * donation:   optional, 0+ slots; blind allowed.
  */
-export function HostWineSlots({ slots, onChange, requireAtLeastOne }: Props) {
+export function HostWineSlots({ slots, onChange, requireAtLeastOne, allowBlind = true }: Props) {
   const [pickerOpen, setPickerOpen] = useState(false);
   const [editingIndex, setEditingIndex] = useState<number | null>(null);
 
@@ -122,9 +122,11 @@ export function HostWineSlots({ slots, onChange, requireAtLeastOne }: Props) {
         <Pressable style={styles.addBtn} onPress={() => pickForSlot(null)}>
           <Text style={styles.addBtnText}>+ Add wine</Text>
         </Pressable>
-        <Pressable style={[styles.addBtn, styles.addBtnAlt]} onPress={addBlind}>
-          <Text style={[styles.addBtnText, { color: '#8a6d3b' }]}>+ Blind slot 🔒</Text>
-        </Pressable>
+        {allowBlind && (
+          <Pressable style={[styles.addBtn, styles.addBtnAlt]} onPress={addBlind}>
+            <Text style={[styles.addBtnText, { color: '#8a6d3b' }]}>+ Blind slot 🔒</Text>
+          </Pressable>
+        )}
       </View>
 
       {requireAtLeastOne && slots.length === 0 && (

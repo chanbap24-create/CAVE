@@ -1,11 +1,10 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { View, Text, TextInput, Pressable, ScrollView, StyleSheet } from 'react-native';
-import DateTimePicker from '@react-native-community/datetimepicker';
 import { CategoryPicker } from '@/components/CategoryPicker';
 import { GatheringTypeSelector } from '@/components/GatheringTypeSelector';
+import { GatheringDateTimeRow } from '@/components/GatheringDateTimeRow';
 import { HostWineSlots, type HostWineSlot } from '@/components/HostWineSlots';
 import { useDrinkCategories } from '@/lib/hooks/useDrinkCategories';
-import { formatPickerDate, formatPickerTime } from '@/lib/utils/dateUtils';
 import type { GatheringType } from '@/lib/types/gathering';
 
 export interface GatheringFormValue {
@@ -28,16 +27,29 @@ export function emptyGatheringForm(): GatheringFormValue {
   };
 }
 
+// Context-aware label for the host wine slot section. All three types allow
+// host-committed wines, but what the slots mean differs — labels should
+// reflect the user's mental model instead of being identical everywhere.
+function gatheringTypeWineLabel(type: GatheringType): string {
+  if (type === 'cost_share') return '준비할 와인 * (블라인드 가능)';
+  if (type === 'byob') return '내가 가져갈 와인 *';
+  return '제공할 와인 (optional, 블라인드 가능)';
+}
+
 interface Props {
   value: GatheringFormValue;
   onChange: (next: GatheringFormValue) => void;
+  /** Optional submit button rendered at the end of the form. Makes the
+   *  create action reachable without scrolling back up to the sheet header,
+   *  which users were missing on long forms. */
+  onSubmit?: () => void;
+  submitting?: boolean;
+  submitLabel?: string;
 }
 
 /** All form inputs for a new gathering. Caller owns submit + reset. */
-export function GatheringForm({ value, onChange }: Props) {
+export function GatheringForm({ value, onChange, onSubmit, submitting, submitLabel = 'Create Gathering' }: Props) {
   const { categories } = useDrinkCategories();
-  const [showDatePicker, setShowDatePicker] = useState(false);
-  const [showTimePicker, setShowTimePicker] = useState(false);
 
   function set<K extends keyof GatheringFormValue>(key: K, v: GatheringFormValue[K]) {
     onChange({ ...value, [key]: v });
@@ -70,18 +82,15 @@ export function GatheringForm({ value, onChange }: Props) {
         onChange={v => set('gatheringType', v)}
       />
 
-      {((value.gatheringType ?? 'cost_share') === 'cost_share' || value.gatheringType === 'donation') && (
-        <>
-          <Text style={styles.label}>
-            {(value.gatheringType ?? 'cost_share') === 'cost_share' ? '준비할 와인 *' : '준비할 와인 (optional)'}
-          </Text>
-          <HostWineSlots
-            slots={value.hostWineSlots ?? []}
-            onChange={s => set('hostWineSlots', s)}
-            requireAtLeastOne={(value.gatheringType ?? 'cost_share') === 'cost_share'}
-          />
-        </>
-      )}
+      <Text style={styles.label}>
+        {gatheringTypeWineLabel(value.gatheringType ?? 'cost_share')}
+      </Text>
+      <HostWineSlots
+        slots={value.hostWineSlots ?? []}
+        onChange={s => set('hostWineSlots', s)}
+        requireAtLeastOne={(value.gatheringType ?? 'cost_share') !== 'donation'}
+        allowBlind={(value.gatheringType ?? 'cost_share') !== 'byob'}
+      />
 
       <Text style={styles.label}>Category (optional)</Text>
       <CategoryPicker
@@ -99,54 +108,7 @@ export function GatheringForm({ value, onChange }: Props) {
         placeholderTextColor="#ccc"
       />
 
-      <View style={styles.row}>
-        <View style={styles.half}>
-          <Text style={styles.label}>Date *</Text>
-          <Pressable style={styles.pickerBtn} onPress={() => setShowDatePicker(true)}>
-            <Text style={styles.pickerText}>{formatPickerDate(value.date)}</Text>
-          </Pressable>
-        </View>
-        <View style={styles.half}>
-          <Text style={styles.label}>Time</Text>
-          <Pressable style={styles.pickerBtn} onPress={() => setShowTimePicker(true)}>
-            <Text style={styles.pickerText}>{formatPickerTime(value.date)}</Text>
-          </Pressable>
-        </View>
-      </View>
-
-      {showDatePicker && (
-        <DateTimePicker
-          value={value.date}
-          mode="date"
-          display="spinner"
-          minimumDate={new Date()}
-          onChange={(_, selected) => {
-            setShowDatePicker(false);
-            if (selected) {
-              const d = new Date(value.date);
-              d.setFullYear(selected.getFullYear(), selected.getMonth(), selected.getDate());
-              set('date', d);
-            }
-          }}
-        />
-      )}
-
-      {showTimePicker && (
-        <DateTimePicker
-          value={value.date}
-          mode="time"
-          display="spinner"
-          minuteInterval={15}
-          onChange={(_, selected) => {
-            setShowTimePicker(false);
-            if (selected) {
-              const d = new Date(value.date);
-              d.setHours(selected.getHours(), selected.getMinutes());
-              set('date', d);
-            }
-          }}
-        />
-      )}
+      <GatheringDateTimeRow date={value.date} onChange={d => set('date', d)} />
 
       <View style={styles.row}>
         <View style={styles.half}>
@@ -175,6 +137,16 @@ export function GatheringForm({ value, onChange }: Props) {
         )}
       </View>
 
+      {onSubmit && (
+        <Pressable
+          style={[styles.submit, submitting && { opacity: 0.5 }]}
+          onPress={onSubmit}
+          disabled={submitting}
+        >
+          <Text style={styles.submitText}>{submitting ? '...' : submitLabel}</Text>
+        </Pressable>
+      )}
+
       <View style={{ height: 40 }} />
     </ScrollView>
   );
@@ -189,9 +161,10 @@ const styles = StyleSheet.create({
   },
   row: { flexDirection: 'row', gap: 12 },
   half: { flex: 1 },
-  pickerBtn: {
-    borderWidth: 1, borderColor: '#eee', borderRadius: 10,
-    padding: 12, backgroundColor: '#fafafa',
+
+  submit: {
+    marginTop: 24, backgroundColor: '#7b2d4e',
+    paddingVertical: 14, borderRadius: 12, alignItems: 'center',
   },
-  pickerText: { fontSize: 15, color: '#222' },
+  submitText: { color: '#fff', fontSize: 15, fontWeight: '700' },
 });

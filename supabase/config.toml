@@ -1,0 +1,22 @@
+# Supabase CLI config
+#
+# verify_jwt = false → skip Supabase's gateway-level JWT check. Each function
+# validates the bearer token inline via _shared/auth.ts::requireUser(), which
+# uses supabase-js's auth.getUser() and supports whatever signing algorithm
+# the project is configured with (HS256, ES256, etc.).
+#
+# Reason: the gateway verifier returns 401 UNSUPPORTED_TOKEN_ALGORITHM on
+# projects whose JWT signing key is ES256 (asymmetric). The inline check
+# is not affected.
+
+[functions.mux-upload]
+verify_jwt = false
+
+[functions.mux-status]
+verify_jwt = false
+
+[functions.mux-playback-token]
+verify_jwt = false
+
+[functions.wine-vision]
+verify_jwt = false

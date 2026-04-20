@@ -3,11 +3,21 @@
 // VISION_MODE. The Edge Function (supabase/functions/wine-vision) handles the
 // Anthropic API call server-side so the client never holds the API key.
 import type { ExtractedWineInfo } from '@/lib/types/wine';
-import { MOCK_VISION_LATENCY_MS, VISION_MODE } from '@/lib/constants/wineVision';
+import {
+  DIRECT_ANTHROPIC_VERSION,
+  DIRECT_MAX_TOKENS,
+  DIRECT_MODEL,
+  DIRECT_SYSTEM_PROMPT,
+  DIRECT_USER_PROMPT,
+  MOCK_VISION_LATENCY_MS,
+  VISION_MODE,
+} from '@/lib/constants/wineVision';
 import { authHeaders, edgeFunctionUrl } from '@/lib/utils/edgeFunction';
+import { fetchAsBase64 } from '@/lib/utils/imageEncoding';
 
 export async function extractWineFromImage(imageUri: string): Promise<ExtractedWineInfo> {
   if (VISION_MODE === 'mock') return mockExtract(imageUri);
+  if (VISION_MODE === 'direct') return directExtract(imageUri);
   return claudeExtract(imageUri);
 }
 
@@ -65,6 +75,61 @@ async function mockExtract(imageUri: string): Promise<ExtractedWineInfo> {
   return SAMPLES[idx];
 }
 
+// --- Direct Anthropic call (dev shortcut, key in app bundle) ------------
+// Used when Supabase Edge Function path is unavailable. Production builds
+// should flip VISION_MODE to 'claude' so the key stays server-side.
+async function directExtract(imageUri: string): Promise<ExtractedWineInfo> {
+  const apiKey = process.env.EXPO_PUBLIC_ANTHROPIC_API_KEY;
+  if (!apiKey) {
+    throw new Error(
+      'EXPO_PUBLIC_ANTHROPIC_API_KEY not set. Add it to apps/mobile/.env and restart with `npx expo start -c`.',
+    );
+  }
+  const { base64, mediaType } = await fetchAsBase64(imageUri);
+
+  const res = await fetch('https://api.anthropic.com/v1/messages', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'x-api-key': apiKey,
+      'anthropic-version': DIRECT_ANTHROPIC_VERSION,
+      // Required when calling from browser/app-like contexts per Anthropic's
+      // SDK convention. React Native's native fetch doesn't enforce CORS but
+      // the API still expects this flag for non-server callers.
+      'anthropic-dangerous-direct-browser-access': 'true',
+    },
+    body: JSON.stringify({
+      model: DIRECT_MODEL,
+      max_tokens: DIRECT_MAX_TOKENS,
+      system: DIRECT_SYSTEM_PROMPT,
+      messages: [
+        {
+          role: 'user',
+          content: [
+            { type: 'image', source: { type: 'base64', media_type: mediaType, data: base64 } },
+            { type: 'text', text: DIRECT_USER_PROMPT },
+          ],
+        },
+      ],
+    }),
+  });
+
+  if (!res.ok) {
+    const detail = await safeText(res);
+    throw new Error(`Anthropic ${res.status}: ${detail}`);
+  }
+
+  const data = await res.json();
+  const textBlock = data?.content?.find?.((b: any) => b?.type === 'text');
+  const raw = parseJson(textBlock?.text ?? '');
+  return normalize(raw);
+}
+
+function parseJson(text: string): any {
+  const trimmed = text.trim().replace(/^```(?:json)?\s*/i, '').replace(/```$/, '').trim();
+  try { return JSON.parse(trimmed); } catch { return null; }
+}
+
 // --- Claude Vision (via Edge Function) ----------------------------------
 async function claudeExtract(imageUri: string): Promise<ExtractedWineInfo> {
   const { base64, mediaType } = await fetchAsBase64(imageUri);
@@ -85,45 +150,6 @@ async function claudeExtract(imageUri: string): Promise<ExtractedWineInfo> {
 }
 
 // --- Helpers ------------------------------------------------------------
-async function fetchAsBase64(uri: string): Promise<{ base64: string; mediaType: string }> {
-  const response = await fetch(uri);
-  const blob = await response.blob();
-  const mediaType = normalizeMediaType(blob.type || mediaTypeFromExt(uri));
-  const base64 = await blobToBase64(blob);
-  return { base64, mediaType };
-}
-
-function blobToBase64(blob: Blob): Promise<string> {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onloadend = () => {
-      const result = reader.result as string;
-      // Strip the "data:<type>;base64," prefix; Anthropic wants raw base64.
-      const comma = result.indexOf(',');
-      resolve(comma >= 0 ? result.slice(comma + 1) : result);
-    };
-    reader.onerror = () => reject(reader.error ?? new Error('Failed to read image'));
-    reader.readAsDataURL(blob);
-  });
-}
-
-function mediaTypeFromExt(uri: string): string {
-  const ext = uri.split('.').pop()?.split('?')[0]?.toLowerCase() ?? '';
-  const map: Record<string, string> = {
-    jpg: 'image/jpeg', jpeg: 'image/jpeg',
-    png: 'image/png', webp: 'image/webp', gif: 'image/gif',
-  };
-  return map[ext] ?? 'image/jpeg';
-}
-
-// Anthropic only accepts jpeg/png/webp/gif. Expo's ImagePicker with editing
-// produces jpeg on both platforms, so most real images land here already OK;
-// anything else we coerce to jpeg (server will reject if truly wrong).
-function normalizeMediaType(t: string): string {
-  const allowed = new Set(['image/jpeg', 'image/png', 'image/webp', 'image/gif']);
-  return allowed.has(t) ? t : 'image/jpeg';
-}
-
 async function safeText(res: Response): Promise<string> {
   try { return await res.text(); } catch { return '<no body>'; }
 }

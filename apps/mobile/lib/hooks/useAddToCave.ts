@@ -36,9 +36,9 @@ export function useAddToCave() {
     if (!user || adding) return false;
     setAdding(true);
     try {
-      const row: Record<string, any> = { user_id: user.id, wine_id: wineId, source };
-      if (photoUrl) row.photo_url = photoUrl;
-      const { error } = await supabase.from('collections').insert(row);
+      const base: Record<string, any> = { user_id: user.id, wine_id: wineId, source };
+      const { error } = await insertCollectionRow(base, photoUrl);
+      if (error) console.error('[addToCave:addExisting]', error.message);
       return !error;
     } finally {
       setAdding(false);
@@ -72,24 +72,51 @@ export function useAddToCave() {
         .select('id, name, name_ko, producer, region, country, vintage_year, alcohol_pct, category, image_url')
         .single();
 
-      if (wineError || !wine) return null;
+      if (wineError || !wine) {
+        if (wineError) console.error('[addToCave:addNew wines]', wineError.message);
+        return null;
+      }
 
-      const collectionRow: Record<string, any> = {
+      const base: Record<string, any> = {
         user_id: user.id,
         wine_id: wine.id,
         source,
       };
-      if (photoUrl) collectionRow.photo_url = photoUrl;
-
-      const { error: collectionError } = await supabase
-        .from('collections')
-        .insert(collectionRow);
-
-      return collectionError ? null : (wine as WineRow);
+      const { error: collectionError } = await insertCollectionRow(base, photoUrl);
+      if (collectionError) {
+        console.error('[addToCave:addNew collections]', collectionError.message);
+        return null;
+      }
+      return wine as WineRow;
     } finally {
       setAdding(false);
     }
   }
 
   return { addExisting, addNew, adding };
+}
+
+/**
+ * Insert a collections row, falling back to the same row without `photo_url`
+ * if the server rejects it (most commonly: the 00021 migration isn't applied
+ * yet and the column doesn't exist). We'd rather save the membership than
+ * block the user on a cosmetic field.
+ */
+async function insertCollectionRow(
+  base: Record<string, any>,
+  photoUrl: string | null | undefined,
+) {
+  if (photoUrl) {
+    const withPhoto = { ...base, photo_url: photoUrl };
+    const first = await supabase.from('collections').insert(withPhoto);
+    if (!first.error) return first;
+    // Retry without photo_url on "column photo_url does not exist" (42703)
+    // or anything else that looks schema-ish. The retry path also covers
+    // transient issues where photo_url is somehow rejected.
+    const msg = first.error.message?.toLowerCase() ?? '';
+    const schemaIssue = msg.includes('photo_url') || msg.includes('column');
+    if (!schemaIssue) return first;
+    console.warn('[addToCave] photo_url rejected, retrying without:', first.error.message);
+  }
+  return supabase.from('collections').insert(base);
 }

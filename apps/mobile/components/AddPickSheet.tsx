@@ -1,9 +1,9 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, StyleSheet, Pressable, Modal, TextInput } from 'react-native';
-import { Image } from 'expo-image';
+import { View, Text, StyleSheet, Pressable, Modal } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
 import { useAuth } from '@/lib/auth';
 import { uploadImage } from '@/lib/utils/imageUpload';
+import { PickWineStep, PickPhotoStep } from '@/components/AddPickStages';
 
 interface Props {
   visible: boolean;
@@ -77,13 +77,6 @@ export function AddPickSheet({ visible, onClose, onAdd, wines }: Props) {
     onClose();
   }
 
-  const filteredWines = wineSearch.length >= 1
-    ? wines.filter(w => {
-        const name = w.wine?.name || w.name || '';
-        return name.toLowerCase().includes(wineSearch.toLowerCase());
-      }).slice(0, 5)
-    : [];
-
   return (
     <Modal visible={visible} animationType="slide" transparent>
       <Pressable style={styles.backdrop} onPress={onClose} />
@@ -92,68 +85,23 @@ export function AddPickSheet({ visible, onClose, onAdd, wines }: Props) {
         <Text style={styles.sheetTitle}>Add to My Picks</Text>
 
         {!selectedWine ? (
-          <View style={styles.sheetBody}>
-            <TextInput
-              style={styles.searchInput}
-              placeholder="Search your collection..."
-              placeholderTextColor="#bbb"
-              value={wineSearch}
-              onChangeText={setWineSearch}
-              autoFocus
-            />
-            {filteredWines.map((w: any) => (
-              <Pressable
-                key={w.wine_id || w.id}
-                style={styles.wineItem}
-                onPress={() => setSelectedWine(w)}
-              >
-                <Text style={styles.wineName}>{w.wine?.name || w.name}</Text>
-              </Pressable>
-            ))}
-          </View>
+          <PickWineStep
+            wines={wines}
+            search={wineSearch}
+            onSearchChange={setWineSearch}
+            onSelect={setSelectedWine}
+          />
         ) : (
-          <View style={styles.sheetBody}>
-            <Text style={styles.selectedName}>{selectedWine.wine?.name || selectedWine.name}</Text>
-
-            <Pressable style={styles.photoBtn} onPress={pickPhoto}>
-              {photoUri ? (
-                <View>
-                  <Image
-                    source={photoUri}
-                    style={styles.photoPreview}
-                    contentFit="cover"
-                    transition={100}
-                  />
-                  <Text style={styles.photoHint}>
-                    {photoSource === 'cellar'
-                      ? 'Using cellar photo · Tap to change'
-                      : 'Tap to change photo'}
-                  </Text>
-                </View>
-              ) : (
-                <View style={styles.photoPlaceholder}>
-                  <Text style={styles.photoPlaceholderText}>Tap to add photo</Text>
-                </View>
-              )}
-            </Pressable>
-
-            <TextInput
-              style={styles.memoInput}
-              placeholder='"인생 와인", "생일 선물" ...'
-              placeholderTextColor="#bbb"
-              value={memo}
-              onChangeText={setMemo}
-              maxLength={50}
-            />
-
-            <Pressable
-              style={[styles.submitBtn, (!photoUri || adding) && { opacity: 0.5 }]}
-              onPress={handleAdd}
-              disabled={!photoUri || adding}
-            >
-              <Text style={styles.submitText}>{adding ? 'Adding...' : 'Add Pick'}</Text>
-            </Pressable>
-          </View>
+          <PickPhotoStep
+            wineName={selectedWine.wine?.name || selectedWine.name}
+            photoUri={photoUri}
+            photoSource={photoSource}
+            memo={memo}
+            adding={adding}
+            onPickPhoto={pickPhoto}
+            onMemoChange={setMemo}
+            onSubmit={handleAdd}
+          />
         )}
       </View>
     </Modal>
@@ -172,28 +120,4 @@ const styles = StyleSheet.create({
     textAlign: 'center', paddingVertical: 14,
     borderBottomWidth: 1, borderBottomColor: '#efefef',
   },
-  sheetBody: { padding: 20 },
-
-  searchInput: {
-    backgroundColor: '#f5f5f5', borderRadius: 10,
-    padding: 10, paddingLeft: 16, fontSize: 14, marginBottom: 8,
-  },
-  wineItem: { paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: '#f5f5f5' },
-  wineName: { fontSize: 14, fontWeight: '500', color: '#222' },
-
-  selectedName: { fontSize: 16, fontWeight: '600', color: '#222', marginBottom: 16 },
-  photoBtn: { marginBottom: 16 },
-  photoPreview: { width: '100%', height: 200, borderRadius: 12 },
-  photoPlaceholder: {
-    width: '100%', height: 200, borderRadius: 12,
-    backgroundColor: '#f5f5f5', alignItems: 'center', justifyContent: 'center',
-  },
-  photoPlaceholderText: { fontSize: 14, color: '#bbb' },
-  photoHint: { fontSize: 11, color: '#7b2d4e', textAlign: 'center', marginTop: 6, fontWeight: '500' },
-  memoInput: {
-    borderWidth: 1, borderColor: '#eee', borderRadius: 10,
-    padding: 12, fontSize: 15, backgroundColor: '#fafafa', marginBottom: 16,
-  },
-  submitBtn: { backgroundColor: '#7b2d4e', padding: 16, borderRadius: 12, alignItems: 'center' },
-  submitText: { color: '#fff', fontSize: 16, fontWeight: '600' },
 });

@@ -7,9 +7,13 @@ export type VisionMode = 'mock' | 'claude' | 'direct';
 // 'mock'   → sample data locally (no network, no cost)
 // 'claude' → deployed wine-vision Edge Function (safe; API key stays server-side)
 // 'direct' → client calls api.anthropic.com directly (dev-only shortcut; the
-//            key ships in the app bundle and can be extracted from ipa/apk —
-//            rotate before production and switch back to 'claude')
-export const VISION_MODE: VisionMode = 'direct';
+//            key ships in the app bundle and can be extracted from ipa/apk)
+//
+// Production ships as 'claude'. 'direct' stays in the codebase for offline
+// dev when you don't want to round-trip through Supabase, but app.config.ts
+// throws at build time if EXPO_PUBLIC_ANTHROPIC_API_KEY is set in an EAS
+// production profile so it can't accidentally escape.
+export const VISION_MODE: VisionMode = 'claude';
 
 // Model + tuning (shared with server when VISION_MODE === 'claude').
 // Mirror of _shared/anthropic.ts constants — kept in sync manually; if you

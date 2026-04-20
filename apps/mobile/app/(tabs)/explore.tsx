@@ -1,82 +1,118 @@
-import React, { useEffect, useState, useCallback } from 'react';
-import { View, Text, ScrollView, TextInput, StyleSheet, Pressable, Alert } from 'react-native';
+import React, { useEffect, useState, useCallback, useRef } from 'react';
+import { View, Text, ScrollView, TextInput, StyleSheet, Pressable, RefreshControl } from 'react-native';
+import { useFocusEffect } from 'expo-router';
 import { supabase } from '@/lib/supabase';
-import { useAuth } from '@/lib/auth';
 import { useFeaturedCaves } from '@/lib/hooks/useFeaturedCaves';
+import { usePostsByCategory } from '@/lib/hooks/usePostsByCategory';
 import { FeaturedCaveCard } from '@/components/FeaturedCaveCard';
 import { TrendingDrinks } from '@/components/TrendingDrinks';
 import { PopularPosts } from '@/components/PopularPosts';
-import Svg, { Path, Circle, Line } from 'react-native-svg';
+import { CategoryChips } from '@/components/CategoryChips';
+import { CategoryPostsList } from '@/components/CategoryPostsList';
+import { WinesSearchResults } from '@/components/WinesSearchResults';
+import { ScreenHeader } from '@/components/ScreenHeader';
+import { sanitizeSearch } from '@/lib/utils/searchUtils';
+import Svg, { Circle, Line } from 'react-native-svg';
 
-import { CATEGORY_FILTERS, CATEGORY_DB_MAP, CATEGORY_BG_COLORS, CATEGORY_TAG_STYLES, getCategoryLabel } from '@/lib/constants/drinkCategories';
+import { CATEGORY_FILTERS, CATEGORY_DB_MAP } from '@/lib/constants/drinkCategories';
 
 const categories = CATEGORY_FILTERS;
 const catDbMap = CATEGORY_DB_MAP;
-const bgColors = CATEGORY_BG_COLORS;
-const tagStyles = CATEGORY_TAG_STYLES;
 
+const DRINKS_LIMIT = 50;
+const SEARCH_DEBOUNCE_MS = 300;
+const REFRESH_CACHE_MS = 30_000;
 
 export default function ExploreScreen() {
-  const { user } = useAuth();
   const [drinks, setDrinks] = useState<any[]>([]);
-  const [myCollection, setMyCollection] = useState<Set<number>>(new Set());
   const [search, setSearch] = useState('');
   const [activeCat, setActiveCat] = useState('All');
+  const [refreshing, setRefreshing] = useState(false);
+  const [refreshKey, setRefreshKey] = useState(0);
   const { caves: featuredCaves, refresh: loadFeatured } = useFeaturedCaves();
 
-  useEffect(() => {
-    loadDrinks();
-    loadFeatured();
-    if (user) loadMyCollection();
-  }, [user]);
+  // Category-scoped post feed — kicks in whenever the user picks a category
+  // other than 'All'. Wine search stays available only under the 'All' tab
+  // so the two flows don't fight over the result area.
+  const categoryKey = activeCat !== 'All' ? catDbMap[activeCat] : null;
+  const { posts: categoryPosts, loading: categoryLoading, refresh: refreshCategoryPosts } =
+    usePostsByCategory(categoryKey);
 
-  async function loadDrinks(query?: string) {
-    let q = supabase.from('wines').select('id, name, name_ko, category, country, region, alcohol_pct').order('name').limit(50);
-    if (query && query.length >= 2) {
-      q = q.or(`name.ilike.%${query}%,name_ko.ilike.%${query}%,region.ilike.%${query}%,country.ilike.%${query}%`);
+  const reqSeqRef = useRef(0);          // monotonic request id for race protection
+  const lastLoadRef = useRef(0);         // timestamp of last cache-invalidating load
+
+  const inCategoryMode = activeCat !== 'All';
+  const inSearchMode = !inCategoryMode && search.length >= 2;
+
+  const loadDrinks = useCallback(async (query: string, cat: string) => {
+    const reqId = ++reqSeqRef.current;
+
+    let q = supabase
+      .from('wines')
+      .select('id, name, name_ko, category, country, region, alcohol_pct')
+      .order('name')
+      .limit(DRINKS_LIMIT);
+
+    if (query.length >= 2) {
+      const s = sanitizeSearch(query);
+      q = q.or(`name.ilike.%${s}%,name_ko.ilike.%${s}%,region.ilike.%${s}%,country.ilike.%${s}%`);
     }
+    if (cat !== 'All') {
+      q = q.eq('category', catDbMap[cat]);
+    }
+
     const { data } = await q;
-    if (data) setDrinks(data);
-  }
 
-  async function loadMyCollection() {
-    if (!user) return;
-    const { data } = await supabase.from('collections').select('wine_id').eq('user_id', user.id);
-    if (data) setMyCollection(new Set(data.map(c => c.wine_id)));
-  }
+    // Drop stale responses — a newer query superseded us.
+    if (reqId !== reqSeqRef.current) return;
 
-  async function toggleCave(wineId: number) {
-    if (!user) return Alert.alert('Sign in required', 'Please sign in to add to your Cave');
+    setDrinks(data ?? []);
+  }, []);
 
-    if (myCollection.has(wineId)) {
-      // Remove
-      await supabase.from('collections').delete().eq('user_id', user.id).eq('wine_id', wineId);
-      setMyCollection(prev => { const next = new Set(prev); next.delete(wineId); return next; });
-    } else {
-      // Add
-      const { error } = await supabase.from('collections').insert({
-        user_id: user.id,
-        wine_id: wineId,
-        source: 'search',
-      });
-      if (error) {
-        Alert.alert('Error', error.message);
-        return;
-      }
-      setMyCollection(prev => new Set(prev).add(wineId));
+  // Debounced wine list fetch — only under 'All' with an active search.
+  // Category mode uses usePostsByCategory instead, no drinks fetch needed.
+  useEffect(() => {
+    if (!inSearchMode) {
+      setDrinks([]);
+      return;
     }
-  }
+    const h = setTimeout(() => { loadDrinks(search, activeCat); }, SEARCH_DEBOUNCE_MS);
+    return () => clearTimeout(h);
+  }, [search, activeCat, inSearchMode, loadDrinks]);
 
-  // Server-side filtering, just apply category filter client-side
-  const filtered = activeCat === 'All' ? drinks : drinks.filter(d => d.category === catDbMap[activeCat]);
+  // Refresh Discover feed data on focus (30s cache, consistent with tabs/index.tsx).
+  useFocusEffect(
+    useCallback(() => {
+      const now = Date.now();
+      if (now - lastLoadRef.current > REFRESH_CACHE_MS) {
+        lastLoadRef.current = now;
+        loadFeatured();
+        setRefreshKey(k => k + 1);
+      }
+    }, [loadFeatured])
+  );
+
+  const onRefresh = useCallback(async () => {
+    setRefreshing(true);
+    lastLoadRef.current = Date.now();
+    await Promise.all([
+      loadFeatured(),
+      inSearchMode ? loadDrinks(search, activeCat) : Promise.resolve(),
+      inCategoryMode ? refreshCategoryPosts() : Promise.resolve(),
+    ]);
+    setRefreshKey(k => k + 1);
+    setRefreshing(false);
+  }, [loadFeatured, loadDrinks, refreshCategoryPosts, search, activeCat, inSearchMode, inCategoryMode]);
+
+  const refreshControl = (
+    <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#7b2d4e" />
+  );
 
   return (
     <View style={styles.container}>
-      <View style={styles.header}>
-        <Text style={styles.title}>Discover</Text>
-      </View>
+      <ScreenHeader variant="centered" title="Discover" />
 
-      {/* Search bar always visible */}
+      {/* Search bar — always visible */}
       <View style={styles.searchBox}>
         <Svg style={styles.searchIcon} width={18} height={18} fill="none" stroke="#bbb" strokeWidth={1.8} viewBox="0 0 24 24">
           <Circle cx={11} cy={11} r={8} />
@@ -87,58 +123,36 @@ export default function ExploreScreen() {
           placeholder="Search wines, whisky, sake..."
           placeholderTextColor="#bbb"
           value={search}
-          onChangeText={(text) => { setSearch(text); loadDrinks(text); }}
+          onChangeText={setSearch}
+          autoCorrect={false}
+          autoCapitalize="none"
         />
         {search.length > 0 && (
-          <Pressable style={styles.searchClear} onPress={() => setSearch('')}>
-            <Text style={styles.searchClearText}>x</Text>
+          <Pressable style={styles.searchClear} onPress={() => setSearch('')} hitSlop={10}>
+            <Text style={styles.searchClearText}>×</Text>
           </Pressable>
         )}
       </View>
 
-      {/* Search mode: show results */}
-      {search.length > 0 ? (
-        <View style={{ flex: 1 }}>
-          <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.catScroll} contentContainerStyle={{ paddingHorizontal: 16, gap: 8 }}>
-            {categories.map(c => (
-              <Pressable key={c} style={[styles.catBtn, activeCat === c && styles.catBtnActive]} onPress={() => setActiveCat(c)}>
-                <Text style={[styles.catBtnText, activeCat === c && styles.catBtnTextActive]}>{c}</Text>
-              </Pressable>
-            ))}
-          </ScrollView>
-          <Text style={styles.browseCount}>{filtered.length} items</Text>
-          <ScrollView>
-            {filtered.map(d => {
-              const tag = tagStyles[d.category] || tagStyles.other;
-              const label = d.category === 'whiskey' ? 'Whisky' : d.category.charAt(0).toUpperCase() + d.category.slice(1);
-              const inCave = myCollection.has(d.id);
-              return (
-                <View key={d.id} style={styles.browseItem}>
-                  <View style={[styles.browseThumb, { backgroundColor: bgColors[d.category] || '#f0f0f0' }]} />
-                  <View style={styles.browseInfo}>
-                    <Text style={styles.browseName} numberOfLines={1}>{d.name}</Text>
-                    {d.name_ko && <Text style={styles.browseNameKo}>{d.name_ko}</Text>}
-                    <Text style={styles.browseMeta}>{[d.region, d.country].filter(Boolean).join(', ')}</Text>
-                    <View style={[styles.browseCatTag, { backgroundColor: tag.bg }]}>
-                      <Text style={[styles.browseCatText, { color: tag.color }]}>{label}</Text>
-                    </View>
-                  </View>
-                  <Pressable
-                    style={[styles.addBtn, inCave && styles.addBtnAdded]}
-                    onPress={() => toggleCave(d.id)}
-                  >
-                    <Text style={[styles.addBtnText, inCave && styles.addBtnTextAdded]}>
-                      {inCave ? 'Added' : '+ Add'}
-                    </Text>
-                  </Pressable>
-                </View>
-              );
-            })}
-          </ScrollView>
-        </View>
+      <CategoryChips categories={categories} active={activeCat} onChange={setActiveCat} />
+
+      {inCategoryMode ? (
+        <CategoryPostsList
+          posts={categoryPosts}
+          loading={categoryLoading}
+          categoryLabel={activeCat}
+          refreshing={refreshing}
+          onRefresh={onRefresh}
+        />
+      ) : inSearchMode ? (
+        <WinesSearchResults
+          drinks={drinks}
+          limit={DRINKS_LIMIT}
+          refreshing={refreshing}
+          onRefresh={onRefresh}
+        />
       ) : (
-        /* Discover feed */
-        <ScrollView showsVerticalScrollIndicator={false}>
+        <ScrollView refreshControl={refreshControl} showsVerticalScrollIndicator={false}>
           {featuredCaves.length > 0 && (
             <>
               <Text style={styles.sectionTitle}>Featured Caves</Text>
@@ -150,9 +164,8 @@ export default function ExploreScreen() {
             </>
           )}
 
-          <TrendingDrinks />
-
-          <PopularPosts />
+          <TrendingDrinks refreshKey={refreshKey} />
+          <PopularPosts refreshKey={refreshKey} />
 
           <View style={{ height: 20 }} />
         </ScrollView>
@@ -163,44 +176,15 @@ export default function ExploreScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#fff' },
-  header: {
-    paddingTop: 60, paddingHorizontal: 20, paddingBottom: 14,
-    borderBottomWidth: 1, borderBottomColor: '#efefef',
-    alignItems: 'center', justifyContent: 'center', position: 'relative',
-  },
-  title: { fontSize: 17, fontWeight: '700', color: '#222' },
-
   searchBox: { margin: 12, marginHorizontal: 16, position: 'relative' },
   searchIcon: { position: 'absolute', left: 12, top: 10, zIndex: 1 },
-  searchInput: { backgroundColor: '#f5f5f5', borderRadius: 10, padding: 10, paddingLeft: 38, fontSize: 14 },
-  searchClear: { position: 'absolute', right: 12, top: 8 },
-  searchClearText: { fontSize: 16, color: '#999' },
-  catScroll: { flexGrow: 0, marginBottom: 4 },
-  catBtn: { paddingHorizontal: 16, paddingVertical: 6, borderRadius: 20, borderWidth: 1, borderColor: '#efefef', backgroundColor: '#fff' },
-  catBtnActive: { backgroundColor: '#222', borderColor: '#222' },
-  catBtnText: { fontSize: 13, fontWeight: '500', color: '#999' },
-  catBtnTextActive: { color: '#fff' },
-  browseCount: { fontSize: 12, color: '#bbb', paddingHorizontal: 16, paddingBottom: 8 },
-  browseItem: { flexDirection: 'row', alignItems: 'center', padding: 12, paddingHorizontal: 16, gap: 14, borderBottomWidth: 1, borderBottomColor: '#f8f8f8' },
-  browseThumb: { width: 52, height: 52, borderRadius: 10 },
-  browseInfo: { flex: 1 },
-  browseName: { fontSize: 14, fontWeight: '600', color: '#222' },
-  browseNameKo: { fontSize: 11, color: '#aaa', marginTop: 1 },
-  browseMeta: { fontSize: 11, color: '#999', marginTop: 3 },
-  browseCatTag: { alignSelf: 'flex-start', paddingHorizontal: 7, paddingVertical: 2, borderRadius: 6, marginTop: 4 },
-  browseCatText: { fontSize: 10, fontWeight: '600' },
-  addBtn: { backgroundColor: '#7b2d4e', paddingHorizontal: 14, paddingVertical: 7, borderRadius: 8 },
-  addBtnAdded: { backgroundColor: '#f0f0f0' },
-  addBtnText: { color: '#fff', fontSize: 12, fontWeight: '600' },
-  addBtnTextAdded: { color: '#999' },
+  searchInput: { backgroundColor: '#f5f5f5', borderRadius: 10, padding: 10, paddingLeft: 38, paddingRight: 36, fontSize: 14 },
+  searchClear: { position: 'absolute', right: 10, top: 6, width: 24, height: 24, alignItems: 'center', justifyContent: 'center' },
+  searchClearText: { fontSize: 18, color: '#999', lineHeight: 20 },
 
   sectionTitle: { fontSize: 15, fontWeight: '700', color: '#222', paddingHorizontal: 20, paddingTop: 20, paddingBottom: 12 },
   caveGrid: {
     flexDirection: 'row', flexWrap: 'wrap', gap: 8,
     paddingHorizontal: 16,
   },
-
-  emptyDiscover: { alignItems: 'center', paddingTop: 80 },
-  emptyDiscoverTitle: { fontSize: 17, fontWeight: '600', color: '#222', marginBottom: 6 },
-  emptyDiscoverDesc: { fontSize: 14, color: '#999' },
 });

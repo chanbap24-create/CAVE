@@ -1,20 +1,11 @@
 import React from 'react';
-import { View, Text, StyleSheet, Pressable, Image } from 'react-native';
+import { View, Text, StyleSheet, Pressable } from 'react-native';
+import { Image } from 'expo-image';
 import Svg, { Path, Circle, Line, Rect } from 'react-native-svg';
 import type { Gathering } from '@/lib/hooks/useGatherings';
 import { getAvatarRingColor, getTopBadge } from '@/lib/tierUtils';
-
-function formatDate(dateStr: string | null) {
-  if (!dateStr) return '';
-  const d = new Date(dateStr);
-  const days = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
-  const month = d.getMonth() + 1;
-  const day = d.getDate();
-  const dayName = days[d.getDay()];
-  const hour = d.getHours().toString().padStart(2, '0');
-  const min = d.getMinutes().toString().padStart(2, '0');
-  return `${month}.${day} (${dayName}) ${hour}:${min}`;
-}
+import { formatDate } from '@/lib/utils/dateUtils';
+import { CATEGORY_TAG_STYLES, getCategoryLabel } from '@/lib/constants/drinkCategories';
 
 interface Props {
   gathering: Gathering;
@@ -30,14 +21,17 @@ export function GatheringCard({ gathering, onPress }: Props) {
   return (
     <View style={styles.card}>
       <View style={styles.body}>
-        <Text style={styles.title}>{g.title}</Text>
+        <View style={styles.titleRow}>
+          <Text style={styles.title} numberOfLines={2}>{g.title}</Text>
+          {g.category ? <CategoryBadge category={g.category} /> : null}
+        </View>
 
         <View style={styles.hostRow}>
           {(() => {
             const rc = getAvatarRingColor((host as any)?.collection_count || 0);
             return host?.avatar_url ? (
               <View style={rc ? [styles.avatarGlow, { shadowColor: rc }] : undefined}>
-                <Image source={{ uri: host.avatar_url }} style={[styles.hostAvatarImg, rc && { borderWidth: 1.5, borderColor: rc }]} />
+                <Image source={host.avatar_url} style={[styles.hostAvatarImg, rc && { borderWidth: 1.5, borderColor: rc }]} contentFit="cover" cachePolicy="memory-disk" transition={150} />
               </View>
             ) : (
               <View style={[styles.hostAvatar, rc && { borderWidth: 1.5, borderColor: rc }]}><Text style={styles.hostAvatarText}>{hostInitial}</Text></View>
@@ -96,10 +90,24 @@ export function GatheringCard({ gathering, onPress }: Props) {
   );
 }
 
+function CategoryBadge({ category }: { category: string }) {
+  const tag = CATEGORY_TAG_STYLES[category] || CATEGORY_TAG_STYLES.other;
+  return (
+    <View style={[styles.catBadge, { backgroundColor: tag.bg }]}>
+      <Text style={[styles.catBadgeText, { color: tag.color }]}>
+        {getCategoryLabel(category)}
+      </Text>
+    </View>
+  );
+}
+
 const styles = StyleSheet.create({
   card: { borderBottomWidth: 8, borderBottomColor: '#f5f5f5' },
   body: { padding: 16, paddingHorizontal: 20 },
-  title: { fontSize: 17, fontWeight: '700', color: '#222', marginBottom: 10 },
+  titleRow: { flexDirection: 'row', alignItems: 'flex-start', gap: 8, marginBottom: 10 },
+  title: { flex: 1, fontSize: 17, fontWeight: '700', color: '#222' },
+  catBadge: { paddingHorizontal: 8, paddingVertical: 3, borderRadius: 6, marginTop: 3 },
+  catBadgeText: { fontSize: 11, fontWeight: '600' },
 
   hostRow: { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 14 },
   hostAvatar: {

@@ -9,6 +9,7 @@ export interface CreateGatheringInput {
   gatheringDate: Date;
   maxMembers: number;
   pricePerPerson: number | null;
+  category: string | null;
 }
 
 export function useCreateGathering(onCreated?: () => void) {
@@ -19,7 +20,10 @@ export function useCreateGathering(onCreated?: () => void) {
     if (!input.title.trim()) { Alert.alert('', 'Title is required'); return false; }
     if (!input.location.trim()) { Alert.alert('', 'Location is required'); return false; }
 
-    const { error } = await supabase.from('gatherings').insert({
+    // Only include `category` when the host actually picked one so the
+    // insert still succeeds on databases where migration 00023 hasn't been
+    // applied yet.
+    const payload: Record<string, any> = {
       host_id: user.id,
       title: input.title.trim(),
       description: input.description.trim() || null,
@@ -28,7 +32,10 @@ export function useCreateGathering(onCreated?: () => void) {
       max_members: input.maxMembers,
       price_per_person: input.pricePerPerson,
       status: 'open',
-    });
+    };
+    if (input.category) payload.category = input.category;
+
+    const { error } = await supabase.from('gatherings').insert(payload);
 
     if (error) {
       Alert.alert('Error', error.message);

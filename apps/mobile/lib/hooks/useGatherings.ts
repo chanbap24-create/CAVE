@@ -12,6 +12,7 @@ export interface Gathering {
   max_members: number;
   current_members: number;
   status: string;
+  category: string | null;
   price_per_person: number | null;
   external_chat_url: string | null;
   metadata: any;
@@ -19,17 +20,20 @@ export interface Gathering {
   host?: { username: string; display_name: string | null; avatar_url: string | null };
 }
 
-export function useGatherings() {
+export function useGatherings(category?: string | null) {
   const { user } = useAuth();
   const [gatherings, setGatherings] = useState<Gathering[]>([]);
   const [loading, setLoading] = useState(false);
 
   const loadGatherings = useCallback(async () => {
     setLoading(true);
-    const { data } = await supabase
+    let q = supabase
       .from('gatherings')
       .select('*')
       .order('gathering_date', { ascending: true });
+    if (category) q = q.eq('category', category);
+
+    const { data } = await q;
 
     if (!data) { setLoading(false); return; }
 
@@ -49,7 +53,7 @@ export function useGatherings() {
 
     setGatherings(enriched);
     setLoading(false);
-  }, []);
+  }, [category]);
 
   return { gatherings, loading, loadGatherings };
 }

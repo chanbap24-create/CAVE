@@ -8,10 +8,15 @@ import { CATEGORY_BG_COLORS, CATEGORY_TAG_STYLES, getCategoryLabel } from '@/lib
 const bgColors = CATEGORY_BG_COLORS;
 const tagStyles = CATEGORY_TAG_STYLES;
 
-export function TrendingDrinks() {
-  const { drinks, loadTrending } = useTrendingDrinks();
+interface Props {
+  refreshKey?: number;
+  category?: string | null;
+}
 
-  useEffect(() => { loadTrending(); }, []);
+export function TrendingDrinks({ refreshKey = 0, category }: Props) {
+  const { drinks, loadTrending } = useTrendingDrinks(category);
+
+  useEffect(() => { loadTrending(); }, [refreshKey, loadTrending]);
 
   if (drinks.length === 0) return null;
 

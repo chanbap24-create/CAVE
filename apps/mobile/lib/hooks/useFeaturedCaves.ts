@@ -19,24 +19,50 @@ const labelMap: Record<string, string> = {
   wine: 'Wine', whiskey: 'Whisky', sake: 'Sake', cognac: 'Cognac', other: 'Other',
 };
 
-export function useFeaturedCaves() {
+export function useFeaturedCaves(category?: string | null) {
   const [caves, setCaves] = useState<FeaturedCave[]>([]);
   const [loading, setLoading] = useState(false);
 
   const loadFeatured = useCallback(async () => {
     setLoading(true);
 
-    // 1. Get top profiles
+    let userIds: string[] = [];
+    if (category) {
+      // Category mode: rank by count of bottles in this category.
+      // Client-side aggregation because PostgREST has no groupby.
+      const { data: rows } = await supabase
+        .from('collections')
+        .select('user_id, wines!inner(category)')
+        .eq('wines.category', category)
+        .limit(1000);
+      const counts = new Map<string, number>();
+      (rows ?? []).forEach((r: any) => counts.set(r.user_id, (counts.get(r.user_id) ?? 0) + 1));
+      userIds = [...counts.entries()]
+        .sort((a, b) => b[1] - a[1])
+        .slice(0, 10)
+        .map(([uid]) => uid);
+    } else {
+      // Default: top 10 profiles by overall collection_count.
+      const { data: profiles } = await supabase
+        .from('profiles')
+        .select('id')
+        .gt('collection_count', 0)
+        .order('collection_count', { ascending: false })
+        .limit(10);
+      userIds = (profiles ?? []).map(p => p.id);
+    }
+
+    if (userIds.length === 0) { setCaves([]); setLoading(false); return; }
+
     const { data: profiles } = await supabase
       .from('profiles')
       .select('id, username, display_name, collection_count, avatar_url')
-      .gt('collection_count', 0)
-      .order('collection_count', { ascending: false })
-      .limit(10);
+      .in('id', userIds);
+    if (!profiles || profiles.length === 0) { setCaves([]); setLoading(false); return; }
 
-    if (!profiles || profiles.length === 0) { setLoading(false); return; }
-
-    const userIds = profiles.map(p => p.id);
+    // Preserve the category-ordered userIds ranking.
+    const profileMap = new Map(profiles.map(p => [p.id, p]));
+    const orderedProfiles = userIds.map(id => profileMap.get(id)).filter(Boolean) as typeof profiles;
 
     // 2. Batch: collections with wine data
     const { data: allCollections } = await supabase
@@ -76,9 +102,25 @@ export function useFeaturedCaves() {
       (imgs || []).forEach(img => { if (!imgMap.has(img.post_id)) imgMap.set(img.post_id, img.image_url); });
     }
 
-    // Build results
-    const enriched: FeaturedCave[] = profiles.map(p => {
-      const collections = (allCollections || []).filter(c => c.user_id === p.id);
+    // Pre-group by user_id — O(N+M) instead of O(N*M)
+    const collectionsByUser = new Map<string, any[]>();
+    (allCollections || []).forEach(c => {
+      const list = collectionsByUser.get(c.user_id) || [];
+      list.push(c);
+      collectionsByUser.set(c.user_id, list);
+    });
+    const hostedCountByUser = new Map<string, number>();
+    (hostedGatherings || []).forEach(g => {
+      hostedCountByUser.set(g.host_id, (hostedCountByUser.get(g.host_id) || 0) + 1);
+    });
+    const joinedCountByUser = new Map<string, number>();
+    (joinedGatherings || []).forEach(g => {
+      joinedCountByUser.set(g.user_id, (joinedCountByUser.get(g.user_id) || 0) + 1);
+    });
+
+    // Build results (iterate orderedProfiles to preserve category ranking)
+    const enriched: FeaturedCave[] = orderedProfiles.map(p => {
+      const collections = collectionsByUser.get(p.id) || [];
       const countries = new Set(collections.map((c: any) => c.wines?.country).filter(Boolean));
       const catCounts: Record<string, number> = {};
       collections.forEach((c: any) => { const cat = c.wines?.category; if (cat) catCounts[cat] = (catCounts[cat] || 0) + 1; });
@@ -90,8 +132,8 @@ export function useFeaturedCaves() {
       else if (p.collection_count >= 10) badges.push('Collector');
       if (countries.size >= 5) badges.push('World Traveler');
 
-      const hosted = (hostedGatherings || []).filter(g => g.host_id === p.id).length;
-      const joined = (joinedGatherings || []).filter(g => g.user_id === p.id).length;
+      const hosted = hostedCountByUser.get(p.id) || 0;
+      const joined = joinedCountByUser.get(p.id) || 0;
 
       const latestPost = latestPostMap.get(p.id);
       let latestPostImage: string | null = null;
@@ -120,7 +162,7 @@ export function useFeaturedCaves() {
 
     setCaves(enriched);
     setLoading(false);
-  }, []);
+  }, [category]);
 
   return { caves, loading, refresh: loadFeatured };
 }

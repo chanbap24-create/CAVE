@@ -1,14 +1,20 @@
 import React, { useEffect } from 'react';
-import { View, Text, StyleSheet, ScrollView, Pressable, Image } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, Pressable } from 'react-native';
+import { Image } from 'expo-image';
 import { useRouter } from 'expo-router';
 import { usePopularPosts } from '@/lib/hooks/usePopularPosts';
 import { VideoPlayer } from './VideoPlayer';
 
-export function PopularPosts() {
-  const { posts, loadPopular } = usePopularPosts();
+interface Props {
+  refreshKey?: number;
+  category?: string | null;
+}
+
+export function PopularPosts({ refreshKey = 0, category }: Props) {
+  const { posts, loadPopular } = usePopularPosts(category);
   const router = useRouter();
 
-  useEffect(() => { loadPopular(); }, []);
+  useEffect(() => { loadPopular(); }, [refreshKey, loadPopular]);
 
   if (posts.length === 0) return null;
 
@@ -23,14 +29,14 @@ export function PopularPosts() {
                 <VideoPlayer playbackId={post.video_playback_id} />
               </View>
             ) : post.image_url ? (
-              <Image source={{ uri: post.image_url }} style={styles.image} />
+              <Image source={post.image_url} style={styles.image} contentFit="cover" cachePolicy="memory-disk" transition={200} />
             ) : (
               <View style={[styles.image, { backgroundColor: '#f0f0f0' }]} />
             )}
             <View style={styles.overlay}>
               <View style={styles.userRow}>
                 {post.avatar_url ? (
-                  <Image source={{ uri: post.avatar_url }} style={styles.avatar} />
+                  <Image source={post.avatar_url} style={styles.avatar} contentFit="cover" cachePolicy="memory-disk" transition={150} />
                 ) : (
                   <View style={styles.avatarPlaceholder}>
                     <Text style={styles.avatarText}>{post.username[0]?.toUpperCase()}</Text>

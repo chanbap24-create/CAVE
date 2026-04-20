@@ -13,23 +13,25 @@ export interface PopularPost {
   avatar_url: string | null;
 }
 
-export function usePopularPosts() {
+export function usePopularPosts(category?: string | null) {
   const [posts, setPosts] = useState<PopularPost[]>([]);
   const [loading, setLoading] = useState(false);
 
   const loadPopular = useCallback(async () => {
     setLoading(true);
 
-    // Single query, fallback by ordering
-    const { data } = await supabase
+    let q = supabase
       .from('posts')
       .select('id, user_id, caption, like_count, created_at, video_playback_id')
       .eq('is_public', true)
       .order('like_count', { ascending: false })
       .order('created_at', { ascending: false })
       .limit(10);
+    if (category) q = q.eq('category', category);
 
-    if (!data || data.length === 0) { setLoading(false); return; }
+    const { data } = await q;
+
+    if (!data || data.length === 0) { setPosts([]); setLoading(false); return; }
 
     const postIds = data.map(p => p.id);
     const userIds = [...new Set(data.map(p => p.user_id))];
@@ -60,7 +62,7 @@ export function usePopularPosts() {
 
     setPosts(enriched);
     setLoading(false);
-  }, []);
+  }, [category]);
 
   return { posts, loading, loadPopular };
 }

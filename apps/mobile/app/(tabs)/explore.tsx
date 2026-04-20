@@ -3,12 +3,10 @@ import { View, Text, ScrollView, TextInput, StyleSheet, Pressable, RefreshContro
 import { useFocusEffect } from 'expo-router';
 import { supabase } from '@/lib/supabase';
 import { useFeaturedCaves } from '@/lib/hooks/useFeaturedCaves';
-import { usePostsByCategory } from '@/lib/hooks/usePostsByCategory';
 import { FeaturedCaveCard } from '@/components/FeaturedCaveCard';
 import { TrendingDrinks } from '@/components/TrendingDrinks';
 import { PopularPosts } from '@/components/PopularPosts';
 import { CategoryChips } from '@/components/CategoryChips';
-import { CategoryPostsList } from '@/components/CategoryPostsList';
 import { WinesSearchResults } from '@/components/WinesSearchResults';
 import { ScreenHeader } from '@/components/ScreenHeader';
 import { sanitizeSearch } from '@/lib/utils/searchUtils';
@@ -29,20 +27,16 @@ export default function ExploreScreen() {
   const [activeCat, setActiveCat] = useState('All');
   const [refreshing, setRefreshing] = useState(false);
   const [refreshKey, setRefreshKey] = useState(0);
-  const { caves: featuredCaves, refresh: loadFeatured } = useFeaturedCaves();
-
-  // Category-scoped post feed — kicks in whenever the user picks a category
-  // other than 'All'. Wine search stays available only under the 'All' tab
-  // so the two flows don't fight over the result area.
+  // Category filter flows through to the three discover sections (Featured
+  // Caves / Trending Drinks / Popular Posts) — each hook applies the filter
+  // server-side. Under 'All' the hooks fall back to their default behavior.
   const categoryKey = activeCat !== 'All' ? catDbMap[activeCat] : null;
-  const { posts: categoryPosts, loading: categoryLoading, refresh: refreshCategoryPosts } =
-    usePostsByCategory(categoryKey);
+  const { caves: featuredCaves, refresh: loadFeatured } = useFeaturedCaves(categoryKey);
 
   const reqSeqRef = useRef(0);          // monotonic request id for race protection
   const lastLoadRef = useRef(0);         // timestamp of last cache-invalidating load
 
-  const inCategoryMode = activeCat !== 'All';
-  const inSearchMode = !inCategoryMode && search.length >= 2;
+  const inSearchMode = search.length >= 2;
 
   const loadDrinks = useCallback(async (query: string, cat: string) => {
     const reqId = ++reqSeqRef.current;
@@ -98,11 +92,10 @@ export default function ExploreScreen() {
     await Promise.all([
       loadFeatured(),
       inSearchMode ? loadDrinks(search, activeCat) : Promise.resolve(),
-      inCategoryMode ? refreshCategoryPosts() : Promise.resolve(),
     ]);
     setRefreshKey(k => k + 1);
     setRefreshing(false);
-  }, [loadFeatured, loadDrinks, refreshCategoryPosts, search, activeCat, inSearchMode, inCategoryMode]);
+  }, [loadFeatured, loadDrinks, search, activeCat, inSearchMode]);
 
   const refreshControl = (
     <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#7b2d4e" />
@@ -136,15 +129,7 @@ export default function ExploreScreen() {
 
       <CategoryChips categories={categories} active={activeCat} onChange={setActiveCat} />
 
-      {inCategoryMode ? (
-        <CategoryPostsList
-          posts={categoryPosts}
-          loading={categoryLoading}
-          categoryLabel={activeCat}
-          refreshing={refreshing}
-          onRefresh={onRefresh}
-        />
-      ) : inSearchMode ? (
+      {inSearchMode ? (
         <WinesSearchResults
           drinks={drinks}
           limit={DRINKS_LIMIT}
@@ -164,8 +149,8 @@ export default function ExploreScreen() {
             </>
           )}
 
-          <TrendingDrinks refreshKey={refreshKey} />
-          <PopularPosts refreshKey={refreshKey} />
+          <TrendingDrinks refreshKey={refreshKey} category={categoryKey} />
+          <PopularPosts refreshKey={refreshKey} category={categoryKey} />
 
           <View style={{ height: 20 }} />
         </ScrollView>

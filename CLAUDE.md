@@ -23,6 +23,7 @@
   - 업장 연결 시 예약 + 수수료 모델 적용
 - **Mux 업로드**: 사용자당 시간당 10건 rate limit (`mux_uploads` 테이블 기반)
 - **Mux 재생 토큰**: 2시간 TTL. 업로더 본인 또는 posts RLS상 볼 수 있는 사용자에게만 발급
+- **Wine Vision**: 사용자당 시간당 10건 rate limit (`vision_calls` 테이블 기반). 모델 기본값 `claude-opus-4-7` — cost 이슈 생기면 `_shared/anthropic.ts::WINE_VISION_MODEL` 에서 교체
 
 ## Architecture
 - **Monorepo**: `apps/mobile/` (Expo + React Native) + `supabase/` (migrations + Edge Functions)
@@ -46,6 +47,7 @@ Edge Functions에서 사용하는 환경변수. 배포 전 `supabase secrets set
 **필수**
 - `MUX_TOKEN_ID`, `MUX_TOKEN_SECRET` — Mux API 액세스
 - `MUX_SIGNING_KEY_ID`, `MUX_SIGNING_PRIVATE_KEY` — signed playback JWT (2026-04 도입)
+- `ANTHROPIC_API_KEY` — Claude Vision (wine-vision Edge Function, 2026-04 도입)
 - `SUPABASE_SERVICE_ROLE_KEY` — 대부분 환경에서 자동 주입, 직접 설정 필요한 경우도 있음
 
 **선택**

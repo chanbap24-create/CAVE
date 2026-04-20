@@ -1,4 +1,4 @@
-import { serviceClient } from "./supabase.ts";
+import { isRateLimited } from "./rateLimit.ts";
 
 // ---------- Mux API credentials / tuning ----------
 export const MUX_TOKEN_ID = Deno.env.get("MUX_TOKEN_ID")!;
@@ -22,27 +22,14 @@ export function muxBasicAuthHeader(): string {
   return `Basic ${btoa(`${MUX_TOKEN_ID}:${MUX_TOKEN_SECRET}`)}`;
 }
 
-/**
- * Returns true when the user has exceeded the upload rate limit.
- * Fail-open: on DB error, allow the upload (availability over strictness)
- * but log for observability.
- */
-export async function isUploadRateLimited(userId: string): Promise<boolean> {
-  const since = new Date(
-    Date.now() - RATE_LIMIT_WINDOW_MINUTES * 60 * 1000,
-  ).toISOString();
-
-  const { count, error } = await serviceClient()
-    .from("mux_uploads")
-    .select("upload_id", { count: "exact", head: true })
-    .eq("user_id", userId)
-    .gte("created_at", since);
-
-  if (error) {
-    console.error("[mux] rate limit check failed:", error.message);
-    return false;
-  }
-  return (count ?? 0) >= RATE_LIMIT_MAX;
+export function isUploadRateLimited(userId: string): Promise<boolean> {
+  return isRateLimited({
+    table: "mux_uploads",
+    userId,
+    windowMinutes: RATE_LIMIT_WINDOW_MINUTES,
+    max: RATE_LIMIT_MAX,
+    label: "mux-upload",
+  });
 }
 
 // Decode MUX_SIGNING_PRIVATE_KEY which may be stored as raw PEM or base64-

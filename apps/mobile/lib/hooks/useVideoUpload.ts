@@ -1,6 +1,5 @@
 import { useState } from 'react';
-
-const SUPABASE_URL = process.env.EXPO_PUBLIC_SUPABASE_URL!;
+import { authHeaders, edgeFunctionUrl } from '@/lib/utils/edgeFunction';
 
 interface UploadResult {
   playbackId: string;
@@ -16,17 +15,15 @@ export function useVideoUpload() {
     setProgress(0);
 
     try {
-      // 1. Get upload URL from Edge Function
-      const url = `${SUPABASE_URL}/functions/v1/mux-upload`;
-      console.log('Requesting upload URL from:', url);
-      const res = await fetch(url, {
+      // 1. Get upload URL from Edge Function (authenticated)
+      const res = await fetch(edgeFunctionUrl('mux-upload'), {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: await authHeaders(),
       });
-      console.log('Response status:', res.status);
+      if (__DEV__) console.log('[mux-upload] status:', res.status);
       const data = await res.json();
-      console.log('Response data:', JSON.stringify(data));
-      if (!data?.upload_url) throw new Error('Failed to get upload URL: ' + JSON.stringify(data));
+      // Do not log `data` — contains signed upload URL (sensitive).
+      if (!data?.upload_url) throw new Error('Failed to get upload URL');
 
       const { upload_url, upload_id } = data;
 
@@ -54,9 +51,9 @@ export function useVideoUpload() {
         await new Promise(resolve => setTimeout(resolve, 2000));
         attempts++;
 
-        const statusRes = await fetch(`${SUPABASE_URL}/functions/v1/mux-status`, {
+        const statusRes = await fetch(edgeFunctionUrl('mux-status'), {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers: await authHeaders(),
           body: JSON.stringify({ upload_id }),
         });
         const status = await statusRes.json();
@@ -74,7 +71,7 @@ export function useVideoUpload() {
 
       return { playbackId, uploadId: upload_id };
     } catch (err: any) {
-      console.log('Video upload error:', err.message);
+      if (__DEV__) console.log('[video upload] error:', err.message);
       return null;
     } finally {
       setUploading(false);

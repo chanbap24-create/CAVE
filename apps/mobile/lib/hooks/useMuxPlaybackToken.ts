@@ -1,7 +1,5 @@
 import { useEffect, useState } from 'react';
-import { supabase } from '@/lib/supabase';
-
-const SUPABASE_URL = process.env.EXPO_PUBLIC_SUPABASE_URL!;
+import { authHeaders, edgeFunctionUrl } from '@/lib/utils/edgeFunction';
 
 // Refresh a little before server expiry to avoid mid-play 401s.
 const REFRESH_SAFETY_SECONDS = 60;
@@ -16,20 +14,13 @@ interface CacheEntry {
 const cache = new Map<string, CacheEntry>();
 const inflight = new Map<string, Promise<string | null>>();
 
-async function authHeaders(): Promise<Record<string, string>> {
-  const { data: { session } } = await supabase.auth.getSession();
-  const headers: Record<string, string> = { 'Content-Type': 'application/json' };
-  if (session?.access_token) headers.Authorization = `Bearer ${session.access_token}`;
-  return headers;
-}
-
 async function fetchToken(playbackId: string): Promise<string | null> {
   const existing = inflight.get(playbackId);
   if (existing) return existing;
 
   const promise = (async () => {
     try {
-      const res = await fetch(`${SUPABASE_URL}/functions/v1/mux-playback-token`, {
+      const res = await fetch(edgeFunctionUrl('mux-playback-token'), {
         method: 'POST',
         headers: await authHeaders(),
         body: JSON.stringify({ playback_id: playbackId }),

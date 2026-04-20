@@ -4,8 +4,8 @@
 
 export type VisionMode = 'mock' | 'claude';
 
-// Swap to 'claude' once the Edge Function / API key is wired up.
-export const VISION_MODE: VisionMode = 'mock';
+// Swap back to 'mock' to develop without spending Anthropic credits.
+export const VISION_MODE: VisionMode = 'claude';
 
 // Simulated latency for the mock extractor (ms). Matches a realistic
 // round-trip so UI loading states look right during development.

@@ -1,10 +1,12 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, ScrollView, StyleSheet, Pressable, Image } from 'react-native';
+import { View, Text, ScrollView, StyleSheet, Pressable } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/lib/auth';
 import { FollowButton } from '@/components/FollowButton';
-import { getAvatarRingColor, getTopBadge } from '@/lib/tierUtils';
+import { getTopBadge } from '@/lib/tierUtils';
+import { UserAvatar } from '@/components/UserAvatar';
+import { ScreenHeader, BackButton } from '@/components/ScreenHeader';
 import { TasteCard } from '@/components/TasteCard';
 import { useTasteProfile } from '@/lib/hooks/useTasteProfile';
 import { useUserGatherings } from '@/lib/hooks/useUserGatherings';
@@ -12,8 +14,9 @@ import { useUserPicks } from '@/lib/hooks/useUserPicks';
 import { useUserBadges } from '@/lib/hooks/useUserBadges';
 import { MyPicksSection } from '@/components/MyPicksSection';
 import { BadgeList } from '@/components/BadgeList';
+import { UserCellarSection } from '@/components/UserCellarSection';
 import { getDMRoom } from '@/lib/hooks/useChat';
-import Svg, { Path, Polyline } from 'react-native-svg';
+import { formatMonthDay } from '@/lib/utils/dateUtils';
 
 export default function UserProfileScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -55,44 +58,34 @@ export default function UserProfileScreen() {
 
   if (!profile) return <View style={styles.container} />;
 
-  const initial = profile.display_name?.[0]?.toUpperCase() || profile.username?.[0]?.toUpperCase() || '?';
+  const fallbackChar = profile.display_name?.[0] || profile.username?.[0] || '?';
+
+  const topBadge = getTopBadge(profile.collection_count || 0);
 
   return (
     <View style={styles.container}>
-      <View style={styles.header}>
-        <Pressable onPress={() => router.canGoBack() ? router.back() : router.replace('/(tabs)/explore')} style={styles.backBtn}>
-          <Svg width={24} height={24} fill="none" stroke="#222" strokeWidth={1.8} viewBox="0 0 24 24">
-            <Polyline points="15 18 9 12 15 6" />
-          </Svg>
-        </Pressable>
-        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-          <Text style={styles.headerTitle}>{profile.username}</Text>
-          {(() => {
-            const b = getTopBadge(profile.collection_count || 0);
-            return b ? (
-              <View style={[styles.headerBadge, { backgroundColor: b.bg }]}>
-                <Text style={[styles.headerBadgeText, { color: b.color }]}>{b.name}</Text>
+      <ScreenHeader
+        title={
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+            <Text style={styles.headerTitle}>{profile.username}</Text>
+            {topBadge && (
+              <View style={[styles.headerBadge, { backgroundColor: topBadge.bg }]}>
+                <Text style={[styles.headerBadgeText, { color: topBadge.color }]}>{topBadge.name}</Text>
               </View>
-            ) : null;
-          })()}
-        </View>
-        <View style={{ width: 24 }} />
-      </View>
+            )}
+          </View>
+        }
+        left={<BackButton fallbackPath="/(tabs)/explore" />}
+      />
 
       <ScrollView>
         <View style={styles.profileTop}>
-          {(() => {
-            const rc = getAvatarRingColor(profile.collection_count || 0);
-            return profile.avatar_url ? (
-              <View style={rc ? [styles.avatarGlow, { shadowColor: rc }] : undefined}>
-                <Image source={{ uri: profile.avatar_url }} style={[styles.avatarLgImg, rc && { borderWidth: 2, borderColor: rc }]} />
-              </View>
-            ) : (
-              <View style={[styles.avatarLg, rc && { borderWidth: 2, borderColor: rc }]}>
-                <Text style={styles.avatarText}>{initial}</Text>
-              </View>
-            );
-          })()}
+          <UserAvatar
+            uri={profile.avatar_url}
+            fallbackChar={fallbackChar}
+            collectionCount={profile.collection_count || 0}
+            size="xl"
+          />
           <View style={styles.profileStats}>
             <View style={styles.stat}>
               <Text style={styles.statNum}>{profile.post_count || 0}</Text>
@@ -142,8 +135,7 @@ export default function UserProfileScreen() {
           <View style={styles.gatheringSection}>
             <Text style={styles.sectionTitle}>Gatherings ({userGatherings.length})</Text>
             {userGatherings.map(g => {
-              const d = g.gathering_date ? new Date(g.gathering_date) : null;
-              const dateStr = d ? `${d.getMonth()+1}.${d.getDate()}` : '';
+              const dateStr = formatMonthDay(g.gathering_date);
               return (
                 <Pressable key={g.id} style={styles.gatheringItem} onPress={() => router.push(`/gathering/${g.id}`)}>
                   <View style={styles.gatheringInfo}>
@@ -161,17 +153,7 @@ export default function UserProfileScreen() {
           </View>
         )}
 
-        {collections.length > 0 && (
-          <View style={styles.caveSection}>
-            <Text style={styles.sectionTitle}>Cave ({collections.length})</Text>
-            {collections.map(c => (
-              <View key={c.id} style={styles.caveItem}>
-                <Text style={styles.caveName}>{c.wine?.name}</Text>
-                <Text style={styles.caveMeta}>{c.wine?.region} · {c.wine?.category}</Text>
-              </View>
-            ))}
-          </View>
-        )}
+        <UserCellarSection ownerId={id!} wines={collections} />
       </ScrollView>
     </View>
   );
@@ -179,32 +161,11 @@ export default function UserProfileScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#fff' },
-  header: {
-    paddingTop: 60, paddingHorizontal: 20, paddingBottom: 14,
-    borderBottomWidth: 1, borderBottomColor: '#efefef',
-    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
-  },
-  backBtn: { padding: 4 },
   headerTitle: { fontSize: 17, fontWeight: '700', color: '#222' },
   headerBadge: { paddingHorizontal: 8, paddingVertical: 2, borderRadius: 8 },
   headerBadgeText: { fontSize: 10, fontWeight: '600' },
 
   profileTop: { flexDirection: 'row', alignItems: 'center', padding: 20, gap: 20 },
-  avatarLg: {
-    width: 80, height: 80, borderRadius: 40, backgroundColor: '#f0f0f0',
-    alignItems: 'center', justifyContent: 'center',
-  },
-  avatarText: { fontSize: 28, fontWeight: '600', color: '#999' },
-  avatarLgImg: { width: 80, height: 80, borderRadius: 40 },
-  avatarGlow: {
-    borderRadius: 44, padding: 2,
-    shadowColor: '#c9a84c',
-    shadowOffset: { width: 0, height: 0 },
-    shadowOpacity: 0.6,
-    shadowRadius: 6,
-    elevation: 8,
-  },
-  avatarGoldBorder: { borderWidth: 2, borderColor: '#c9a84c' },
   profileStats: { flex: 1, flexDirection: 'row', justifyContent: 'center', gap: 20 },
   stat: { alignItems: 'center' },
   statNum: { fontSize: 17, fontWeight: '700', color: '#222' },
@@ -234,11 +195,5 @@ const styles = StyleSheet.create({
   gatheringRoleText: { fontSize: 11, fontWeight: '600', color: '#2e7d32' },
   gatheringRoleTextHost: { color: '#7b2d4e' },
 
-  caveSection: { paddingHorizontal: 20, paddingTop: 8 },
   sectionTitle: { fontSize: 15, fontWeight: '600', color: '#222', marginBottom: 12 },
-  caveItem: {
-    paddingVertical: 10, borderBottomWidth: 1, borderBottomColor: '#f5f5f5',
-  },
-  caveName: { fontSize: 14, fontWeight: '500', color: '#222' },
-  caveMeta: { fontSize: 11, color: '#999', marginTop: 2 },
 });

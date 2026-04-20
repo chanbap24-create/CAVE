@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
+import { Alert } from 'react-native';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/lib/auth';
 
@@ -58,6 +59,7 @@ export function useCommentsTarget(config: CommentsTableConfig, targetId: string 
       .single();
     if (error || !data) {
       console.error(`[useCommentsTarget:${config.table}]`, error?.message);
+      reportError(config.table, error?.message);
       return false;
     }
     setComments(prev => [...prev, data as any]);
@@ -77,4 +79,22 @@ export function useCommentsTarget(config: CommentsTableConfig, targetId: string 
   }
 
   return { comments, count, loading, add, remove, refresh: load };
+}
+
+function reportError(table: string, rawMessage: string | undefined) {
+  const msg = (rawMessage ?? '').toLowerCase();
+  const missingTable = msg.includes('does not exist')
+    || msg.includes('schema cache')
+    || msg.includes('could not find the table')
+    || (msg.includes('relation') && msg.includes(table));
+  if (missingTable) {
+    Alert.alert(
+      'Setup needed',
+      `The table "${table}" is missing on the server. Apply migration 00022_cellar_social.sql in Supabase Dashboard → SQL Editor.`,
+    );
+  } else if (msg.includes('row-level security') || msg.includes('policy')) {
+    Alert.alert('Not allowed', 'This cellar may be private, or you need to log in again.');
+  } else if (rawMessage) {
+    Alert.alert('Failed', rawMessage);
+  }
 }

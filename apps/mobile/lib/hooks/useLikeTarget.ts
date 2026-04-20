@@ -70,13 +70,19 @@ export function useLikeTarget(config: LikeTableConfig, targetId: string | number
       // Surface actionable messages so the user can fix the underlying issue
       // (most commonly: migration 00022 hasn't been applied yet).
       const msg = error.message.toLowerCase();
-      if (msg.includes('does not exist') || msg.includes('relation')) {
+      const missingTable = msg.includes('does not exist')
+        || msg.includes('schema cache')
+        || msg.includes('could not find the table')
+        || (msg.includes('relation') && msg.includes(config.table));
+      if (missingTable) {
         Alert.alert(
           'Setup needed',
-          'Cellar social tables are missing. Apply migration 00022_cellar_social.sql in your Supabase dashboard.',
+          `The table "${config.table}" is missing on the server. Apply migration 00022_cellar_social.sql in Supabase Dashboard → SQL Editor.`,
         );
       } else if (msg.includes('check constraint')) {
         Alert.alert("Can't like your own cellar", 'The ♥ on your own cave is disabled by design.');
+      } else if (msg.includes('row-level security') || msg.includes('policy')) {
+        Alert.alert('Not allowed', 'This cellar may be private, or you need to log in again.');
       } else {
         Alert.alert('Failed', error.message);
       }

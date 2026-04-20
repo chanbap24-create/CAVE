@@ -1,8 +1,12 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import { useCellarLike } from '@/lib/hooks/useCellarLike';
 import { useCollectionLike } from '@/lib/hooks/useCollectionLike';
-import { LikeButton } from '@/components/LikeButton';
+import { useCellarComments } from '@/lib/hooks/useCellarComments';
+import { useCollectionComments } from '@/lib/hooks/useCollectionComments';
+import { LikeButton, SocialStatsRow } from '@/components/LikeButton';
+import { CommentButton } from '@/components/CommentButton';
+import { CommentsSheet } from '@/components/CommentsSheet';
 
 interface Props {
   ownerId: string;
@@ -10,36 +14,57 @@ interface Props {
 }
 
 /**
- * Read-only cellar view used on another user's profile. Surfaces a whole-
- * cellar ♥ in the section header and a per-bottle ♥ on each row so viewers
- * can engage without navigating away.
- *
- * Self-view still renders, but the cellar heart's toggle will no-op server-
- * side because `cellar_likes` enforces `owner_id <> user_id` via CHECK.
+ * Read-only cellar view for another user's profile. Shows whole-cellar
+ * ♥ + 💬 in the section header and per-bottle ♥ + 💬 on each row. Tapping
+ * a 💬 opens the shared CommentsSheet bound to that level.
  */
 export function UserCellarSection({ ownerId, wines }: Props) {
   const cellarLike = useCellarLike(ownerId);
+  const cellarComments = useCellarComments(ownerId);
+  const [cellarSheet, setCellarSheet] = useState(false);
+
   if (wines.length === 0) return null;
 
   return (
     <View style={styles.section}>
       <View style={styles.header}>
         <Text style={styles.title}>Cave ({wines.length})</Text>
-        <LikeButton
-          liked={cellarLike.liked}
-          count={cellarLike.count}
-          busy={cellarLike.busy}
-          onPress={cellarLike.toggle}
-          size="section"
-        />
+        <SocialStatsRow>
+          <LikeButton
+            liked={cellarLike.liked}
+            count={cellarLike.count}
+            busy={cellarLike.busy}
+            onPress={cellarLike.toggle}
+            size="section"
+          />
+          <CommentButton
+            count={cellarComments.count}
+            onPress={() => setCellarSheet(true)}
+            size="section"
+          />
+        </SocialStatsRow>
       </View>
-      {wines.map(c => <WineLikeRow key={c.id} c={c} />)}
+
+      {wines.map(c => <WineRow key={c.id} c={c} />)}
+
+      <CommentsSheet
+        visible={cellarSheet}
+        onClose={() => setCellarSheet(false)}
+        title="Comments on this cellar"
+        comments={cellarComments.comments}
+        loading={cellarComments.loading}
+        onAdd={cellarComments.add}
+        onDelete={cellarComments.remove}
+      />
     </View>
   );
 }
 
-function WineLikeRow({ c }: { c: any }) {
-  const { liked, count, busy, toggle } = useCollectionLike(c.id);
+function WineRow({ c }: { c: any }) {
+  const like = useCollectionLike(c.id);
+  const comments = useCollectionComments(c.id);
+  const [sheet, setSheet] = useState(false);
+
   return (
     <View style={styles.row}>
       <View style={styles.info}>
@@ -48,7 +73,19 @@ function WineLikeRow({ c }: { c: any }) {
           {[c.wine?.region, c.wine?.category].filter(Boolean).join(' · ')}
         </Text>
       </View>
-      <LikeButton liked={liked} count={count} busy={busy} onPress={toggle} />
+      <SocialStatsRow>
+        <LikeButton liked={like.liked} count={like.count} busy={like.busy} onPress={like.toggle} />
+        <CommentButton count={comments.count} onPress={() => setSheet(true)} />
+      </SocialStatsRow>
+      <CommentsSheet
+        visible={sheet}
+        onClose={() => setSheet(false)}
+        title={c.wine?.name ?? 'Comments'}
+        comments={comments.comments}
+        loading={comments.loading}
+        onAdd={comments.add}
+        onDelete={comments.remove}
+      />
     </View>
   );
 }

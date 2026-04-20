@@ -5,7 +5,9 @@ import { useFocusEffect, useRouter } from 'expo-router';
 import { PostCard } from '@/components/PostCard';
 import { FeedSkeleton } from '@/components/FeedSkeleton';
 import { useNotifications } from '@/lib/hooks/useNotifications';
-import Svg, { Path, Line } from 'react-native-svg';
+import { ScreenHeader } from '@/components/ScreenHeader';
+import { CellarActivityStrip } from '@/components/CellarActivityStrip';
+import Svg, { Line } from 'react-native-svg';
 import { Ionicons } from '@expo/vector-icons';
 
 export default function FeedScreen() {
@@ -77,26 +79,31 @@ export default function FeedScreen() {
 
   return (
     <View style={styles.container}>
-      <View style={styles.header}>
-        <Pressable style={styles.headerLeft} onPress={() => router.push('/(tabs)/create')}>
-          <Svg width={24} height={24} fill="none" stroke="#222" strokeWidth={1.8} viewBox="0 0 24 24">
-            <Line x1={12} y1={5} x2={12} y2={19} />
-            <Line x1={5} y1={12} x2={19} y2={12} />
-          </Svg>
-        </Pressable>
-        <Text style={styles.logo}>Cave</Text>
-        <Pressable style={styles.headerRight} onPress={() => router.push('/notifications')}>
-          <Ionicons name="notifications-outline" size={24} color="#262626" />
-          {unreadCount > 0 && (
-            <View style={styles.badge}>
-              <Text style={styles.badgeText}>{unreadCount > 9 ? '9+' : unreadCount}</Text>
-            </View>
-          )}
-        </Pressable>
-      </View>
+      <ScreenHeader
+        title={<Text style={styles.logo}>Cave</Text>}
+        left={
+          <Pressable onPress={() => router.push('/(tabs)/create')} hitSlop={8}>
+            <Svg width={24} height={24} fill="none" stroke="#222" strokeWidth={1.8} viewBox="0 0 24 24">
+              <Line x1={12} y1={5} x2={12} y2={19} />
+              <Line x1={5} y1={12} x2={19} y2={12} />
+            </Svg>
+          </Pressable>
+        }
+        right={
+          <Pressable onPress={() => router.push('/notifications')} hitSlop={8}>
+            <Ionicons name="notifications-outline" size={24} color="#262626" />
+            {unreadCount > 0 && (
+              <View style={styles.badge}>
+                <Text style={styles.badgeText}>{unreadCount > 9 ? '9+' : unreadCount}</Text>
+              </View>
+            )}
+          </Pressable>
+        }
+      />
       <ScrollView
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#7b2d4e" />}
       >
+        <CellarActivityStrip />
         {posts === null ? (
           <FeedSkeleton />
         ) : posts.length === 0 ? (
@@ -112,17 +119,6 @@ export default function FeedScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#fff' },
-  header: {
-    paddingTop: 60, paddingHorizontal: 20, paddingBottom: 14,
-    borderBottomWidth: 1, borderBottomColor: '#efefef',
-    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
-  },
-  headerLeft: {
-    width: 30,
-  },
-  headerRight: {
-    width: 30, alignItems: 'flex-end' as const,
-  },
   badge: {
     position: 'absolute', top: -4, right: -6,
     backgroundColor: '#ed4956', borderRadius: 9,

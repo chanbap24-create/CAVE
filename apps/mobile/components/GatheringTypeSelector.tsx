@@ -9,15 +9,14 @@ interface Props {
 
 interface Option {
   key: GatheringType;
-  emoji: string;
   title: string;
   subtitle: string;
 }
 
 const OPTIONS: Option[] = [
-  { key: 'cost_share', emoji: '💰', title: 'Cost Share',     subtitle: '방장이 와인 준비 · 비용 분담 (블라인드 슬롯 가능)' },
-  { key: 'byob',       emoji: '🍷', title: 'BYOB',           subtitle: '각자 자기 셀러에서 한 병 지참' },
-  { key: 'donation',   emoji: '🎁', title: 'Host Donation',  subtitle: '방장이 전부 제공 · 참가자는 옵션으로 가져올 수 있음' },
+  { key: 'cost_share', title: 'Cost Share',    subtitle: '방장이 와인 준비 · 비용 분담 (블라인드 슬롯 가능)' },
+  { key: 'byob',       title: 'BYOB',          subtitle: '각자 자기 셀러에서 한 병 지참' },
+  { key: 'donation',   title: 'Host Donation', subtitle: '방장이 전부 제공 · 참가자는 옵션으로 가져올 수 있음' },
 ];
 
 /** Three-way card selector for the gathering type at create time. */
@@ -32,7 +31,6 @@ export function GatheringTypeSelector({ value, onChange }: Props) {
             style={[styles.card, active && styles.cardActive]}
             onPress={() => onChange(o.key)}
           >
-            <Text style={styles.emoji}>{o.emoji}</Text>
             <View style={styles.text}>
               <Text style={[styles.title, active && styles.titleActive]}>{o.title}</Text>
               <Text style={styles.subtitle}>{o.subtitle}</Text>
@@ -53,7 +51,6 @@ const styles = StyleSheet.create({
     borderWidth: 1, borderColor: '#eee', backgroundColor: '#fafafa',
   },
   cardActive: { backgroundColor: '#f7f0f3', borderColor: '#7b2d4e' },
-  emoji: { fontSize: 22 },
   text: { flex: 1 },
   title: { fontSize: 14, fontWeight: '700', color: '#222' },
   titleActive: { color: '#7b2d4e' },

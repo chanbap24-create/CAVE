@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, Pressable, Image } from 'react-native';
+import { View, Text, StyleSheet, Pressable } from 'react-native';
+import { Image } from 'expo-image';
 import { TasteCard } from './TasteCard';
+import { WineDetailSheet } from './WineDetailSheet';
 import { useTasteProfile } from '@/lib/hooks/useTasteProfile';
 
 interface Member {
@@ -13,6 +15,22 @@ interface Member {
     avatar_url: string | null;
     collection_count: number;
   };
+  contribution?: {
+    collection_id: number | null;
+    is_blind: boolean;
+    status: string;
+    wine?: {
+      name: string;
+      name_ko?: string | null;
+      producer?: string | null;
+      category?: string | null;
+      region?: string | null;
+      country?: string | null;
+      vintage_year: number | null;
+      image_url: string | null;
+    } | null;
+    collection_photo_url?: string | null;
+  } | null;
 }
 
 interface Props {
@@ -27,6 +45,7 @@ export function ApplicantRow({ member, showActions, onApprove, onReject }: Props
   const initial = p?.display_name?.[0]?.toUpperCase() || p?.username?.[0]?.toUpperCase() || '?';
   const { taste, loadTaste } = useTasteProfile(member.user_id);
   const [expanded, setExpanded] = useState(false);
+  const [wineSheetOpen, setWineSheetOpen] = useState(false);
 
   useEffect(() => { loadTaste(); }, [member.user_id]);
 
@@ -46,7 +65,7 @@ export function ApplicantRow({ member, showActions, onApprove, onReject }: Props
     <View style={styles.applicant}>
       <Pressable style={styles.top} onPress={() => setExpanded(!expanded)}>
         {p?.avatar_url ? (
-          <Image source={{ uri: p.avatar_url }} style={styles.avatarImg} />
+          <Image source={p.avatar_url} style={styles.avatarImg} contentFit="cover" cachePolicy="memory-disk" transition={150} />
         ) : (
           <View style={styles.avatar}>
             <Text style={styles.avatarText}>{initial}</Text>
@@ -72,6 +91,73 @@ export function ApplicantRow({ member, showActions, onApprove, onReject }: Props
 
       {/* Expanded: full taste card */}
       {expanded && taste && <TasteCard taste={taste} compact />}
+
+      {member.contribution && (
+        <Pressable
+          style={({ pressed }) => [styles.wineCard, pressed && styles.wineCardPressed]}
+          onPress={() => {
+            // Blind wines have nothing to reveal yet — skip opening.
+            if (member.contribution?.is_blind) return;
+            if (!member.contribution?.wine) return;
+            setWineSheetOpen(true);
+          }}
+          disabled={!!member.contribution.is_blind || !member.contribution.wine}
+        >
+          {member.contribution.is_blind ? (
+            <View style={[styles.wineThumb, styles.blindThumb]}>
+              <Text style={styles.blindLock}>🔒</Text>
+            </View>
+          ) : member.contribution.collection_photo_url || member.contribution.wine?.image_url ? (
+            <Image
+              source={member.contribution.collection_photo_url ?? member.contribution.wine?.image_url!}
+              style={styles.wineThumb}
+              contentFit="cover"
+              cachePolicy="memory-disk"
+            />
+          ) : (
+            <View style={[styles.wineThumb, { backgroundColor: '#f0f0f0' }]} />
+          )}
+          <View style={{ flex: 1 }}>
+            <Text style={styles.wineName} numberOfLines={2}>
+              {member.contribution.is_blind
+                ? '블라인드 와인'
+                : member.contribution.wine?.name ?? 'Selected wine'}
+            </Text>
+            {!member.contribution.is_blind && member.contribution.wine?.producer ? (
+              <Text style={styles.wineProducer} numberOfLines={1}>
+                {member.contribution.wine.producer}
+              </Text>
+            ) : null}
+            <Text style={styles.wineMeta} numberOfLines={1}>
+              {member.contribution.is_blind
+                ? '당일 공개'
+                : member.contribution.wine?.vintage_year
+                  ? `${member.contribution.wine.vintage_year} · 탭하여 자세히 보기`
+                  : '탭하여 자세히 보기'}
+            </Text>
+          </View>
+          {member.contribution.status === 'pending' && (
+            <View style={styles.pendingPill}>
+              <Text style={styles.pendingPillText}>Pending</Text>
+            </View>
+          )}
+        </Pressable>
+      )}
+
+      <WineDetailSheet
+        visible={wineSheetOpen}
+        onClose={() => setWineSheetOpen(false)}
+        wine={
+          member.contribution?.wine
+            ? {
+                ...member.contribution.wine,
+                photo_url: member.contribution.collection_photo_url ?? null,
+              }
+            : null
+        }
+        broughtBy={p?.username ? `@${p.username}` : undefined}
+      />
+
 
       {member.message && (
         <Text style={styles.message}>"{member.message}"</Text>
@@ -113,6 +199,25 @@ const styles = StyleSheet.create({
     backgroundColor: '#fafaf8', padding: 10, borderRadius: 10,
     marginTop: 10,
   },
+  wineCard: {
+    flexDirection: 'row', alignItems: 'center', gap: 10,
+    marginTop: 10, padding: 10,
+    backgroundColor: '#fafaf8', borderRadius: 10,
+  },
+  wineCardPressed: { opacity: 0.6 },
+  wineThumb: { width: 36, height: 36, borderRadius: 6, backgroundColor: '#f0f0f0' },
+  blindThumb: {
+    backgroundColor: '#f5f0e8', alignItems: 'center', justifyContent: 'center',
+  },
+  blindLock: { fontSize: 14 },
+  wineName: { fontSize: 13, fontWeight: '600', color: '#222' },
+  wineProducer: { fontSize: 11, color: '#7b2d4e', fontWeight: '500', marginTop: 2 },
+  wineMeta: { fontSize: 11, color: '#999', marginTop: 2 },
+  pendingPill: {
+    backgroundColor: '#fff3e0', paddingHorizontal: 8, paddingVertical: 3, borderRadius: 6,
+  },
+  pendingPillText: { fontSize: 10, fontWeight: '600', color: '#ed8c32' },
+
   actionRow: { flexDirection: 'row', gap: 8, marginTop: 12 },
   acceptBtn: { flex: 1, backgroundColor: '#7b2d4e', padding: 10, borderRadius: 10, alignItems: 'center' },
   acceptText: { color: '#fff', fontSize: 14, fontWeight: '600' },

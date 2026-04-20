@@ -1,20 +1,22 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, ScrollView, StyleSheet, Pressable, TextInput, Alert, Image, Modal } from 'react-native';
+import { View, Text, ScrollView, StyleSheet, Pressable, Alert } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/lib/auth';
 import { useGatheringDetail } from '@/lib/hooks/useGatheringDetail';
-import { getAvatarRingColor, getTopBadge } from '@/lib/tierUtils';
+import { getTopBadge } from '@/lib/tierUtils';
 import { getGatheringChatRoom } from '@/lib/hooks/useChat';
 import { ApplicantRow } from '@/components/ApplicantRow';
-import Svg, { Path, Circle, Line, Rect, Polyline } from 'react-native-svg';
-
-function formatDate(dateStr: string | null) {
-  if (!dateStr) return '';
-  const d = new Date(dateStr);
-  const days = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
-  return `${d.getFullYear()}.${d.getMonth() + 1}.${d.getDate()} (${days[d.getDay()]}) ${d.getHours().toString().padStart(2, '0')}:${d.getMinutes().toString().padStart(2, '0')}`;
-}
+import { ApplyGatheringSheet } from '@/components/ApplyGatheringSheet';
+import { GatheringWineLineup } from '@/components/GatheringWineLineup';
+import { ChangeWineRequestSheet } from '@/components/ChangeWineRequestSheet';
+import { PendingApprovalsSection } from '@/components/PendingApprovalsSection';
+import { useGatheringApprovals } from '@/lib/hooks/useGatheringApprovals';
+import type { LineupEntry } from '@/lib/hooks/useGatheringDetail';
+import { UserAvatar } from '@/components/UserAvatar';
+import { ScreenHeader, BackButton } from '@/components/ScreenHeader';
+import { formatDateFull } from '@/lib/utils/dateUtils';
+import type { GatheringType } from '@/lib/types/gathering';
 
 export default function GatheringDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -22,14 +24,14 @@ export default function GatheringDetailScreen() {
   const { user } = useAuth();
   const [gathering, setGathering] = useState<any>(null);
   const [host, setHost] = useState<any>(null);
-  const { members, myStatus, loadMembers, applyToJoin, respondToApplicant, leaveGathering } = useGatheringDetail(parseInt(id!));
+  const { members, lineup, myStatus, loadMembers, applyToJoin, respondToApplicant, leaveGathering } = useGatheringDetail(parseInt(id!));
+  const { approvals, load: loadApprovals, requestWineChange, castVote, cancelRequest } = useGatheringApprovals(parseInt(id!));
   const [showApply, setShowApply] = useState(false);
-  const [applyMessage, setApplyMessage] = useState('');
-  const [applying, setApplying] = useState(false);
   const [chatLoading, setChatLoading] = useState(false);
+  const [changeTarget, setChangeTarget] = useState<LineupEntry | null>(null);
 
   useEffect(() => {
-    if (id) { loadGathering(); loadMembers(); }
+    if (id) { loadGathering(); loadMembers(); loadApprovals(); }
   }, [id]);
 
   async function loadGathering() {
@@ -41,15 +43,70 @@ export default function GatheringDetailScreen() {
     }
   }
 
-  async function handleApply() {
-    setApplying(true);
-    const success = await applyToJoin(applyMessage);
-    setApplying(false);
+  async function handleApply(message: string, collectionId: number | null) {
+    const gatheringType = (gathering?.gathering_type ?? 'cost_share') as GatheringType;
+    const success = await applyToJoin(message, collectionId, gatheringType);
     if (success) {
       setShowApply(false);
-      setApplyMessage('');
       Alert.alert('Applied!', 'Your request has been sent to the host');
     }
+    return success;
+  }
+
+  function handleDeleteGathering() {
+    const approvedCount = members.filter(m => m.status === 'approved').length;
+    const warning = approvedCount > 0
+      ? `${approvedCount}명의 참가자가 있습니다.\n모임을 삭제하면 채팅, 변경 요청, 참가자 정보까지 모두 사라집니다. 되돌릴 수 없습니다.`
+      : '모임을 삭제하면 되돌릴 수 없습니다.';
+    Alert.alert('모임 삭제', warning, [
+      { text: 'Cancel', style: 'cancel' },
+      {
+        text: '삭제',
+        style: 'destructive',
+        onPress: async () => {
+          // SECURITY DEFINER RPC (migration 00030/00031) cascades through
+          // every child table without tripping RLS. Error tags from the
+          // RPC are re-mapped to actionable alerts.
+          const { data, error } = await supabase.rpc('delete_gathering_as_host', {
+            p_gathering_id: gathering.id,
+          });
+          if (error) {
+            const msg = error.message;
+            const lower = msg.toLowerCase();
+            if (lower.includes('no_auth')) {
+              Alert.alert('세션 만료', '다시 로그인 후 시도해주세요.');
+            } else if (lower.includes('not_found')) {
+              // The row is gone server-side already — just refresh the list.
+              Alert.alert('이미 삭제됨', '이 모임은 이미 삭제되어 있습니다.');
+              router.replace('/(tabs)/gatherings');
+            } else if (lower.includes('forbidden_mismatch')) {
+              Alert.alert(
+                '권한 불일치',
+                `로그인한 계정과 모임 호스트 ID가 다릅니다.\n\n${msg}\n\n앱을 로그아웃 후 다시 로그인해보세요.`,
+              );
+            } else if (
+              // PostgREST returns "Could not find the function ... in the
+              // schema cache" when the RPC is missing; older wording is
+              // "function ... does not exist".
+              (lower.includes('could not find the function')) ||
+              (lower.includes('function') && lower.includes('does not exist')) ||
+              (lower.includes('schema cache'))
+            ) {
+              Alert.alert(
+                '배포 필요',
+                'delete_gathering_as_host RPC가 DB에 없습니다.\n\n터미널에서 아래 명령을 실행해주세요:\n\nsupabase db push\n\n그 후 이 앱을 새로 고침하고 다시 시도해주세요.',
+              );
+            } else {
+              Alert.alert('Error', msg);
+            }
+            return;
+          }
+          // data contains { deleted: 1, id: N } on success.
+          console.log('[delete_gathering_as_host]', data);
+          router.replace('/(tabs)/gatherings');
+        },
+      },
+    ]);
   }
 
   if (!gathering) return <View style={styles.container} />;
@@ -61,15 +118,7 @@ export default function GatheringDetailScreen() {
 
   return (
     <View style={styles.container}>
-      <View style={styles.header}>
-        <Pressable onPress={() => router.canGoBack() ? router.back() : router.replace('/(tabs)/gatherings')} style={styles.backBtn}>
-          <Svg width={24} height={24} fill="none" stroke="#222" strokeWidth={1.8} viewBox="0 0 24 24">
-            <Polyline points="15 18 9 12 15 6" />
-          </Svg>
-        </Pressable>
-        <Text style={styles.headerTitle}>Gathering</Text>
-        <View style={{ width: 24 }} />
-      </View>
+      <ScreenHeader title="Gathering" left={<BackButton fallbackPath="/(tabs)/gatherings" />} />
 
       <ScrollView>
         {/* Info */}
@@ -78,18 +127,12 @@ export default function GatheringDetailScreen() {
           {gathering.description && <Text style={styles.desc}>{gathering.description}</Text>}
 
           <View style={styles.hostRow}>
-            {(() => {
-              const rc = getAvatarRingColor(host?.collection_count || 0);
-              return host?.avatar_url ? (
-                <View style={rc ? [styles.avatarGlow, { shadowColor: rc }] : undefined}>
-                  <Image source={{ uri: host.avatar_url }} style={[styles.hostAvatarImg, rc && { borderWidth: 2, borderColor: rc }]} />
-                </View>
-              ) : (
-                <View style={[styles.hostAvatar, rc && { borderWidth: 2, borderColor: rc }]}>
-                  <Text style={styles.hostAvatarText}>{host?.display_name?.[0]?.toUpperCase() || '?'}</Text>
-                </View>
-              );
-            })()}
+            <UserAvatar
+              uri={host?.avatar_url}
+              fallbackChar={host?.display_name?.[0]}
+              collectionCount={host?.collection_count || 0}
+              size="lg"
+            />
             <View>
               <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
                 <Text style={styles.hostName}>{host?.username}</Text>
@@ -109,7 +152,7 @@ export default function GatheringDetailScreen() {
           <View style={styles.detailsBox}>
             <View style={styles.detailRow}>
               <Text style={styles.detailLabel}>Date</Text>
-              <Text style={styles.detailValue}>{formatDate(gathering.gathering_date)}</Text>
+              <Text style={styles.detailValue}>{formatDateFull(gathering.gathering_date)}</Text>
             </View>
             <View style={styles.detailRow}>
               <Text style={styles.detailLabel}>Location</Text>
@@ -145,6 +188,32 @@ export default function GatheringDetailScreen() {
             </Pressable>
           )}
         </View>
+
+        {/* Wine Lineup — host slots + approved attendees */}
+        <GatheringWineLineup
+          entries={lineup}
+          currentUserId={user?.id}
+          pendingChangeIds={
+            new Set(approvals
+              .filter(a => a.request_type === 'wine_change' && a.target_contribution_id != null)
+              .map(a => a.target_contribution_id as number))
+          }
+          onRequestChange={(entry) => setChangeTarget(entry)}
+        />
+
+        <PendingApprovalsSection
+          approvals={approvals}
+          currentUserId={user?.id}
+          canVote={isHost || myStatus === 'approved'}
+          onVote={async (aid, v) => {
+            const ok = await castVote(aid, v);
+            // A unanimous approve mutates the contribution, so reload the
+            // lineup too. A reject just resolves the approval.
+            if (ok) await loadMembers();
+            return ok;
+          }}
+          onCancel={cancelRequest}
+        />
 
         {/* Approved Members */}
         {approvedMembers.length > 0 && (
@@ -202,31 +271,30 @@ export default function GatheringDetailScreen() {
         </View>
       )}
 
-      {/* Apply Modal */}
-      <Modal visible={showApply} animationType="slide" transparent>
-        <Pressable style={styles.modalBackdrop} onPress={() => setShowApply(false)} />
-        <View style={styles.applySheet}>
-          <View style={styles.handle} />
-          <Text style={styles.applyTitle}>Apply to Join</Text>
-          <Text style={styles.applyDesc}>Send a message to the host</Text>
-          <TextInput
-            style={styles.applyInput}
-            value={applyMessage}
-            onChangeText={setApplyMessage}
-            placeholder="Introduce yourself..."
-            placeholderTextColor="#ccc"
-            multiline
-            maxLength={200}
-          />
-          <Pressable
-            style={[styles.applySubmitBtn, applying && { opacity: 0.5 }]}
-            onPress={handleApply}
-            disabled={applying}
-          >
-            <Text style={styles.applySubmitText}>{applying ? 'Sending...' : 'Send Request'}</Text>
+      {isHost && (
+        <View style={styles.bottomBar}>
+          <Pressable style={styles.deleteBtn} onPress={handleDeleteGathering}>
+            <Text style={styles.deleteBtnText}>모임 삭제</Text>
           </Pressable>
         </View>
-      </Modal>
+      )}
+
+      <ApplyGatheringSheet
+        visible={showApply}
+        gatheringType={(gathering.gathering_type ?? 'cost_share') as GatheringType}
+        onClose={() => setShowApply(false)}
+        onSubmit={handleApply}
+      />
+
+      <ChangeWineRequestSheet
+        visible={changeTarget != null}
+        currentCollectionId={changeTarget?.collection_id ?? null}
+        onClose={() => setChangeTarget(null)}
+        onSubmit={async (newCollectionId, note) => {
+          if (!changeTarget) return false;
+          return requestWineChange(changeTarget.id, newCollectionId, note);
+        }}
+      />
     </View>
   );
 }
@@ -234,34 +302,11 @@ export default function GatheringDetailScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#fff' },
-  header: {
-    paddingTop: 60, paddingHorizontal: 20, paddingBottom: 14,
-    borderBottomWidth: 1, borderBottomColor: '#efefef',
-    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
-  },
-  backBtn: { padding: 4 },
-  headerTitle: { fontSize: 17, fontWeight: '700', color: '#222' },
-
   info: { padding: 20 },
   title: { fontSize: 22, fontWeight: '700', color: '#222', marginBottom: 8 },
   desc: { fontSize: 14, color: '#666', lineHeight: 20, marginBottom: 16 },
 
   hostRow: { flexDirection: 'row', alignItems: 'center', gap: 12, marginBottom: 16 },
-  hostAvatar: {
-    width: 44, height: 44, borderRadius: 22, backgroundColor: '#f0f0f0',
-    alignItems: 'center', justifyContent: 'center',
-  },
-  hostAvatarImg: { width: 44, height: 44, borderRadius: 22 },
-  hostAvatarText: { fontSize: 16, fontWeight: '600', color: '#999' },
-  avatarGlow: {
-    borderRadius: 24, padding: 1,
-    shadowColor: '#c9a84c',
-    shadowOffset: { width: 0, height: 0 },
-    shadowOpacity: 0.6,
-    shadowRadius: 6,
-    elevation: 8,
-  },
-  avatarGoldBorder: { borderWidth: 2, borderColor: '#c9a84c' },
   hostName: { fontSize: 15, fontWeight: '600', color: '#222' },
   hostLabel: { fontSize: 11, color: '#7b2d4e', fontWeight: '500' },
 
@@ -291,25 +336,9 @@ const styles = StyleSheet.create({
   leaveBtn: { alignItems: 'center', marginTop: 10 },
   leaveText: { fontSize: 13, fontWeight: '500', color: '#ed4956' },
 
-  modalBackdrop: { flex: 1, backgroundColor: 'rgba(0,0,0,0.3)' },
-  applySheet: {
-    backgroundColor: '#fff', borderTopLeftRadius: 20, borderTopRightRadius: 20,
-    padding: 20, paddingBottom: 40,
+  deleteBtn: {
+    borderWidth: 1, borderColor: '#ed4956', padding: 14, borderRadius: 12,
+    alignItems: 'center',
   },
-  handle: {
-    width: 36, height: 4, borderRadius: 2,
-    backgroundColor: '#ddd', alignSelf: 'center', marginBottom: 16,
-  },
-  applyTitle: { fontSize: 18, fontWeight: '700', color: '#222', marginBottom: 4 },
-  applyDesc: { fontSize: 13, color: '#999', marginBottom: 16 },
-  applyInput: {
-    borderWidth: 1, borderColor: '#eee', borderRadius: 10,
-    padding: 12, fontSize: 15, backgroundColor: '#fafafa',
-    height: 100, textAlignVertical: 'top',
-  },
-  applySubmitBtn: {
-    backgroundColor: '#7b2d4e', padding: 16, borderRadius: 12,
-    alignItems: 'center', marginTop: 16,
-  },
-  applySubmitText: { color: '#fff', fontSize: 16, fontWeight: '600' },
+  deleteBtnText: { color: '#ed4956', fontSize: 14, fontWeight: '600' },
 });

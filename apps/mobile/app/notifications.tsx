@@ -2,7 +2,7 @@ import React, { useEffect } from 'react';
 import { View, Text, ScrollView, StyleSheet, Pressable } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useNotifications } from '@/lib/hooks/useNotifications';
-import Svg, { Path, Polyline } from 'react-native-svg';
+import { ScreenHeader, BackButton } from '@/components/ScreenHeader';
 import { timeAgo } from '@/lib/utils/dateUtils';
 
 const typeMessages: Record<string, string> = {
@@ -14,6 +14,10 @@ const typeMessages: Record<string, string> = {
   gathering_invite: 'wants to join your gathering',
   gathering_approved: 'approved your request',
   gathering_rejected: 'declined your request',
+  gathering_vote_request: 'requested a wine change — your vote is needed',
+  gathering_vote_cast: 'voted on your wine-change request',
+  gathering_vote_approved: 'Your wine-change request was approved',
+  gathering_vote_rejected: 'Your wine-change request was rejected',
 };
 
 export default function NotificationsScreen() {
@@ -27,15 +31,7 @@ export default function NotificationsScreen() {
 
   return (
     <View style={styles.container}>
-      <View style={styles.header}>
-        <Pressable onPress={() => router.back()} style={styles.backBtn}>
-          <Svg width={24} height={24} fill="none" stroke="#222" strokeWidth={1.8} viewBox="0 0 24 24">
-            <Polyline points="15 18 9 12 15 6" />
-          </Svg>
-        </Pressable>
-        <Text style={styles.title}>Notifications</Text>
-        <View style={{ width: 24 }} />
-      </View>
+      <ScreenHeader title="Notifications" left={<BackButton />} />
 
       <ScrollView>
         {notifications.length === 0 && !loading && (
@@ -56,7 +52,7 @@ export default function NotificationsScreen() {
                   router.push(`/user/${n.actor_id}`);
                 } else if (['like', 'comment', 'mention'].includes(n.type) && n.reference_id && n.reference_type === 'post') {
                   router.push(`/post/${n.reference_id}`);
-                } else if (['gathering_invite', 'gathering_approved', 'gathering_rejected'].includes(n.type) && n.reference_id) {
+                } else if (['gathering_invite', 'gathering_approved', 'gathering_rejected', 'gathering_vote_request', 'gathering_vote_cast', 'gathering_vote_approved', 'gathering_vote_rejected'].includes(n.type) && n.reference_id) {
                   router.push(`/gathering/${n.reference_id}`);
                 }
               }}
@@ -81,13 +77,6 @@ export default function NotificationsScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#fff' },
-  header: {
-    paddingTop: 60, paddingHorizontal: 20, paddingBottom: 14,
-    borderBottomWidth: 1, borderBottomColor: '#efefef',
-    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
-  },
-  backBtn: { padding: 4 },
-  title: { fontSize: 17, fontWeight: '700', color: '#222' },
   empty: { paddingVertical: 80, alignItems: 'center' },
   emptyText: { fontSize: 14, color: '#bbb' },
   item: {

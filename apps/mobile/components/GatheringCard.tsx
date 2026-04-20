@@ -6,6 +6,7 @@ import type { Gathering } from '@/lib/hooks/useGatherings';
 import { getAvatarRingColor, getTopBadge } from '@/lib/tierUtils';
 import { formatDate } from '@/lib/utils/dateUtils';
 import { CATEGORY_TAG_STYLES, getCategoryLabel } from '@/lib/constants/drinkCategories';
+import { WineThumbStrip } from './WineThumbStrip';
 
 interface Props {
   gathering: Gathering;
@@ -49,31 +50,36 @@ export function GatheringCard({ gathering, onPress }: Props) {
           <View style={styles.hostBadge}><Text style={styles.hostBadgeText}>Host</Text></View>
         </View>
 
-        <View style={styles.details}>
-          <View style={styles.detailItem}>
-            <Svg width={14} height={14} fill="none" stroke="#999" strokeWidth={1.8} viewBox="0 0 24 24">
-              <Rect x={3} y={4} width={18} height={18} rx={2} />
-              <Line x1={16} y1={2} x2={16} y2={6} /><Line x1={8} y1={2} x2={8} y2={6} />
-              <Line x1={3} y1={10} x2={21} y2={10} />
-            </Svg>
-            <Text style={styles.detailText}>{formatDate(g.gathering_date)}</Text>
+        <View style={styles.detailsRow}>
+          <View style={styles.details}>
+            <View style={styles.detailItem}>
+              <Svg width={14} height={14} fill="none" stroke="#999" strokeWidth={1.8} viewBox="0 0 24 24">
+                <Rect x={3} y={4} width={18} height={18} rx={2} />
+                <Line x1={16} y1={2} x2={16} y2={6} /><Line x1={8} y1={2} x2={8} y2={6} />
+                <Line x1={3} y1={10} x2={21} y2={10} />
+              </Svg>
+              <Text style={styles.detailText}>{formatDate(g.gathering_date)}</Text>
+            </View>
+            <View style={styles.detailItem}>
+              <Svg width={14} height={14} fill="none" stroke="#999" strokeWidth={1.8} viewBox="0 0 24 24">
+                <Path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" />
+                <Circle cx={12} cy={10} r={3} />
+              </Svg>
+              <Text style={styles.detailText}>{g.location || 'TBD'}</Text>
+            </View>
+            <View style={styles.detailItem}>
+              <Svg width={14} height={14} fill="none" stroke="#999" strokeWidth={1.8} viewBox="0 0 24 24">
+                <Path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
+                <Circle cx={9} cy={7} r={4} />
+                <Path d="M23 21v-2a4 4 0 0 0-3-3.87" />
+                <Path d="M16 3.13a4 4 0 0 1 0 7.75" />
+              </Svg>
+              <Text style={styles.detailText}>{g.current_members} / {g.max_members}{isClosed ? ' (Closed)' : ''}</Text>
+            </View>
           </View>
-          <View style={styles.detailItem}>
-            <Svg width={14} height={14} fill="none" stroke="#999" strokeWidth={1.8} viewBox="0 0 24 24">
-              <Path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" />
-              <Circle cx={12} cy={10} r={3} />
-            </Svg>
-            <Text style={styles.detailText}>{g.location || 'TBD'}</Text>
-          </View>
-          <View style={styles.detailItem}>
-            <Svg width={14} height={14} fill="none" stroke="#999" strokeWidth={1.8} viewBox="0 0 24 24">
-              <Path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
-              <Circle cx={9} cy={7} r={4} />
-              <Path d="M23 21v-2a4 4 0 0 0-3-3.87" />
-              <Path d="M16 3.13a4 4 0 0 1 0 7.75" />
-            </Svg>
-            <Text style={styles.detailText}>{g.current_members} / {g.max_members}{isClosed ? ' (Closed)' : ''}</Text>
-          </View>
+          {g.wine_total > 0 && (
+            <WineThumbStrip wines={g.wine_previews} total={g.wine_total} size={40} compactOverflow />
+          )}
         </View>
 
         <Pressable
@@ -129,7 +135,8 @@ const styles = StyleSheet.create({
   hostBadge: { backgroundColor: '#f7f0f3', paddingHorizontal: 8, paddingVertical: 2, borderRadius: 8 },
   hostBadgeText: { fontSize: 10, fontWeight: '600', color: '#7b2d4e' },
 
-  details: { gap: 6, marginBottom: 14 },
+  detailsRow: { flexDirection: 'row', alignItems: 'center', gap: 12, marginBottom: 14 },
+  details: { flex: 1, gap: 6 },
   detailItem: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   detailText: { fontSize: 13, color: '#666' },
 

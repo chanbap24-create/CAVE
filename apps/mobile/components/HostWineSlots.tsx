@@ -36,15 +36,21 @@ interface Props {
  */
 export function HostWineSlots({ slots, onChange, requireAtLeastOne, allowBlind = true }: Props) {
   const [pickerOpen, setPickerOpen] = useState(false);
+  // null = multi-pick (adding), number = editing that specific slot (Change).
   const [editingIndex, setEditingIndex] = useState<number | null>(null);
 
-  function pickForSlot(index: number | null) {
+  function openAddPicker() {
+    setEditingIndex(null);
+    setPickerOpen(true);
+  }
+
+  function openChangePicker(index: number) {
     setEditingIndex(index);
     setPickerOpen(true);
   }
 
-  function handlePick(item: MyCollectionItem) {
-    const slot: HostWineSlot = {
+  function toSlot(item: MyCollectionItem): HostWineSlot {
+    return {
       collectionId: item.id,
       isBlind: false,
       preview: {
@@ -54,12 +60,23 @@ export function HostWineSlots({ slots, onChange, requireAtLeastOne, allowBlind =
         vintage_year: item.wine?.vintage_year ?? null,
       },
     };
+  }
+
+  // Single-pick path: only used when editing an existing slot ("Change").
+  function handlePickOne(item: MyCollectionItem) {
     if (editingIndex !== null) {
       const next = [...slots];
-      next[editingIndex] = slot;
+      next[editingIndex] = toSlot(item);
       onChange(next);
-    } else {
-      onChange([...slots, slot]);
+    }
+    setPickerOpen(false);
+    setEditingIndex(null);
+  }
+
+  // Multi-pick path: used when adding new slots via "+ Add wine".
+  function handlePickMany(items: MyCollectionItem[]) {
+    if (items.length > 0) {
+      onChange([...slots, ...items.map(toSlot)]);
     }
     setPickerOpen(false);
     setEditingIndex(null);
@@ -108,7 +125,7 @@ export function HostWineSlots({ slots, onChange, requireAtLeastOne, allowBlind =
             </Text>
           </View>
           {!slot.isBlind && (
-            <Pressable onPress={() => pickForSlot(i)}>
+            <Pressable onPress={() => openChangePicker(i)}>
               <Text style={styles.action}>Change</Text>
             </Pressable>
           )}
@@ -119,7 +136,7 @@ export function HostWineSlots({ slots, onChange, requireAtLeastOne, allowBlind =
       ))}
 
       <View style={styles.addRow}>
-        <Pressable style={styles.addBtn} onPress={() => pickForSlot(null)}>
+        <Pressable style={styles.addBtn} onPress={openAddPicker}>
           <Text style={styles.addBtnText}>+ Add wine</Text>
         </Pressable>
         {allowBlind && (
@@ -133,12 +150,24 @@ export function HostWineSlots({ slots, onChange, requireAtLeastOne, allowBlind =
         <Text style={styles.required}>* 최소 한 병은 선택해야 합니다</Text>
       )}
 
-      <MyCollectionPickerSheet
-        visible={pickerOpen}
-        onClose={() => { setPickerOpen(false); setEditingIndex(null); }}
-        onPick={handlePick}
-        excludeIds={excludeIds}
-      />
+      {/* Editing one specific slot = single-pick; adding new ones = multi-pick. */}
+      {editingIndex !== null ? (
+        <MyCollectionPickerSheet
+          visible={pickerOpen}
+          onClose={() => { setPickerOpen(false); setEditingIndex(null); }}
+          onPick={handlePickOne}
+          excludeIds={excludeIds}
+          title="변경할 와인"
+        />
+      ) : (
+        <MyCollectionPickerSheet
+          visible={pickerOpen}
+          onClose={() => { setPickerOpen(false); setEditingIndex(null); }}
+          onPickMultiple={handlePickMany}
+          excludeIds={excludeIds}
+          title="가져갈 와인 선택"
+        />
+      )}
     </View>
   );
 }

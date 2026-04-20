@@ -146,7 +146,7 @@ export default function CellarScreen() {
                   <Text style={styles.listName} numberOfLines={1}>{w.name}</Text>
                   <Text style={styles.listMeta}>
                     {[w.region, w.country].filter(Boolean).join(', ')}
-                    {w.vintage_year ? ` · ${w.vintage_year}` : ''}
+                    {formatVintageSuffix(w)}
                   </Text>
                 </View>
                 <View style={styles.listRight}>
@@ -181,6 +181,17 @@ export default function CellarScreen() {
       />
     </View>
   );
+}
+
+// Shows "· 2015" for a vintage year, or "· NV" / "· MV" when the wine is
+// tagged as non-vintage / multi-vintage in wines.metadata. Empty string
+// otherwise so the meta line stays clean for wines with no vintage info.
+function formatVintageSuffix(w: any): string {
+  if (w?.vintage_year) return ` · ${w.vintage_year}`;
+  const t = w?.metadata?.vintage_type;
+  if (t === 'nv') return ' · NV';
+  if (t === 'mv') return ' · MV';
+  return '';
 }
 
 const styles = StyleSheet.create({

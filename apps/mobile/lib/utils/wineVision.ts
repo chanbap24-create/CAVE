@@ -32,6 +32,7 @@ const SAMPLES: ExtractedWineInfo[] = [
     region: 'Margaux, Bordeaux',
     country: 'France',
     vintage_year: 2015,
+    vintage_type: 'year',
     category: 'wine',
     confidence: 0.92,
   },
@@ -42,6 +43,7 @@ const SAMPLES: ExtractedWineInfo[] = [
     region: 'Napa Valley',
     country: 'USA',
     vintage_year: 2018,
+    vintage_type: 'year',
     category: 'wine',
     confidence: 0.88,
   },
@@ -52,6 +54,7 @@ const SAMPLES: ExtractedWineInfo[] = [
     region: null,
     country: 'Japan',
     vintage_year: null,
+    vintage_type: 'nv',
     category: 'whiskey',
     confidence: 0.78,
   },
@@ -62,6 +65,7 @@ const SAMPLES: ExtractedWineInfo[] = [
     region: null,
     country: null,
     vintage_year: null,
+    vintage_type: null,
     category: 'wine',
     confidence: 0.3,
   },
@@ -165,6 +169,15 @@ function normalize(raw: any): ExtractedWineInfo {
   const vintage = Number.isInteger(raw?.vintage_year) && raw.vintage_year >= 1900 && raw.vintage_year <= 2030
     ? raw.vintage_year
     : null;
+  const validVintageTypes = new Set(['year', 'nv', 'mv']);
+  let vintage_type: 'year' | 'nv' | 'mv' | null = validVintageTypes.has(raw?.vintage_type)
+    ? raw.vintage_type
+    : null;
+  // Keep vintage_year and vintage_type internally consistent: if a year is
+  // present treat it as 'year'; if type is nv/mv clear any stray year the
+  // model might have hallucinated.
+  if (vintage && vintage_type === null) vintage_type = 'year';
+  const yearOut = vintage_type === 'nv' || vintage_type === 'mv' ? null : vintage;
   const str = (v: unknown): string | null => (typeof v === 'string' && v.trim() ? v.trim() : null);
 
   return {
@@ -173,7 +186,8 @@ function normalize(raw: any): ExtractedWineInfo {
     producer: str(raw?.producer),
     region: str(raw?.region),
     country: str(raw?.country),
-    vintage_year: vintage,
+    vintage_year: yearOut,
+    vintage_type,
     category,
     confidence,
   };

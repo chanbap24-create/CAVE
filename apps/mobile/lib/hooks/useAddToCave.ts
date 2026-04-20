@@ -43,6 +43,12 @@ export function useAddToCave() {
     if (!user || adding) return null;
     setAdding(true);
     try {
+      // vintage_year schema is smallint, so NV/MV can't live there.
+      // We carry the intent in wines.metadata.vintage_type instead and clear
+      // the year so the two stay in sync.
+      const isNvOrMv = extracted.vintage_type === 'nv' || extracted.vintage_type === 'mv';
+      const metadata = isNvOrMv ? { vintage_type: extracted.vintage_type } : {};
+
       const { data: wine, error: wineError } = await supabase
         .from('wines')
         .insert({
@@ -51,8 +57,9 @@ export function useAddToCave() {
           producer: extracted.producer,
           region: extracted.region,
           country: extracted.country,
-          vintage_year: extracted.vintage_year,
+          vintage_year: isNvOrMv ? null : extracted.vintage_year,
           category: extracted.category,
+          metadata,
           created_by: user.id,
           verified: false,
         })

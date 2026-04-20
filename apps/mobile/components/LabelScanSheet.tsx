@@ -55,6 +55,7 @@ export function LabelScanSheet({ visible, onClose, onAdded }: Props) {
       return;
     }
     if (!form.name.trim()) return Alert.alert('Name required', 'Please enter the name');
+    const isYear = form.vintageType === 'year';
     const result = await cave.addNew({
       extracted: {
         name: form.name.trim(),
@@ -62,7 +63,8 @@ export function LabelScanSheet({ visible, onClose, onAdded }: Props) {
         producer: form.producer.trim() || null,
         region: form.region.trim() || null,
         country: form.country.trim() || null,
-        vintage_year: form.vintage ? Number(form.vintage) : null,
+        vintage_year: isYear && form.vintage ? Number(form.vintage) : null,
+        vintage_type: form.vintageType,
         category: form.category,
         confidence: 1,
       },

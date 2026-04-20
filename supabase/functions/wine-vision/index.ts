@@ -69,6 +69,17 @@ serve(async (req) => {
     return json({ error: "Image too large" }, 413);
   }
 
+  // Attempt counter — record the call regardless of downstream outcome so a
+  // caller can't dodge the rate limiter by crafting payloads that make the
+  // Anthropic request fail. Success path will update confidence/tokens.
+  const callRecord = {
+    user_id: auth.user.id,
+    model: WINE_VISION_MODEL,
+    confidence: null as number | null,
+    input_tokens: null as number | null,
+    output_tokens: null as number | null,
+  };
+
   try {
     const response = await anthropicClient().messages.create({
       model: WINE_VISION_MODEL,
@@ -94,30 +105,31 @@ serve(async (req) => {
       ],
     });
 
+    callRecord.input_tokens = response.usage?.input_tokens ?? null;
+    callRecord.output_tokens = response.usage?.output_tokens ?? null;
+
     const textBlock = response.content.find((b) => b.type === "text") as { type: "text"; text: string } | undefined;
     if (!textBlock) {
       console.error("[wine-vision] no text block in response");
+      await serviceClient().from("vision_calls").insert(callRecord);
       return json({ error: "Vision extraction failed" }, 502);
     }
 
     const extracted = parseExtractedJson(textBlock.text);
     if (!extracted) {
       console.error("[wine-vision] JSON parse failed. Raw:", textBlock.text.slice(0, 500));
+      await serviceClient().from("vision_calls").insert(callRecord);
       return json({ error: "Vision extraction malformed" }, 502);
     }
 
-    // Audit log — also what the rate limiter counts.
-    await serviceClient().from("vision_calls").insert({
-      user_id: auth.user.id,
-      model: WINE_VISION_MODEL,
-      confidence: typeof extracted.confidence === "number" ? extracted.confidence : null,
-      input_tokens: response.usage?.input_tokens ?? null,
-      output_tokens: response.usage?.output_tokens ?? null,
-    });
-
+    callRecord.confidence = typeof extracted.confidence === "number" ? extracted.confidence : null;
+    await serviceClient().from("vision_calls").insert(callRecord);
     return json(extracted);
   } catch (error) {
     console.error("[wine-vision] error:", (error as Error).message);
+    // Still record the attempt so the rate-limiter can't be bypassed by
+    // crafting an Anthropic request that throws before the success path.
+    await serviceClient().from("vision_calls").insert(callRecord).throwOnError().catch(() => {});
     return json({ error: "Vision extraction failed" }, 500);
   }
 });

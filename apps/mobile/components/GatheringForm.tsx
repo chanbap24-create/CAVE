@@ -66,19 +66,19 @@ export function GatheringForm({ value, onChange }: Props) {
 
       <Text style={styles.label}>Type *</Text>
       <GatheringTypeSelector
-        value={value.gatheringType}
+        value={value.gatheringType ?? 'cost_share'}
         onChange={v => set('gatheringType', v)}
       />
 
-      {(value.gatheringType === 'cost_share' || value.gatheringType === 'donation') && (
+      {((value.gatheringType ?? 'cost_share') === 'cost_share' || value.gatheringType === 'donation') && (
         <>
           <Text style={styles.label}>
-            {value.gatheringType === 'cost_share' ? '준비할 와인 *' : '준비할 와인 (optional)'}
+            {(value.gatheringType ?? 'cost_share') === 'cost_share' ? '준비할 와인 *' : '준비할 와인 (optional)'}
           </Text>
           <HostWineSlots
-            slots={value.hostWineSlots}
+            slots={value.hostWineSlots ?? []}
             onChange={s => set('hostWineSlots', s)}
-            requireAtLeastOne={value.gatheringType === 'cost_share'}
+            requireAtLeastOne={(value.gatheringType ?? 'cost_share') === 'cost_share'}
           />
         </>
       )}

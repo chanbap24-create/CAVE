@@ -21,6 +21,9 @@ export function CreateGatheringSheet({ visible, onClose, onCreated }: Props) {
 
   async function handleCreate() {
     setCreating(true);
+    // Defensive against Fast Refresh keeping stale state that pre-dates the
+    // gatheringType / hostWineSlots additions.
+    const slots = form.hostWineSlots ?? [];
     await createGathering({
       title: form.title,
       description: form.description,
@@ -29,8 +32,8 @@ export function CreateGatheringSheet({ visible, onClose, onCreated }: Props) {
       maxMembers: parseInt(form.maxMembers) || 8,
       pricePerPerson: form.price ? parseInt(form.price) : null,
       category: form.category,
-      gatheringType: form.gatheringType,
-      hostSlots: form.hostWineSlots.map(s => ({
+      gatheringType: form.gatheringType ?? 'cost_share',
+      hostSlots: slots.map(s => ({
         collection_id: s.collectionId,
         is_blind: s.isBlind,
       })),

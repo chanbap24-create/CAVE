@@ -4,11 +4,10 @@ import { CATEGORY_LABELS } from '@/lib/constants/drinkCategories';
 
 const labelMap = CATEGORY_LABELS;
 const typeColors: Record<string, string> = {
-  wine: '#7b2d4e',
-  whiskey: '#8a6d3b',
-  sake: '#3b6d8a',
-  cognac: '#8a5a3b',
-  other: '#999',
+  wine:        '#7b2d4e',
+  spirit:      '#8a6d3b',
+  traditional: '#3b6d8a',
+  other:       '#999',
 };
 
 interface Props {

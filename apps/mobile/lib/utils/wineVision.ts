@@ -55,7 +55,7 @@ const SAMPLES: ExtractedWineInfo[] = [
     country: 'Japan',
     vintage_year: null,
     vintage_type: 'nv',
-    category: 'whiskey',
+    category: 'spirit',
     confidence: 0.78,
   },
   {
@@ -161,7 +161,7 @@ async function safeText(res: Response): Promise<string> {
 // Clamps/validates the raw Claude response into our ExtractedWineInfo shape.
 // Claude is instructed to return clean JSON but we don't trust the wire.
 function normalize(raw: any): ExtractedWineInfo {
-  const validCategories = new Set(['wine', 'whiskey', 'sake', 'cognac', 'other']);
+  const validCategories = new Set(['wine', 'spirit', 'traditional', 'other']);
   const category = validCategories.has(raw?.category) ? raw.category : 'wine';
   const confidence = typeof raw?.confidence === 'number'
     ? Math.max(0, Math.min(1, raw.confidence))

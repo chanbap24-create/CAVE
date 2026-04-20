@@ -3,6 +3,7 @@ import { View, Text, ScrollView, RefreshControl, StyleSheet } from 'react-native
 import {
   CATEGORY_BG_COLORS,
   CATEGORY_TAG_STYLES,
+  CATEGORY_LABELS,
 } from '@/lib/constants/drinkCategories';
 
 const bgColors = CATEGORY_BG_COLORS;
@@ -44,9 +45,7 @@ export function WinesSearchResults({ drinks, limit, refreshing, onRefresh }: Pro
 
 function WineRow({ d }: { d: any }) {
   const tag = tagStyles[d.category] || tagStyles.other;
-  const label = d.category === 'whiskey'
-    ? 'Whisky'
-    : d.category.charAt(0).toUpperCase() + d.category.slice(1);
+  const label = (CATEGORY_LABELS[d.category] ?? d.category.charAt(0).toUpperCase() + d.category.slice(1)) as string;
   return (
     <View style={styles.item}>
       <View style={[styles.thumb, { backgroundColor: bgColors[d.category] || '#f0f0f0' }]} />

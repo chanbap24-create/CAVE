@@ -17,7 +17,7 @@ import { ScreenHeader } from '@/components/ScreenHeader';
 import Svg, { Line } from 'react-native-svg';
 import { CATEGORY_DB_MAP } from '@/lib/constants/drinkCategories';
 
-const caveTabs = ['All', 'Wine', 'Whisky', 'Sake', 'Other'];
+const caveTabs = ['All', 'Wine', 'Spirit', 'Traditional', 'Other'];
 const catDbMap = CATEGORY_DB_MAP;
 
 export default function CellarScreen() {

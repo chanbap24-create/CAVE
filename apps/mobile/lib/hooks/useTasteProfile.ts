@@ -9,7 +9,7 @@ export interface TasteProfile {
 }
 
 const labelMap: Record<string, string> = {
-  wine: 'Wine', whiskey: 'Whisky', sake: 'Sake', cognac: 'Cognac', other: 'Other',
+  wine: 'Wine', spirit: 'Spirit', traditional: 'Traditional', other: 'Other',
 };
 
 export function useTasteProfile(userId?: string) {

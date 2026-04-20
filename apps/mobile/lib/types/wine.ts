@@ -1,7 +1,7 @@
 // Domain types for wine scanning & matching flows.
 // Mirrors the `wines` table (supabase/migrations/00001_initial_schema.sql).
 
-export type DrinkCategory = 'wine' | 'whiskey' | 'sake' | 'cognac' | 'other';
+export type DrinkCategory = 'wine' | 'spirit' | 'traditional' | 'other';
 
 /**
  * How a bottle's vintage is expressed:

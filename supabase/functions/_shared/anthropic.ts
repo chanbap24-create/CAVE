@@ -54,7 +54,7 @@ Given a photo of a bottle label, extract the following fields as a single JSON o
   "country": string | null,
   "vintage_year": number | null,
   "vintage_type": "year" | "nv" | "mv" | null,
-  "category": "wine" | "whiskey" | "sake" | "cognac" | "other",
+  "category": "wine" | "spirit" | "traditional" | "other",
   "confidence": number
 }
 
@@ -70,7 +70,11 @@ Rules:
     * "nv"   when the label says "Non-Vintage", "NV", or the bottle is a typical non-vintage blend (most Champagne, most spirits). Set vintage_year = null.
     * "mv"   when the label explicitly says "Multi-Vintage" or "MV". Set vintage_year = null.
     * null   when you cannot tell from the label.
-- "category" must always be set. Infer from label cues (grapes → wine, malt/rye → whiskey, Japanese rice → sake, cognac region → cognac).
+- "category" must always be set. Use:
+    * "wine"        — still wines, sparkling wines, fortified wines (port/sherry/madeira), natural wines.
+    * "spirit"      — distilled liquors (whisky/bourbon/scotch/cognac/brandy/gin/rum/tequila/vodka/liqueur/cocktail).
+    * "traditional" — sake, soju, makgeolli, shochu, and other East-Asian traditional rice/grain drinks.
+    * "other"       — beer/cider/mead/anything not covered above.
 - "confidence" is a 0.0..1.0 self-reported estimate of how readable the label was and how accurate the above fields are likely to be.
 - Use null for any field you can't read with reasonable certainty. Do NOT guess.
 

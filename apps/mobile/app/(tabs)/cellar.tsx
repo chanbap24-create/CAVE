@@ -1,30 +1,26 @@
-import React, { useEffect, useState, useCallback } from 'react';
-import { View, Text, ScrollView, StyleSheet, Pressable, Alert, RefreshControl } from 'react-native';
-import { useRouter } from 'expo-router';
+import React, { useCallback, useState } from 'react';
+import { View, Text, StyleSheet, Pressable, Alert } from 'react-native';
+import { useFocusEffect } from 'expo-router';
 import { useAuth } from '@/lib/auth';
 import { supabase } from '@/lib/supabase';
-import { useFocusEffect } from 'expo-router';
 import { useTasteProfile } from '@/lib/hooks/useTasteProfile';
 import { useMyPicks } from '@/lib/hooks/useMyPicks';
+import { useBadgeChecker } from '@/lib/hooks/useBadgeChecker';
+import { useCollectionPhoto } from '@/lib/hooks/useCollectionPhoto';
 import { MyPicksSection } from '@/components/MyPicksSection';
-import Svg, { Line } from 'react-native-svg';
 import { TasteCard } from '@/components/TasteCard';
 import { AddToCaveSheet } from '@/components/AddToCaveSheet';
 import { AddToCaveMenu } from '@/components/AddToCaveMenu';
 import { LabelScanSheet } from '@/components/LabelScanSheet';
-import { useBadgeChecker } from '@/lib/hooks/useBadgeChecker';
+import { CellarList } from '@/components/CellarList';
 import { ScreenHeader } from '@/components/ScreenHeader';
+import Svg, { Line } from 'react-native-svg';
+import { CATEGORY_DB_MAP } from '@/lib/constants/drinkCategories';
 
-import { CATEGORY_BG_COLORS, CATEGORY_TAG_STYLES, CATEGORY_LABELS, CATEGORY_DB_MAP } from '@/lib/constants/drinkCategories';
-
-const bgColors = CATEGORY_BG_COLORS;
-const typeColors: Record<string, string> = { wine: '#7b2d4e', whiskey: '#8a6d3b', sake: '#3b6d8a', cognac: '#8a5a3b', other: '#999' };
-const labelMap = CATEGORY_LABELS;
 const caveTabs = ['All', 'Wine', 'Whisky', 'Sake', 'Other'];
 const catDbMap = CATEGORY_DB_MAP;
 
 export default function CellarScreen() {
-  const router = useRouter();
   const { user } = useAuth();
   const [collections, setCollections] = useState<any[]>([]);
   const [activeCat, setActiveCat] = useState('All');
@@ -35,6 +31,7 @@ export default function CellarScreen() {
   const { taste, loadTaste } = useTasteProfile(user?.id);
   const { picks, loadPicks, addPick, removePick } = useMyPicks();
   const { checkAndAwardBadges } = useBadgeChecker();
+  const { changePhoto } = useCollectionPhoto();
 
   useFocusEffect(
     useCallback(() => {
@@ -53,15 +50,33 @@ export default function CellarScreen() {
   }
 
   async function removeCave(collectionId: number) {
-    Alert.alert('Remove', 'Remove this from your Cave?', [
-      { text: 'Cancel', style: 'cancel' },
+    await supabase.from('collections').delete().eq('id', collectionId);
+    setCollections(prev => prev.filter(c => c.id !== collectionId));
+  }
+
+  // Long-press surfaces the row actions. Separates photo management from
+  // destructive delete so users can attach/replace a bottle photo without
+  // fearing the "Remove" muscle memory.
+  function openRowActions(collectionId: number, hasPhoto: boolean) {
+    Alert.alert('Bottle actions', undefined, [
       {
-        text: 'Remove', style: 'destructive',
+        text: hasPhoto ? 'Change photo' : 'Add photo',
         onPress: async () => {
-          await supabase.from('collections').delete().eq('id', collectionId);
-          setCollections(prev => prev.filter(c => c.id !== collectionId));
+          const ok = await changePhoto(collectionId);
+          if (ok) loadCollections();
         },
       },
+      {
+        text: 'Remove from Cave',
+        style: 'destructive',
+        onPress: () => {
+          Alert.alert('Remove', 'Remove this from your Cave?', [
+            { text: 'Cancel', style: 'cancel' },
+            { text: 'Remove', style: 'destructive', onPress: () => removeCave(collectionId) },
+          ]);
+        },
+      },
+      { text: 'Cancel', style: 'cancel' },
     ]);
   }
 
@@ -126,39 +141,12 @@ export default function CellarScreen() {
         ))}
       </View>
 
-      {filtered.length === 0 ? (
-        <View style={styles.empty}>
-          <Text style={styles.emptyTitle}>Cave is empty</Text>
-          <Text style={styles.emptyDesc}>Tap "+ Add" to start{'\n'}your collection</Text>
-        </View>
-      ) : (
-        <ScrollView
-          refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#7b2d4e" />}
-        >
-          {filtered.map(c => {
-            const w = c.wine;
-            if (!w) return null;
-            const typeColor = typeColors[w.category] || '#999';
-            return (
-              <Pressable key={c.id} style={styles.listItem} onLongPress={() => removeCave(c.id)}>
-                <View style={[styles.listDot, { backgroundColor: typeColor }]} />
-                <View style={styles.listInfo}>
-                  <Text style={styles.listName} numberOfLines={1}>{w.name}</Text>
-                  <Text style={styles.listMeta}>
-                    {[w.region, w.country].filter(Boolean).join(', ')}
-                    {formatVintageSuffix(w)}
-                  </Text>
-                </View>
-                <View style={styles.listRight}>
-                  <Text style={[styles.listType, { color: typeColor }]}>{labelMap[w.category] || w.category}</Text>
-                  {w.alcohol_pct && <Text style={styles.listAlc}>{w.alcohol_pct}%</Text>}
-                </View>
-              </Pressable>
-            );
-          })}
-          <View style={{ height: 20 }} />
-        </ScrollView>
-      )}
+      <CellarList
+        collections={filtered}
+        refreshing={refreshing}
+        onRefresh={onRefresh}
+        onLongPressRow={openRowActions}
+      />
 
       <AddToCaveMenu
         visible={showMenu}
@@ -183,17 +171,6 @@ export default function CellarScreen() {
   );
 }
 
-// Shows "· 2015" for a vintage year, or "· NV" / "· MV" when the wine is
-// tagged as non-vintage / multi-vintage in wines.metadata. Empty string
-// otherwise so the meta line stays clean for wines with no vintage info.
-function formatVintageSuffix(w: any): string {
-  if (w?.vintage_year) return ` · ${w.vintage_year}`;
-  const t = w?.metadata?.vintage_type;
-  if (t === 'nv') return ' · NV';
-  if (t === 'mv') return ' · MV';
-  return '';
-}
-
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#fff' },
   stats: {
@@ -210,22 +187,4 @@ const styles = StyleSheet.create({
   tabActive: { borderBottomWidth: 2, borderBottomColor: '#222' },
   tabText: { fontSize: 13, fontWeight: '500', color: '#bbb' },
   tabTextActive: { color: '#222', fontWeight: '600' },
-
-  empty: { flex: 1, justifyContent: 'center', alignItems: 'center', paddingBottom: 100 },
-  emptyTitle: { fontSize: 17, fontWeight: '600', color: '#222', marginBottom: 6 },
-  emptyDesc: { fontSize: 14, color: '#999', textAlign: 'center', lineHeight: 22 },
-
-  listItem: {
-    flexDirection: 'row', alignItems: 'center',
-    paddingHorizontal: 20, paddingVertical: 14,
-    borderBottomWidth: 1, borderBottomColor: '#f5f5f5',
-    gap: 12,
-  },
-  listDot: { width: 8, height: 8, borderRadius: 4 },
-  listInfo: { flex: 1 },
-  listName: { fontSize: 14, fontWeight: '600', color: '#222' },
-  listMeta: { fontSize: 11, color: '#999', marginTop: 3 },
-  listRight: { alignItems: 'flex-end' },
-  listType: { fontSize: 11, fontWeight: '600' },
-  listAlc: { fontSize: 10, color: '#bbb', marginTop: 2 },
 });

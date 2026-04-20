@@ -2,8 +2,11 @@ import React, { useState } from 'react';
 import { View, Text, TextInput, Pressable, ScrollView, StyleSheet } from 'react-native';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { CategoryPicker } from '@/components/CategoryPicker';
+import { GatheringTypeSelector } from '@/components/GatheringTypeSelector';
+import { HostWineSlots, type HostWineSlot } from '@/components/HostWineSlots';
 import { useDrinkCategories } from '@/lib/hooks/useDrinkCategories';
 import { formatPickerDate, formatPickerTime } from '@/lib/utils/dateUtils';
+import type { GatheringType } from '@/lib/types/gathering';
 
 export interface GatheringFormValue {
   title: string;
@@ -13,12 +16,15 @@ export interface GatheringFormValue {
   maxMembers: string;
   price: string;
   category: string | null;
+  gatheringType: GatheringType;
+  hostWineSlots: HostWineSlot[];
 }
 
 export function emptyGatheringForm(): GatheringFormValue {
   return {
     title: '', description: '', location: '',
     date: new Date(), maxMembers: '8', price: '', category: null,
+    gatheringType: 'cost_share', hostWineSlots: [],
   };
 }
 
@@ -57,6 +63,25 @@ export function GatheringForm({ value, onChange }: Props) {
         placeholderTextColor="#ccc"
         multiline
       />
+
+      <Text style={styles.label}>Type *</Text>
+      <GatheringTypeSelector
+        value={value.gatheringType}
+        onChange={v => set('gatheringType', v)}
+      />
+
+      {(value.gatheringType === 'cost_share' || value.gatheringType === 'donation') && (
+        <>
+          <Text style={styles.label}>
+            {value.gatheringType === 'cost_share' ? '준비할 와인 *' : '준비할 와인 (optional)'}
+          </Text>
+          <HostWineSlots
+            slots={value.hostWineSlots}
+            onChange={s => set('hostWineSlots', s)}
+            requireAtLeastOne={value.gatheringType === 'cost_share'}
+          />
+        </>
+      )}
 
       <Text style={styles.label}>Category (optional)</Text>
       <CategoryPicker
@@ -135,17 +160,19 @@ export function GatheringForm({ value, onChange }: Props) {
             keyboardType="number-pad"
           />
         </View>
-        <View style={styles.half}>
-          <Text style={styles.label}>Price (won)</Text>
-          <TextInput
-            style={styles.input}
-            value={value.price}
-            onChangeText={t => set('price', t)}
-            placeholder="Optional"
-            placeholderTextColor="#ccc"
-            keyboardType="number-pad"
-          />
-        </View>
+        {value.gatheringType === 'cost_share' && (
+          <View style={styles.half}>
+            <Text style={styles.label}>Price (won)</Text>
+            <TextInput
+              style={styles.input}
+              value={value.price}
+              onChangeText={t => set('price', t)}
+              placeholder="Per person"
+              placeholderTextColor="#ccc"
+              keyboardType="number-pad"
+            />
+          </View>
+        )}
       </View>
 
       <View style={{ height: 40 }} />

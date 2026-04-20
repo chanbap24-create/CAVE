@@ -29,6 +29,11 @@ export function CreateGatheringSheet({ visible, onClose, onCreated }: Props) {
       maxMembers: parseInt(form.maxMembers) || 8,
       pricePerPerson: form.price ? parseInt(form.price) : null,
       category: form.category,
+      gatheringType: form.gatheringType,
+      hostSlots: form.hostWineSlots.map(s => ({
+        collection_id: s.collectionId,
+        is_blind: s.isBlind,
+      })),
     });
     setCreating(false);
   }

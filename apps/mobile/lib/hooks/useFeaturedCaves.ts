@@ -29,7 +29,6 @@ export function useFeaturedCaves(category?: string | null) {
     let userIds: string[] = [];
     if (category) {
       // Category mode: rank by count of bottles in this category.
-      // Client-side aggregation because PostgREST has no groupby.
       const { data: rows } = await supabase
         .from('collections')
         .select('user_id, wines!inner(category)')
@@ -42,14 +41,32 @@ export function useFeaturedCaves(category?: string | null) {
         .slice(0, 10)
         .map(([uid]) => uid);
     } else {
-      // Default: top 10 profiles by overall collection_count.
-      const { data: profiles } = await supabase
-        .from('profiles')
-        .select('id')
-        .gt('collection_count', 0)
-        .order('collection_count', { ascending: false })
-        .limit(10);
-      userIds = (profiles ?? []).map(p => p.id);
+      // All mode: reward diversity. Score each user as the sum of
+      // sqrt(count) across categories so (20,20,20,20,20) beats
+      // (100,0,0,0,0) — someone with breadth edges out a single-type
+      // hoarder even at lower total volume. Square-root gives diminishing
+      // returns within each category so scale still matters somewhat.
+      const { data: rows } = await supabase
+        .from('collections')
+        .select('user_id, wines!inner(category)')
+        .limit(2000);
+      const byUser = new Map<string, Map<string, number>>();
+      (rows ?? []).forEach((r: any) => {
+        const cat = r.wines?.category ?? 'other';
+        const perCat = byUser.get(r.user_id) ?? new Map<string, number>();
+        perCat.set(cat, (perCat.get(cat) ?? 0) + 1);
+        byUser.set(r.user_id, perCat);
+      });
+      const scores: { uid: string; score: number }[] = [];
+      byUser.forEach((perCat, uid) => {
+        let score = 0;
+        perCat.forEach(c => { score += Math.sqrt(c); });
+        scores.push({ uid, score });
+      });
+      userIds = scores
+        .sort((a, b) => b.score - a.score)
+        .slice(0, 10)
+        .map(s => s.uid);
     }
 
     if (userIds.length === 0) { setCaves([]); setLoading(false); return; }

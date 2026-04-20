@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { Alert } from 'react-native';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/lib/auth';
+import { tooFast } from '@/lib/utils/clientRateLimit';
 
 export interface LikeTableConfig {
   /** Table name, e.g. 'collection_likes' / 'cellar_likes'. */
@@ -51,6 +52,10 @@ export function useLikeTarget(config: LikeTableConfig, targetId: string | number
 
   async function toggle() {
     if (!user || targetId == null || busy) return;
+    if (tooFast(`like:${config.table}`)) {
+      Alert.alert('Slow down', "You're tapping too fast. Take a breath and try again.");
+      return;
+    }
     setBusy(true);
     const wasLiked = liked;
     // Optimistic update so taps feel instant.

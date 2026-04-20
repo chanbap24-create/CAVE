@@ -94,11 +94,18 @@ export function usePostSubmit() {
   };
 }
 
+// Cap the number of people one post can notify. Without this, a single
+// post with @u1 @u2 … @u100 can flood 100 inboxes; scaled across a bot
+// farm it's a spam weapon. 10 is generous for legitimate use.
+const MAX_MENTIONS_PER_POST = 10;
+
 async function sendMentionNotifications(caption: string, postId: string | number, actorId: string) {
   const mentions = caption.match(/@([^\s@]+)/g);
   if (!mentions) return;
 
-  const usernames = mentions.map(m => m.replace('@', ''));
+  // Dedupe + cap.
+  const usernames = [...new Set(mentions.map(m => m.replace('@', '')))].slice(0, MAX_MENTIONS_PER_POST);
+
   const { data: mentionedUsers } = await supabase
     .from('profiles')
     .select('id')

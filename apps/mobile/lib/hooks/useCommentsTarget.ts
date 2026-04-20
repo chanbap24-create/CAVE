@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { Alert } from 'react-native';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/lib/auth';
+import { tooFast } from '@/lib/utils/clientRateLimit';
 
 export interface CommentsTableConfig {
   /** e.g. 'collection_comments' / 'cellar_comments'. */
@@ -52,6 +53,10 @@ export function useCommentsTarget(config: CommentsTableConfig, targetId: string 
   async function add(body: string): Promise<boolean> {
     const trimmed = body.trim();
     if (!user || targetId == null || !trimmed) return false;
+    if (tooFast(`comment:${config.table}`)) {
+      Alert.alert('Slow down', "Too many comments too quickly. Try again in a minute.");
+      return false;
+    }
     const { data, error } = await supabase
       .from(config.table)
       .insert({ [config.targetColumn]: targetId, user_id: user.id, body: trimmed } as any)

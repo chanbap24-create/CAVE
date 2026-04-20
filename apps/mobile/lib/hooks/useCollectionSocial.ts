@@ -1,6 +1,8 @@
 import { useCallback, useEffect, useState } from 'react';
+import { Alert } from 'react-native';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/lib/auth';
+import { tooFast } from '@/lib/utils/clientRateLimit';
 
 interface Counts {
   likes: number;
@@ -85,6 +87,10 @@ export function useCollectionSocial(collectionIds: number[]): CollectionSocial {
 
   async function toggleLike(collectionId: number) {
     if (!user) return;
+    if (tooFast('like:collection_likes')) {
+      Alert.alert('Slow down', "You're tapping too fast.");
+      return;
+    }
     const prev = counts.get(collectionId) ?? EMPTY;
     const wasLiked = prev.liked;
 

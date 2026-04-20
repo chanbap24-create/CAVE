@@ -1,9 +1,11 @@
 import React, { useEffect, useState } from 'react';
 import { View, Text, StyleSheet, Modal, Pressable, Alert } from 'react-native';
+import { useAuth } from '@/lib/auth';
 import { useMediaPicker } from '@/lib/hooks/useMediaPicker';
 import { useWineLabelScan } from '@/lib/hooks/useWineLabelScan';
 import { useAddToCave } from '@/lib/hooks/useAddToCave';
 import { isAutoMatch } from '@/lib/hooks/useWineMatch';
+import { uploadImage } from '@/lib/utils/imageUpload';
 import { fromExtracted, type ReviewFormValue } from '@/components/LabelReviewForm';
 import { PickStage, AnalyzingStage, ErrorStage, ReviewStage } from '@/components/LabelScanStages';
 
@@ -14,6 +16,7 @@ interface Props {
 }
 
 export function LabelScanSheet({ visible, onClose, onAdded }: Props) {
+  const { user } = useAuth();
   const media = useMediaPicker();
   const scan = useWineLabelScan();
   const cave = useAddToCave();
@@ -46,15 +49,28 @@ export function LabelScanSheet({ visible, onClose, onAdded }: Props) {
     });
   }
 
+  // Uploads the scanned label photo to Storage so it can be saved on the
+  // collections row. This is the user's personal photo of their bottle —
+  // distinct from wines.image_url, which is the shared product image. Upload
+  // failure falls through silently; we'd rather save the collection entry
+  // without a photo than block the whole flow on a storage hiccup.
+  async function uploadScanPhoto(): Promise<string | null> {
+    const uri = scan.result?.imageUri;
+    if (!uri || !user) return null;
+    return (await uploadImage(uri, `${user.id}/cellar`)) ?? null;
+  }
+
   async function handleSave() {
     if (!form) return;
     if (useMatchId) {
-      const ok = await cave.addExisting({ wineId: useMatchId, source: 'photo' });
+      const photoUrl = await uploadScanPhoto();
+      const ok = await cave.addExisting({ wineId: useMatchId, source: 'photo', photoUrl });
       if (!ok) return Alert.alert('Error', 'Could not add to cave');
       onAdded(); handleClose();
       return;
     }
     if (!form.name.trim()) return Alert.alert('Name required', 'Please enter the name');
+    const photoUrl = await uploadScanPhoto();
     const isYear = form.vintageType === 'year';
     const result = await cave.addNew({
       extracted: {
@@ -69,6 +85,7 @@ export function LabelScanSheet({ visible, onClose, onAdded }: Props) {
         confidence: 1,
       },
       source: 'photo',
+      photoUrl,
     });
     if (!result) return Alert.alert('Error', 'Could not save wine');
     onAdded(); handleClose();

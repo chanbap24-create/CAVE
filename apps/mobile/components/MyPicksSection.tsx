@@ -1,9 +1,8 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, Pressable, Image, ScrollView, Modal, TextInput, Alert } from 'react-native';
-import * as ImagePicker from 'expo-image-picker';
-import { useAuth } from '@/lib/auth';
-import { uploadImage } from '@/lib/utils/imageUpload';
+import { View, Text, StyleSheet, Pressable, ScrollView, Alert } from 'react-native';
+import { Image } from 'expo-image';
 import type { MyPick } from '@/lib/hooks/useMyPicks';
+import { AddPickSheet } from '@/components/AddPickSheet';
 
 interface Props {
   picks: MyPick[];
@@ -14,48 +13,7 @@ interface Props {
 }
 
 export function MyPicksSection({ picks, editable = false, onAdd, onRemove, wines = [] }: Props) {
-  const { user } = useAuth();
   const [showAdd, setShowAdd] = useState(false);
-  const [selectedWine, setSelectedWine] = useState<any>(null);
-  const [photoUri, setPhotoUri] = useState<string | null>(null);
-  const [memo, setMemo] = useState('');
-  const [wineSearch, setWineSearch] = useState('');
-  const [adding, setAdding] = useState(false);
-
-  async function pickPhoto() {
-    const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
-    if (status !== 'granted') return;
-    const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ['images'],
-      quality: 0.8,
-      allowsEditing: true,
-      aspect: [1, 1],
-    });
-    if (!result.canceled && result.assets[0]) setPhotoUri(result.assets[0].uri);
-  }
-
-  async function handleAdd() {
-    if (!selectedWine || !photoUri || !user) return;
-    setAdding(true);
-
-    // Upload photo
-    const uploaded = await uploadImage(photoUri, `${user.id}/picks`);
-    const photoUrl = uploaded || photoUri;
-
-    await onAdd?.(selectedWine.wine_id || selectedWine.id, photoUrl, memo);
-    setShowAdd(false);
-    setSelectedWine(null);
-    setPhotoUri(null);
-    setMemo('');
-    setAdding(false);
-  }
-
-  const filteredWines = wineSearch.length >= 1
-    ? wines.filter(w => {
-        const name = w.wine?.name || w.name || '';
-        return name.toLowerCase().includes(wineSearch.toLowerCase());
-      }).slice(0, 5)
-    : [];
 
   return (
     <View style={styles.container}>
@@ -80,7 +38,11 @@ export function MyPicksSection({ picks, editable = false, onAdd, onRemove, wines
           )}
         </View>
       ) : (
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ paddingHorizontal: 20, gap: 12 }}>
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={{ paddingHorizontal: 20, gap: 12 }}
+        >
           {picks.map(pick => (
             <Pressable
               key={pick.id}
@@ -95,7 +57,13 @@ export function MyPicksSection({ picks, editable = false, onAdd, onRemove, wines
               }}
             >
               {pick.photo_url ? (
-                <Image source={{ uri: pick.photo_url }} style={styles.pickImage} />
+                <Image
+                  source={pick.photo_url}
+                  style={styles.pickImage}
+                  contentFit="cover"
+                  cachePolicy="memory-disk"
+                  transition={200}
+                />
               ) : (
                 <View style={[styles.pickImage, { backgroundColor: '#f0f0f0' }]} />
               )}
@@ -113,67 +81,14 @@ export function MyPicksSection({ picks, editable = false, onAdd, onRemove, wines
         </ScrollView>
       )}
 
-      {/* Add Pick Modal */}
-      <Modal visible={showAdd} animationType="slide" transparent>
-        <Pressable style={styles.backdrop} onPress={() => setShowAdd(false)} />
-        <View style={styles.sheet}>
-          <View style={styles.handle} />
-          <Text style={styles.sheetTitle}>Add to My Picks</Text>
-
-          {/* Step 1: Select wine from collection */}
-          {!selectedWine && (
-            <View style={styles.sheetBody}>
-              <TextInput
-                style={styles.searchInput}
-                placeholder="Search your collection..."
-                placeholderTextColor="#bbb"
-                value={wineSearch}
-                onChangeText={setWineSearch}
-                autoFocus
-              />
-              {filteredWines.map((w: any) => (
-                <Pressable key={w.wine_id || w.id} style={styles.wineItem} onPress={() => setSelectedWine(w)}>
-                  <Text style={styles.wineName}>{w.wine?.name || w.name}</Text>
-                </Pressable>
-              ))}
-            </View>
-          )}
-
-          {/* Step 2: Add photo + memo */}
-          {selectedWine && (
-            <View style={styles.sheetBody}>
-              <Text style={styles.selectedName}>{selectedWine.wine?.name || selectedWine.name}</Text>
-
-              <Pressable style={styles.photoBtn} onPress={pickPhoto}>
-                {photoUri ? (
-                  <Image source={{ uri: photoUri }} style={styles.photoPreview} />
-                ) : (
-                  <View style={styles.photoPlaceholder}>
-                    <Text style={styles.photoPlaceholderText}>Tap to add photo</Text>
-                  </View>
-                )}
-              </Pressable>
-
-              <TextInput
-                style={styles.memoInput}
-                placeholder='"인생 와인", "생일 선물" ...'
-                placeholderTextColor="#bbb"
-                value={memo}
-                onChangeText={setMemo}
-                maxLength={50}
-              />
-
-              <Pressable
-                style={[styles.submitBtn, (!photoUri || adding) && { opacity: 0.5 }]}
-                onPress={handleAdd}
-                disabled={!photoUri || adding}
-              >
-                <Text style={styles.submitText}>{adding ? 'Adding...' : 'Add Pick'}</Text>
-              </Pressable>
-            </View>
-          )}
-        </View>
-      </Modal>
+      {editable && onAdd && (
+        <AddPickSheet
+          visible={showAdd}
+          onClose={() => setShowAdd(false)}
+          onAdd={onAdd}
+          wines={wines}
+        />
+      )}
     </View>
   );
 }
@@ -215,32 +130,4 @@ const styles = StyleSheet.create({
     alignItems: 'center', justifyContent: 'center',
   },
   addCardPlus: { fontSize: 20, color: '#ccc' },
-
-  backdrop: { flex: 1 },
-  sheet: {
-    backgroundColor: '#fff', borderTopLeftRadius: 20, borderTopRightRadius: 20,
-    maxHeight: '70%',
-  },
-  handle: { width: 36, height: 4, borderRadius: 2, backgroundColor: '#ddd', alignSelf: 'center', marginTop: 10 },
-  sheetTitle: { fontSize: 16, fontWeight: '700', color: '#222', textAlign: 'center', paddingVertical: 14, borderBottomWidth: 1, borderBottomColor: '#efefef' },
-  sheetBody: { padding: 20 },
-
-  searchInput: { backgroundColor: '#f5f5f5', borderRadius: 10, padding: 10, paddingLeft: 16, fontSize: 14, marginBottom: 8 },
-  wineItem: { paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: '#f5f5f5' },
-  wineName: { fontSize: 14, fontWeight: '500', color: '#222' },
-
-  selectedName: { fontSize: 16, fontWeight: '600', color: '#222', marginBottom: 16 },
-  photoBtn: { marginBottom: 16 },
-  photoPreview: { width: '100%', height: 200, borderRadius: 12 },
-  photoPlaceholder: {
-    width: '100%', height: 200, borderRadius: 12,
-    backgroundColor: '#f5f5f5', alignItems: 'center', justifyContent: 'center',
-  },
-  photoPlaceholderText: { fontSize: 14, color: '#bbb' },
-  memoInput: {
-    borderWidth: 1, borderColor: '#eee', borderRadius: 10,
-    padding: 12, fontSize: 15, backgroundColor: '#fafafa', marginBottom: 16,
-  },
-  submitBtn: { backgroundColor: '#7b2d4e', padding: 16, borderRadius: 12, alignItems: 'center' },
-  submitText: { color: '#fff', fontSize: 16, fontWeight: '600' },
 });

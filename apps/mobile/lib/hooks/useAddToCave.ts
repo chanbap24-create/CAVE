@@ -8,11 +8,15 @@ type Source = 'manual' | 'photo' | 'search' | 'shop_purchase' | 'gift';
 interface AddExistingInput {
   wineId: number;
   source?: Source;
+  /** Personal photo URL saved on the collections row (not on wines). */
+  photoUrl?: string | null;
 }
 
 interface AddNewInput {
   extracted: ExtractedWineInfo & { name: string }; // name required for new rows
   source?: Source;
+  /** Personal photo URL saved on the collections row (not on wines). */
+  photoUrl?: string | null;
 }
 
 /**
@@ -26,20 +30,22 @@ export function useAddToCave() {
   const { user } = useAuth();
   const [adding, setAdding] = useState(false);
 
-  async function addExisting({ wineId, source = 'search' }: AddExistingInput): Promise<boolean> {
+  async function addExisting({
+    wineId, source = 'search', photoUrl,
+  }: AddExistingInput): Promise<boolean> {
     if (!user || adding) return false;
     setAdding(true);
     try {
-      const { error } = await supabase
-        .from('collections')
-        .insert({ user_id: user.id, wine_id: wineId, source });
+      const row: Record<string, any> = { user_id: user.id, wine_id: wineId, source };
+      if (photoUrl) row.photo_url = photoUrl;
+      const { error } = await supabase.from('collections').insert(row);
       return !error;
     } finally {
       setAdding(false);
     }
   }
 
-  async function addNew({ extracted, source = 'photo' }: AddNewInput): Promise<WineRow | null> {
+  async function addNew({ extracted, source = 'photo', photoUrl }: AddNewInput): Promise<WineRow | null> {
     if (!user || adding) return null;
     setAdding(true);
     try {
@@ -68,9 +74,16 @@ export function useAddToCave() {
 
       if (wineError || !wine) return null;
 
+      const collectionRow: Record<string, any> = {
+        user_id: user.id,
+        wine_id: wine.id,
+        source,
+      };
+      if (photoUrl) collectionRow.photo_url = photoUrl;
+
       const { error: collectionError } = await supabase
         .from('collections')
-        .insert({ user_id: user.id, wine_id: wine.id, source });
+        .insert(collectionRow);
 
       return collectionError ? null : (wine as WineRow);
     } finally {

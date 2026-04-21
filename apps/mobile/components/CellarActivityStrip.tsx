@@ -56,7 +56,7 @@ function ActivityCard({
 
   return (
     <Pressable style={styles.card} onPress={onPress}>
-      <View>
+      <View style={styles.thumbWrap}>
         {photo ? (
           <Image source={photo} style={styles.thumb} contentFit="cover" cachePolicy="memory-disk" />
         ) : (
@@ -67,8 +67,14 @@ function ActivityCard({
             <Text style={styles.countBadgeText}>+{extraCount}</Text>
           </View>
         )}
+        {/* Bottom scrim + wine name inside the photo — matches
+            RecentlyAddedRow so the two strips read consistently. */}
+        <View style={styles.scrim}>
+          <Text style={styles.overlayName} numberOfLines={2}>
+            {item.wine?.name ?? 'Unknown'}
+          </Text>
+        </View>
       </View>
-      <Text style={styles.wineName} numberOfLines={1}>{item.wine?.name ?? 'Unknown'}</Text>
       <View style={styles.ownerRow}>
         {item.owner?.avatar_url ? (
           <Image
@@ -89,18 +95,36 @@ function ActivityCard({
 }
 
 const styles = StyleSheet.create({
-  wrap: { paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: '#f5f5f5' },
+  wrap: { paddingTop: 10, paddingBottom: 8 },
   header: {
-    fontSize: 13, fontWeight: '700', color: '#222',
-    paddingHorizontal: 20, marginBottom: 10,
+    fontSize: 11, fontWeight: '700', color: '#999',
+    textTransform: 'uppercase', letterSpacing: 0.8,
+    paddingHorizontal: 20, marginBottom: 6,
   },
   row: { paddingHorizontal: 16, gap: 12 },
   card: { width: 120 },
-  thumb: { width: 120, height: 120, borderRadius: 10, backgroundColor: '#f5f5f5' },
-  wineName: { fontSize: 12, fontWeight: '600', color: '#222', marginTop: 6 },
-  ownerRow: { flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: 4 },
+  thumbWrap: {
+    width: 120, height: 120, borderRadius: 10, overflow: 'hidden',
+    backgroundColor: '#f5f5f5',
+  },
+  thumb: { width: '100%', height: '100%' },
+  ownerRow: { flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: 6 },
   avatar: { width: 16, height: 16, borderRadius: 8 },
   ownerName: { flex: 1, fontSize: 11, color: '#999' },
+
+  // Same treatment as RecentlyAddedRow — fixed-height low-opacity scrim +
+  // text shadow keeps the wine name readable across any artwork.
+  scrim: {
+    position: 'absolute', left: 0, right: 0, bottom: 0,
+    height: 40,
+    paddingHorizontal: 8, paddingTop: 5,
+    backgroundColor: 'rgba(0,0,0,0.32)',
+    justifyContent: 'flex-start',
+  },
+  overlayName: {
+    fontSize: 11, fontWeight: '700', color: '#fff', lineHeight: 14,
+    textShadowColor: 'rgba(0,0,0,0.5)', textShadowRadius: 2,
+  },
 
   countBadge: {
     position: 'absolute', right: 6, top: 6,

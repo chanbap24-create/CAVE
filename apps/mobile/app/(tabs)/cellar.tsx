@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useState } from 'react';
-import { View, Text, StyleSheet, Pressable, Alert } from 'react-native';
+import { View, Text, StyleSheet, Pressable, Alert, ScrollView, RefreshControl } from 'react-native';
 import { useFocusEffect, useLocalSearchParams, useRouter } from 'expo-router';
 import { useAuth } from '@/lib/auth';
 import { supabase } from '@/lib/supabase';
@@ -10,6 +10,8 @@ import { useCollectionPhoto } from '@/lib/hooks/useCollectionPhoto';
 import { useCollectionSocial } from '@/lib/hooks/useCollectionSocial';
 import { MyPicksSection } from '@/components/MyPicksSection';
 import { CaveHero } from '@/components/CaveHero';
+import { RecentlyAddedRow } from '@/components/RecentlyAddedRow';
+import { CellarActivityStrip } from '@/components/CellarActivityStrip';
 // NOTE: AddToCaveSheet (DB search) and AddToCaveMenu (chooser) are hidden
 // for now — all wine registration flows through LabelScanSheet. The files
 // stay in the repo so we can restore a manual-search fallback later if
@@ -148,36 +150,48 @@ export default function CellarScreen() {
         }
       />
 
-      <CaveHero
-        bottles={collections.length}
-        summary={[taste?.topCategory, taste?.topCountry, taste?.topRegion, taste?.topWineType]}
-      />
+      <ScrollView
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#7b2d4e" />}
+        contentContainerStyle={{ paddingBottom: 40 }}
+      >
+        {/* Hybrid home: curated rows (Recent · Friends) at the top so
+            the page feels editorial, then stats + full cellar list below
+            for completeness. */}
+        <RecentlyAddedRow wines={collections} />
 
-      <MyPicksSection
-        picks={picks}
-        editable
-        onAdd={addPick}
-        onRemove={removePick}
-        wines={collections}
-      />
+        <CellarActivityStrip />
 
-      <View style={styles.tabRow}>
-        {caveTabs.map(c => (
-          <Pressable key={c} style={[styles.tab, activeCat === c && styles.tabActive]} onPress={() => setActiveCat(c)}>
-            <Text style={[styles.tabText, activeCat === c && styles.tabTextActive]}>{c}</Text>
-          </Pressable>
-        ))}
-      </View>
+        <CaveHero
+          bottles={collections.length}
+          summary={[taste?.topCategory, taste?.topCountry, taste?.topRegion, taste?.topWineType]}
+        />
 
-      <CellarList
-        collections={filtered}
-        refreshing={refreshing}
-        onRefresh={onRefresh}
-        social={social}
-        onPressRow={(c) => setDetailEntries([packEntry(c)])}
-        onLongPressRow={openRowActions}
-      />
+        <MyPicksSection
+          picks={picks}
+          editable
+          onAdd={addPick}
+          onRemove={removePick}
+          wines={collections}
+        />
 
+        <View style={styles.tabRow}>
+          {caveTabs.map(c => (
+            <Pressable key={c} style={[styles.tab, activeCat === c && styles.tabActive]} onPress={() => setActiveCat(c)}>
+              <Text style={[styles.tabText, activeCat === c && styles.tabTextActive]}>{c}</Text>
+            </Pressable>
+          ))}
+        </View>
+
+        <CellarList
+          collections={filtered}
+          social={social}
+          onPressRow={(c) => router.push(`/wine/${c.id}`)}
+          onLongPressRow={openRowActions}
+        />
+      </ScrollView>
+
+      {/* Legacy sheet kept for the deep-link-from-notifications path
+          (?openCollection=<id>). Row taps now navigate to /wine/[id]. */}
       <CollectionDetailSheet
         visible={detailEntries.length > 0}
         entries={detailEntries}
@@ -197,8 +211,12 @@ export default function CellarScreen() {
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#fff' },
 
-  tabRow: { flexDirection: 'row', borderBottomWidth: 1, borderBottomColor: '#efefef', paddingHorizontal: 16 },
-  tab: { paddingVertical: 12, paddingHorizontal: 16 },
+  tabRow: {
+    flexDirection: 'row',
+    borderBottomWidth: 1, borderBottomColor: '#efefef',
+    paddingHorizontal: 16, marginTop: 6,
+  },
+  tab: { paddingVertical: 10, paddingHorizontal: 14 },
   tabActive: { borderBottomWidth: 2, borderBottomColor: '#222' },
   tabText: { fontSize: 13, fontWeight: '500', color: '#bbb' },
   tabTextActive: { color: '#222', fontWeight: '600' },

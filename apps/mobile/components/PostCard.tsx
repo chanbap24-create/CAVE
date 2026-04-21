@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, Pressable } from 'react-native';
+import { View, Text, StyleSheet, Pressable, Alert } from 'react-native';
 import { Image } from 'expo-image';
 import { VideoPlayer } from './VideoPlayer';
 import { useRouter } from 'expo-router';
@@ -91,9 +91,14 @@ function PostCardImpl({ post }: Props) {
           <CommentBubbleIcon />
         </Pressable>
         <Pressable onPress={async () => {
-          if (!user || user.id === post.user_id) return;
-          const roomId = await getDMRoom(user.id, post.user_id);
-          if (roomId) router.push(`/chat/${roomId}?title=${encodeURIComponent(profile?.username || 'Chat')}`);
+          if (!user) return;
+          if (user.id === post.user_id) return; // no self-DM
+          const res = await getDMRoom(user.id, post.user_id);
+          if ('error' in res) {
+            Alert.alert('DM 열기 실패', res.error);
+            return;
+          }
+          router.push(`/chat/${res.roomId}?title=${encodeURIComponent(profile?.username || 'Chat')}`);
         }}>
           <SendIcon />
         </Pressable>

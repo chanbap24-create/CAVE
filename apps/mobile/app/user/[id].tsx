@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, ScrollView, StyleSheet, Pressable } from 'react-native';
+import { View, Text, ScrollView, StyleSheet, Pressable, Alert } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/lib/auth';
@@ -7,14 +7,13 @@ import { FollowButton } from '@/components/FollowButton';
 import { getTopBadge } from '@/lib/tierUtils';
 import { UserAvatar } from '@/components/UserAvatar';
 import { ScreenHeader, BackButton } from '@/components/ScreenHeader';
-import { TasteCard } from '@/components/TasteCard';
-import { useTasteProfile } from '@/lib/hooks/useTasteProfile';
 import { useUserGatherings } from '@/lib/hooks/useUserGatherings';
 import { useUserPicks } from '@/lib/hooks/useUserPicks';
 import { useUserBadges } from '@/lib/hooks/useUserBadges';
 import { MyPicksSection } from '@/components/MyPicksSection';
 import { BadgeList } from '@/components/BadgeList';
 import { UserCellarSection } from '@/components/UserCellarSection';
+import { RecentlyAddedRow } from '@/components/RecentlyAddedRow';
 import { getDMRoom } from '@/lib/hooks/useChat';
 import { formatMonthDay } from '@/lib/utils/dateUtils';
 
@@ -24,7 +23,6 @@ export default function UserProfileScreen() {
   const { user } = useAuth();
   const [profile, setProfile] = useState<any>(null);
   const [collections, setCollections] = useState<any[]>([]);
-  const { taste, loadTaste } = useTasteProfile(id);
   const { gatherings: userGatherings, loadGatherings: loadUserGatherings } = useUserGatherings(id);
   const { picks: userPicks, loadPicks: loadUserPicks } = useUserPicks(id);
   const { badges: userBadges, allBadges, loadBadges } = useUserBadges(id);
@@ -33,7 +31,6 @@ export default function UserProfileScreen() {
     if (id) {
       loadProfile();
       loadCollections();
-      loadTaste();
       loadUserGatherings();
       loadUserPicks();
       loadBadges();
@@ -48,11 +45,14 @@ export default function UserProfileScreen() {
   async function loadCollections() {
     const { data } = await supabase
       .from('collections')
-      .select('*, wine:wines(name, category, region)')
+      .select(`
+        id, photo_url, created_at, user_id,
+        wine:wines(id, name, producer, category, region, country, vintage_year, image_url)
+      `)
       .eq('user_id', id)
       .eq('is_public', true)
       .order('created_at', { ascending: false })
-      .limit(10);
+      .limit(20);
     if (data) setCollections(data);
   }
 
@@ -112,8 +112,12 @@ export default function UserProfileScreen() {
           {user?.id !== id && (
             <Pressable style={styles.dmBtn} onPress={async () => {
               if (!user) return;
-              const roomId = await getDMRoom(user.id, id!);
-              if (roomId) router.push(`/chat/${roomId}?title=${encodeURIComponent(profile.username)}`);
+              const res = await getDMRoom(user.id, id!);
+              if ('error' in res) {
+                Alert.alert('DM 열기 실패', res.error);
+                return;
+              }
+              router.push(`/chat/${res.roomId}?title=${encodeURIComponent(profile.username)}`);
             }}>
               <Text style={styles.dmBtnText}>Message</Text>
             </Pressable>
@@ -128,8 +132,6 @@ export default function UserProfileScreen() {
         )}
 
         {userPicks.length > 0 && <MyPicksSection picks={userPicks} />}
-
-        {taste && <TasteCard taste={taste} />}
 
         {userGatherings.length > 0 && (
           <View style={styles.gatheringSection}>
@@ -152,6 +154,11 @@ export default function UserProfileScreen() {
             })}
           </View>
         )}
+
+        {/* Recently Added hero strip — same album-art cards we show on
+            My Cave, so visitors see the owner's latest bottles at a glance
+            before scrolling into the full cellar list. */}
+        <RecentlyAddedRow wines={collections} />
 
         <UserCellarSection ownerId={id!} wines={collections} />
       </ScrollView>

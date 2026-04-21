@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, Text, Pressable, ScrollView, RefreshControl, StyleSheet } from 'react-native';
+import { View, Text, Pressable, StyleSheet } from 'react-native';
 import Svg, { Path } from 'react-native-svg';
 import { CATEGORY_LABELS } from '@/lib/constants/drinkCategories';
 import type { CollectionSocial } from '@/lib/hooks/useCollectionSocial';
@@ -14,15 +14,18 @@ const typeColors: Record<string, string> = {
 
 interface Props {
   collections: any[];
-  refreshing: boolean;
-  onRefresh: () => void;
   onPressRow?: (collection: any) => void;
   onLongPressRow: (collectionId: number, hasPhoto: boolean) => void;
   /** Optional batched social counts for inline like/comment stats. */
   social?: CollectionSocial;
 }
 
-export function CellarList({ collections, refreshing, onRefresh, onPressRow, onLongPressRow, social }: Props) {
+/**
+ * Inline cellar list — renders rows directly (no wrapping ScrollView)
+ * so the parent can place the list inside a larger ScrollView alongside
+ * hero / row sections. Refresh control lives at the parent level now.
+ */
+export function CellarList({ collections, onPressRow, onLongPressRow, social }: Props) {
   if (collections.length === 0) {
     return (
       <View style={styles.empty}>
@@ -33,9 +36,7 @@ export function CellarList({ collections, refreshing, onRefresh, onPressRow, onL
   }
 
   return (
-    <ScrollView
-      refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#7b2d4e" />}
-    >
+    <View>
       {collections.map(c => {
         const w = c.wine;
         if (!w) return null;
@@ -63,8 +64,7 @@ export function CellarList({ collections, refreshing, onRefresh, onPressRow, onL
           </Pressable>
         );
       })}
-      <View style={{ height: 20 }} />
-    </ScrollView>
+    </View>
   );
 }
 

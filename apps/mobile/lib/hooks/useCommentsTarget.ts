@@ -16,7 +16,10 @@ export interface Comment {
   user_id: string;
   body: string;
   created_at: string;
+  parent_id?: number | null;
   profile?: { username: string | null; display_name: string | null; avatar_url: string | null };
+  /** Flat-list hooks set this when the caller opts into a tree view. */
+  replies?: Comment[];
 }
 
 /**
@@ -40,35 +43,55 @@ export function useCommentsTarget(config: CommentsTableConfig, targetId: string 
     setLoading(true);
     const { data, count: total } = await supabase
       .from(config.table)
-      .select('id, user_id, body, created_at, profile:profiles(username, display_name, avatar_url)', { count: 'exact' })
+      .select('id, user_id, body, created_at, parent_id, profile:profiles(username, display_name, avatar_url)', { count: 'exact' })
       .eq(config.targetColumn, targetId as any)
       .order('created_at', { ascending: true });
-    setComments((data ?? []) as any);
+
+    // Shape into a 2-level tree: top-level + flat list of replies under
+    // each parent. Nested replies beyond 1 level not supported in the UI
+    // so we flatten grandchildren to the top-level parent.
+    const all = (data ?? []) as unknown as Comment[];
+    const byParent = new Map<number, Comment[]>();
+    const topLevel: Comment[] = [];
+    for (const c of all) {
+      if (c.parent_id == null) topLevel.push({ ...c, replies: [] });
+      else {
+        const list = byParent.get(c.parent_id) ?? [];
+        list.push(c);
+        byParent.set(c.parent_id, list);
+      }
+    }
+    const tree = topLevel.map(t => ({ ...t, replies: byParent.get(t.id) ?? [] }));
+    setComments(tree);
     setCount(total ?? 0);
     setLoading(false);
   }, [config.table, config.targetColumn, targetId]);
 
   useEffect(() => { load(); }, [load]);
 
-  async function add(body: string): Promise<boolean> {
+  async function add(body: string, parentId?: number | null): Promise<boolean> {
     const trimmed = body.trim();
     if (!user || targetId == null || !trimmed) return false;
     if (tooFast(`comment:${config.table}`)) {
       Alert.alert('Slow down', "Too many comments too quickly. Try again in a minute.");
       return false;
     }
-    const { data, error } = await supabase
-      .from(config.table)
-      .insert({ [config.targetColumn]: targetId, user_id: user.id, body: trimmed } as any)
-      .select('id, user_id, body, created_at, profile:profiles(username, display_name, avatar_url)')
-      .single();
-    if (error || !data) {
-      console.error(`[useCommentsTarget:${config.table}]`, error?.message);
-      reportError(config.table, error?.message);
+    const payload: Record<string, unknown> = {
+      [config.targetColumn]: targetId,
+      user_id: user.id,
+      body: trimmed,
+    };
+    if (parentId != null) payload.parent_id = parentId;
+
+    const { error } = await supabase.from(config.table).insert(payload as any);
+    if (error) {
+      console.error(`[useCommentsTarget:${config.table}]`, error.message);
+      reportError(config.table, error.message);
       return false;
     }
-    setComments(prev => [...prev, data as any]);
-    setCount(c => c + 1);
+    // Reload to get the correctly threaded tree back — optimistic merging
+    // into a 2-level tree by hand is more fiddly than the round-trip cost.
+    await load();
     return true;
   }
 
@@ -78,8 +101,7 @@ export function useCommentsTarget(config: CommentsTableConfig, targetId: string 
       console.error(`[useCommentsTarget:${config.table}]`, error.message);
       return false;
     }
-    setComments(prev => prev.filter(c => c.id !== commentId));
-    setCount(c => Math.max(0, c - 1));
+    await load();
     return true;
   }
 

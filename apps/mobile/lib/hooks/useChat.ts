@@ -69,12 +69,6 @@ export function useChat(roomId: number | null) {
         filter: `room_id=eq.${roomId}`,
       }, async (payload) => {
         const msg = payload.new as any;
-        // Prevent duplicates
-        setMessages(prev => {
-          if (prev.some(m => m.id === msg.id)) return prev;
-          return prev;
-        });
-        // Get profile and add
         const { data: profile } = await supabase
           .from('profiles')
           .select('id, username, display_name, avatar_url')
@@ -91,26 +85,28 @@ export function useChat(roomId: number | null) {
     return () => { supabase.removeChannel(channel); };
   }, [roomId]);
 
-  // Send message
+  // Send message with optimistic update
   async function sendMessage(content: string) {
     if (!user || !roomId || !content.trim()) return;
 
-    const { error } = await supabase.from('chat_messages').insert({
-      room_id: roomId,
-      user_id: user.id,
-      content: content.trim(),
-    });
+    const { data } = await supabase
+      .from('chat_messages')
+      .insert({
+        room_id: roomId,
+        user_id: user.id,
+        content: content.trim(),
+      })
+      .select()
+      .single();
 
-    // Fallback: reload if realtime didn't catch it within 2 seconds
-    if (!error) {
-      setTimeout(() => {
-        setMessages(prev => {
-          // Only reload if the message we just sent isn't in the list
-          return prev;
-        });
-        loadMessages();
-      }, 2000);
-    }
+    if (!data) return;
+
+    // Own message: UI doesn't show avatar/username for 'mine', so skip profile fetch.
+    // Realtime echo is deduped by id check in the subscription handler.
+    setMessages(prev => {
+      if (prev.some(m => m.id === data.id)) return prev;
+      return [...prev, data];
+    });
   }
 
   return { messages, loading, sendMessage, loadMessages };
@@ -153,50 +149,25 @@ export async function getGatheringChatRoom(gatheringId: number, userId: string):
   return room.id;
 }
 
-// Get or create a DM room between two users
-export async function getDMRoom(userId1: string, userId2: string): Promise<number | null> {
-  // Find existing DM room where both users are members
-  const { data: rooms1 } = await supabase
-    .from('chat_members')
-    .select('room_id')
-    .eq('user_id', userId1);
-
-  if (rooms1) {
-    for (const r of rooms1) {
-      const { data: room } = await supabase
-        .from('chat_rooms')
-        .select('id')
-        .eq('id', r.room_id)
-        .eq('type', 'dm')
-        .single();
-
-      if (room) {
-        const { data: other } = await supabase
-          .from('chat_members')
-          .select('user_id')
-          .eq('room_id', room.id)
-          .eq('user_id', userId2)
-          .single();
-
-        if (other) return room.id;
-      }
-    }
+// Get or create a DM room between two users.
+// Delegates to SECURITY DEFINER RPC `create_dm_room` so members are inserted
+// atomically under proper auth. Client-side, we can only self-insert into chat_members.
+// Signature preserved (userId1 is expected to be the caller / auth.uid()).
+//
+// Returns `{ roomId }` on success or `{ error }` with the raw message so
+// callers can surface it — silent nulls mask the common "RPC missing"
+// and "not authenticated" failure modes.
+export async function getDMRoom(
+  _userId1: string,
+  userId2: string,
+): Promise<{ roomId: number; error?: never } | { roomId?: never; error: string }> {
+  const { data, error } = await supabase.rpc('create_dm_room', {
+    p_other_user_id: userId2,
+  });
+  if (error) {
+    console.error('[getDMRoom] rpc error:', error.message);
+    return { error: error.message };
   }
-
-  // Create new DM room
-  const { data: room, error } = await supabase
-    .from('chat_rooms')
-    .insert({ type: 'dm' })
-    .select()
-    .single();
-
-  if (error || !room) return null;
-
-  // Add both users
-  await supabase.from('chat_members').insert([
-    { room_id: room.id, user_id: userId1 },
-    { room_id: room.id, user_id: userId2 },
-  ]);
-
-  return room.id;
+  if (data == null) return { error: 'DM 방을 만들지 못했습니다.' };
+  return { roomId: data as number };
 }

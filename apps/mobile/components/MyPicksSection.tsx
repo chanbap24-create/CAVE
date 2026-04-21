@@ -94,12 +94,12 @@ export function MyPicksSection({ picks, editable = false, onAdd, onRemove, wines
 }
 
 const styles = StyleSheet.create({
-  container: { marginBottom: 16 },
+  container: { marginTop: 10, marginBottom: 8 },
   header: {
     flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
-    paddingHorizontal: 20, marginBottom: 12,
+    paddingHorizontal: 20, marginBottom: 6,
   },
-  title: { fontSize: 15, fontWeight: '700', color: '#222' },
+  title: { fontSize: 11, fontWeight: '700', color: '#999', textTransform: 'uppercase', letterSpacing: 0.8 },
   addText: { fontSize: 13, fontWeight: '600', color: '#7b2d4e' },
 
   emptyRow: { paddingHorizontal: 20 },

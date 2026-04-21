@@ -46,8 +46,9 @@ export function CaveHero({ bottles, summary }: Props) {
 const styles = StyleSheet.create({
   wrap: {
     flexDirection: 'row', alignItems: 'center', gap: 20,
-    paddingVertical: 18, paddingHorizontal: 20,
-    borderBottomWidth: 1, borderBottomColor: '#efefef',
+    paddingVertical: 12, paddingHorizontal: 20,
+    borderTopWidth: 1, borderBottomWidth: 1, borderColor: '#efefef',
+    marginTop: 6,
   },
   left: { alignItems: 'center', minWidth: 72 },
   bottles: { fontSize: 32, fontWeight: '700', color: '#222', lineHeight: 36 },

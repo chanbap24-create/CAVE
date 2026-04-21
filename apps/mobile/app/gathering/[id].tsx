@@ -13,6 +13,7 @@ import { ChangeWineRequestSheet } from '@/components/ChangeWineRequestSheet';
 import { PendingApprovalsSection } from '@/components/PendingApprovalsSection';
 import { MyCollectionPickerSheet } from '@/components/MyCollectionPickerSheet';
 import { GatheringInfoCard } from '@/components/GatheringInfoCard';
+import { UserCellarSheet } from '@/components/UserCellarSheet';
 import { useGatheringApprovals } from '@/lib/hooks/useGatheringApprovals';
 import type { LineupEntry } from '@/lib/hooks/useGatheringDetail';
 import { ScreenHeader, BackButton } from '@/components/ScreenHeader';
@@ -33,6 +34,8 @@ export default function GatheringDetailScreen() {
   const [chatLoading, setChatLoading] = useState(false);
   const [changeTarget, setChangeTarget] = useState<LineupEntry | null>(null);
   const [revealTarget, setRevealTarget] = useState<LineupEntry | null>(null);
+  const [activeSection, setActiveSection] = useState<'wines' | 'members'>('wines');
+  const [cellarUserId, setCellarUserId] = useState<string | null>(null);
 
   useEffect(() => {
     if (id) { loadGathering(); loadMembers(); loadApprovals(); }
@@ -133,7 +136,15 @@ export default function GatheringDetailScreen() {
 
   return (
     <View style={styles.container}>
-      <ScreenHeader title="Gathering" left={<BackButton fallbackPath="/(tabs)/gatherings" />} />
+      <ScreenHeader
+        title="Gathering"
+        left={
+          // Default behavior: pop to wherever the user came from
+          // (home feed, notifications, list). Fallback path only kicks
+          // in when there's no history (cold-boot deep link).
+          <BackButton fallbackPath="/(tabs)/gatherings" />
+        }
+      />
 
       <ScrollView>
         <GatheringInfoCard
@@ -145,56 +156,111 @@ export default function GatheringDetailScreen() {
           onOpenChat={handleOpenChat}
         />
 
-        {/* Wine Lineup — host slots + approved attendees */}
-        <GatheringWineLineup
-          entries={lineup}
-          currentUserId={user?.id}
-          pendingChangeIds={
-            new Set(approvals
-              .filter(a => a.request_type === 'wine_change' && a.target_contribution_id != null)
-              .map(a => a.target_contribution_id as number))
-          }
-          onRequestChange={(entry) => setChangeTarget(entry)}
-          onRevealBlind={(entry) => setRevealTarget(entry)}
-        />
-
+        {/* Approval alerts stay visible across tabs — they're notifications,
+            not browsable content. */}
         <PendingApprovalsSection
           approvals={approvals}
           currentUserId={user?.id}
           canVote={isHost || myStatus === 'approved'}
           onVote={async (aid, v) => {
             const ok = await castVote(aid, v);
-            // A unanimous approve mutates the contribution, so reload the
-            // lineup too. A reject just resolves the approval.
             if (ok) await loadMembers();
             return ok;
           }}
           onCancel={cancelRequest}
         />
 
-        {/* Approved Members */}
-        {approvedMembers.length > 0 && (
-          <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Members ({approvedMembers.length})</Text>
-            {approvedMembers.map(m => (
-              <ApplicantRow key={m.user_id} member={m} />
-            ))}
-          </View>
-        )}
+        {/* Tab switcher: Wine Lineup vs Members. Replaces the previous
+            stacked-sections layout so the detail page feels more like a
+            community board with two panes. */}
+        <View style={styles.tabRow}>
+          <Pressable
+            style={[styles.tab, activeSection === 'wines' && styles.tabActive]}
+            onPress={() => setActiveSection('wines')}
+          >
+            <Text style={[styles.tabText, activeSection === 'wines' && styles.tabTextActive]}>
+              Wine Lineup ({lineup.length})
+            </Text>
+          </Pressable>
+          <Pressable
+            style={[styles.tab, activeSection === 'members' && styles.tabActive]}
+            onPress={() => setActiveSection('members')}
+          >
+            <Text style={[styles.tabText, activeSection === 'members' && styles.tabTextActive]}>
+              Members ({approvedMembers.length + (host ? 1 : 0)}
+              {isHost && pendingMembers.length > 0 ? ` · +${pendingMembers.length} pending` : ''})
+            </Text>
+          </Pressable>
+        </View>
 
-        {/* Host: Pending Applicants */}
-        {isHost && pendingMembers.length > 0 && (
+        {activeSection === 'wines' ? (
+          <GatheringWineLineup
+            entries={lineup}
+            currentUserId={user?.id}
+            pendingChangeIds={
+              new Set(approvals
+                .filter(a => a.request_type === 'wine_change' && a.target_contribution_id != null)
+                .map(a => a.target_contribution_id as number))
+            }
+            onRequestChange={(entry) => setChangeTarget(entry)}
+            onRevealBlind={(entry) => setRevealTarget(entry)}
+          />
+        ) : (
           <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Pending ({pendingMembers.length})</Text>
-            {pendingMembers.map(m => (
+            {/* Synthesize a row for the host so they show up alongside
+                approved members — gathering_members doesn't have a host
+                row by design. First committed host lineup entry (if any)
+                is surfaced as their contribution. */}
+            {host ? (
               <ApplicantRow
-                key={m.user_id}
-                member={m}
-                showActions
-                onApprove={() => respondToApplicant(m.user_id, true)}
-                onReject={() => respondToApplicant(m.user_id, false)}
+                key={`host-${gathering.host_id}`}
+                onAvatarPress={setCellarUserId}
+                member={{
+                  user_id: gathering.host_id,
+                  status: 'host',
+                  message: null,
+                  profile: {
+                    username: host.username,
+                    display_name: host.display_name ?? null,
+                    avatar_url: host.avatar_url ?? null,
+                    collection_count: host.collection_count ?? 0,
+                  },
+                  contribution: (() => {
+                    const hostEntry = lineup.find(e => e.is_host);
+                    if (!hostEntry) return null;
+                    return {
+                      collection_id: hostEntry.collection_id,
+                      is_blind: hostEntry.is_blind,
+                      status: hostEntry.status,
+                      wine: hostEntry.wine ?? null,
+                      collection_photo_url: hostEntry.collection_photo_url ?? null,
+                    };
+                  })(),
+                }}
               />
+            ) : null}
+
+            {approvedMembers.length === 0 && (!isHost || pendingMembers.length === 0) && !host ? (
+              <Text style={styles.emptyMembers}>아직 참가자가 없습니다.</Text>
+            ) : null}
+            {approvedMembers.map(m => (
+              <ApplicantRow key={m.user_id} member={m} onAvatarPress={setCellarUserId} />
             ))}
+            {isHost && pendingMembers.length > 0 && (
+              <>
+                <Text style={styles.pendingLabel}>Pending ({pendingMembers.length})</Text>
+                {pendingMembers.map(m => (
+                  <ApplicantRow
+                    key={m.user_id}
+                    member={m}
+                    showActions
+                    onApprove={() => respondToApplicant(m.user_id, true)}
+                    onReject={() => respondToApplicant(m.user_id, false)}
+                    onAvatarPress={setCellarUserId}
+                  />
+                ))}
+              </>
+            )}
           </View>
         )}
 
@@ -263,6 +329,12 @@ export default function GatheringDetailScreen() {
           if (ok) setRevealTarget(null);
         }}
       />
+
+      <UserCellarSheet
+        visible={cellarUserId != null}
+        userId={cellarUserId}
+        onClose={() => setCellarUserId(null)}
+      />
     </View>
   );
 }
@@ -273,6 +345,23 @@ const styles = StyleSheet.create({
 
   section: { paddingHorizontal: 20, paddingTop: 8 },
   sectionTitle: { fontSize: 15, fontWeight: '700', color: '#222', marginBottom: 12 },
+
+  tabRow: {
+    flexDirection: 'row', gap: 16,
+    paddingHorizontal: 20, paddingTop: 16,
+    borderBottomWidth: 1, borderBottomColor: '#efefef',
+  },
+  tab: { paddingVertical: 10, paddingHorizontal: 2 },
+  tabActive: { borderBottomWidth: 2, borderBottomColor: '#222', marginBottom: -1 },
+  tabText: { fontSize: 14, fontWeight: '500', color: '#bbb' },
+  tabTextActive: { color: '#222', fontWeight: '700' },
+
+  emptyMembers: { textAlign: 'center', color: '#bbb', paddingVertical: 24, fontSize: 13 },
+  pendingLabel: {
+    fontSize: 11, fontWeight: '700', color: '#999',
+    textTransform: 'uppercase', letterSpacing: 0.8,
+    marginTop: 18, marginBottom: 4,
+  },
 
   bottomBar: { padding: 20, paddingBottom: 34, borderTopWidth: 1, borderTopColor: '#efefef' },
   applyBtn: { backgroundColor: '#7b2d4e', padding: 16, borderRadius: 12, alignItems: 'center' },

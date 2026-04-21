@@ -3,6 +3,7 @@ import { View, Text, StyleSheet, Pressable } from 'react-native';
 import { Image } from 'expo-image';
 import { TasteCard } from './TasteCard';
 import { WineDetailSheet } from './WineDetailSheet';
+import { FollowButton } from '@/components/FollowButton';
 import { useTasteProfile } from '@/lib/hooks/useTasteProfile';
 
 interface Member {
@@ -38,9 +39,11 @@ interface Props {
   showActions?: boolean;
   onApprove?: () => void;
   onReject?: () => void;
+  /** Avatar tap handler — typically opens the user's cellar in a sheet. */
+  onAvatarPress?: (userId: string) => void;
 }
 
-export function ApplicantRow({ member, showActions, onApprove, onReject }: Props) {
+export function ApplicantRow({ member, showActions, onApprove, onReject, onAvatarPress }: Props) {
   const p = member.profile;
   const initial = p?.display_name?.[0]?.toUpperCase() || p?.username?.[0]?.toUpperCase() || '?';
   const { taste, loadTaste } = useTasteProfile(member.user_id);
@@ -64,13 +67,25 @@ export function ApplicantRow({ member, showActions, onApprove, onReject }: Props
   return (
     <View style={styles.applicant}>
       <Pressable style={styles.top} onPress={() => setExpanded(!expanded)}>
-        {p?.avatar_url ? (
-          <Image source={p.avatar_url} style={styles.avatarImg} contentFit="cover" cachePolicy="memory-disk" transition={150} />
-        ) : (
-          <View style={styles.avatar}>
-            <Text style={styles.avatarText}>{initial}</Text>
-          </View>
-        )}
+        {/* Wrap the avatar in its own Pressable so tapping it opens the
+            user's cellar sheet; tapping the rest of the row toggles the
+            expand/collapse. stopPropagation keeps the two gestures clean. */}
+        <Pressable
+          hitSlop={4}
+          onPress={(e) => {
+            e.stopPropagation?.();
+            onAvatarPress?.(member.user_id);
+          }}
+          disabled={!onAvatarPress}
+        >
+          {p?.avatar_url ? (
+            <Image source={p.avatar_url} style={styles.avatarImg} contentFit="cover" cachePolicy="memory-disk" transition={150} />
+          ) : (
+            <View style={styles.avatar}>
+              <Text style={styles.avatarText}>{initial}</Text>
+            </View>
+          )}
+        </Pressable>
         <View style={styles.info}>
           <Text style={styles.name}>{p?.username || 'unknown'}</Text>
           <View style={styles.badgeRow}>
@@ -82,17 +97,25 @@ export function ApplicantRow({ member, showActions, onApprove, onReject }: Props
             {badges.length === 0 && <Text style={styles.noBadge}>No badges yet</Text>}
           </View>
         </View>
-        {member.status === 'approved' && (
-          <View style={styles.joinedBadge}>
-            <Text style={styles.joinedText}>Joined</Text>
-          </View>
-        )}
+        <View style={styles.rightSlot}>
+          {member.status === 'host' ? (
+            <View style={styles.hostBadge}>
+              <Text style={styles.hostBadgeText}>Host</Text>
+            </View>
+          ) : member.status === 'approved' ? (
+            <View style={styles.joinedBadge}>
+              <Text style={styles.joinedText}>Joined</Text>
+            </View>
+          ) : null}
+          {/* FollowButton self-guards (hides for the viewer's own row). */}
+          <FollowButton targetUserId={member.user_id} size="small" />
+        </View>
       </Pressable>
 
-      {/* Expanded: full taste card */}
-      {expanded && taste && <TasteCard taste={taste} compact />}
-
-      {member.contribution && (
+      {/* Expanded: only the wine card. Taste / country breakdown used to
+          show here but felt like clutter for the Members tab — badges
+          next to the name already signal the viewer's collecting vibe. */}
+      {expanded && member.contribution && (
         <Pressable
           style={({ pressed }) => [styles.wineCard, pressed && styles.wineCardPressed]}
           onPress={() => {
@@ -158,10 +181,9 @@ export function ApplicantRow({ member, showActions, onApprove, onReject }: Props
         broughtBy={p?.username ? `@${p.username}` : undefined}
       />
 
-
-      {member.message && (
-        <Text style={styles.message}>"{member.message}"</Text>
-      )}
+      {/* Application message intentionally not rendered in the row — the
+          host can still see it by tapping Accept/Decline, and listing it
+          clutters the Members tab. */}
 
       {showActions && (
         <View style={styles.actionRow}>
@@ -192,8 +214,11 @@ const styles = StyleSheet.create({
   badge: { backgroundColor: '#f7f0f3', paddingHorizontal: 8, paddingVertical: 2, borderRadius: 8 },
   badgeText: { fontSize: 10, fontWeight: '600', color: '#7b2d4e' },
   noBadge: { fontSize: 10, color: '#ccc' },
+  rightSlot: { flexDirection: 'row', alignItems: 'center', gap: 6 },
   joinedBadge: { backgroundColor: '#e8f5e9', paddingHorizontal: 10, paddingVertical: 4, borderRadius: 8 },
   joinedText: { fontSize: 11, fontWeight: '600', color: '#2e7d32' },
+  hostBadge: { backgroundColor: '#7b2d4e', paddingHorizontal: 10, paddingVertical: 4, borderRadius: 8 },
+  hostBadgeText: { fontSize: 11, fontWeight: '600', color: '#fff' },
   message: {
     fontSize: 13, color: '#555', lineHeight: 19,
     backgroundColor: '#fafaf8', padding: 10, borderRadius: 10,

@@ -4,6 +4,7 @@ import { View, StyleSheet } from 'react-native';
 import { colors } from '@/constants/theme';
 import { useUnreadDM } from '@/lib/hooks/useUnreadDM';
 import { useUnreadGathering } from '@/lib/hooks/useUnreadGathering';
+import { useUnreadCellarSocial } from '@/lib/hooks/useUnreadCellarSocial';
 import Svg, { Path, Circle, Line, Rect, Polyline, Ellipse } from 'react-native-svg';
 
 function HomeIcon({ focused }: { focused: boolean }) {
@@ -46,13 +47,16 @@ function MessageIcon({ focused, hasUnread }: { focused: boolean; hasUnread: bool
   );
 }
 
-function CaveIcon({ focused }: { focused: boolean }) {
+function CaveIcon({ focused, hasUnread }: { focused: boolean; hasUnread: boolean }) {
   return (
-    <Svg width={26} height={26} fill="none" stroke={focused ? '#222' : '#999'} strokeWidth={focused ? 2.2 : 1.8} viewBox="0 0 24 24">
-      <Path d="M3 22V12a9 9 0 0 1 18 0v10" />
-      <Path d="M7 22v-6a5 5 0 0 1 10 0v6" />
-      <Line x1={2} y1={22} x2={22} y2={22} />
-    </Svg>
+    <View>
+      <Svg width={26} height={26} fill="none" stroke={focused ? '#222' : '#999'} strokeWidth={focused ? 2.2 : 1.8} viewBox="0 0 24 24">
+        <Path d="M3 22V12a9 9 0 0 1 18 0v10" />
+        <Path d="M7 22v-6a5 5 0 0 1 10 0v6" />
+        <Line x1={2} y1={22} x2={22} y2={22} />
+      </Svg>
+      {hasUnread && <View style={styles.unreadDot} />}
+    </View>
   );
 }
 
@@ -82,9 +86,14 @@ function ProfileIcon({ focused }: { focused: boolean }) {
 export default function TabLayout() {
   const { hasUnread, checkUnread } = useUnreadDM();
   const { hasUnread: hasUnreadGathering, checkUnread: checkUnreadGathering } = useUnreadGathering();
+  const { hasUnread: hasUnreadCellar, checkUnread: checkUnreadCellar } = useUnreadCellarSocial();
 
   useFocusEffect(
-    useCallback(() => { checkUnread(); checkUnreadGathering(); }, [])
+    useCallback(() => {
+      checkUnread();
+      checkUnreadGathering();
+      checkUnreadCellar();
+    }, [])
   );
 
   return (
@@ -122,7 +131,7 @@ export default function TabLayout() {
       <Tabs.Screen
         name="cellar"
         options={{
-          tabBarIcon: ({ focused }) => <CaveIcon focused={focused} />,
+          tabBarIcon: ({ focused }) => <CaveIcon focused={focused} hasUnread={hasUnreadCellar} />,
         }}
       />
       <Tabs.Screen

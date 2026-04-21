@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, Text, Pressable, TextInput, StyleSheet } from 'react-native';
+import { View, Text, Pressable, TextInput, StyleSheet, ScrollView } from 'react-native';
 import { Image } from 'expo-image';
 
 // ---------- Stage 1: pick a wine from the cellar ----------
@@ -12,28 +12,37 @@ interface WineStepProps {
 }
 
 export function PickWineStep({ wines, search, onSearchChange, onSelect }: WineStepProps) {
-  // Show recent bottles by default so the sheet isn't empty on open.
+  // No artificial cap on results — the list is scrollable, so let the user
+  // see everything they own. Slicing hid bottles at the bottom of big cellars.
   const filtered = search.length >= 1
     ? wines.filter(w => {
         const name = w.wine?.name || w.name || '';
         return name.toLowerCase().includes(search.toLowerCase());
-      }).slice(0, 8)
-    : wines.slice(0, 8);
+      })
+    : wines;
 
   return (
     <View style={styles.body}>
+      {/* No autoFocus — opening the keyboard immediately shrinks the
+          wine list to a narrow band and forces scrolling before a pick.
+          Users scan visually first, tap the input only if they need to
+          narrow down. */}
       <TextInput
         style={styles.searchInput}
         placeholder="Search your collection..."
         placeholderTextColor="#bbb"
         value={search}
         onChangeText={onSearchChange}
-        autoFocus
       />
       {filtered.length === 0 ? (
         <Text style={styles.empty}>No bottles in your cellar yet</Text>
       ) : (
-        filtered.map((w: any) => <WineRow key={w.wine_id || w.id} w={w} onPress={() => onSelect(w)} />)
+        <ScrollView style={styles.list} keyboardShouldPersistTaps="handled">
+          {filtered.map((w: any) => (
+            <WineRow key={w.wine_id || w.id} w={w} onPress={() => onSelect(w)} />
+          ))}
+          <View style={{ height: 12 }} />
+        </ScrollView>
       )}
     </View>
   );
@@ -119,7 +128,9 @@ export function PickPhotoStep(p: PhotoStepProps) {
 }
 
 const styles = StyleSheet.create({
-  body: { padding: 20 },
+  body: { padding: 20, flexShrink: 1 },
+  // Cap the scrollable list so keyboard + sheet chrome still fit on screen.
+  list: { maxHeight: 360 },
 
   searchInput: {
     backgroundColor: '#f5f5f5', borderRadius: 10,

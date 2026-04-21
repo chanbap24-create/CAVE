@@ -1,6 +1,8 @@
 import React from 'react';
 import { View, Text, Pressable, ScrollView, RefreshControl, StyleSheet } from 'react-native';
+import Svg, { Path } from 'react-native-svg';
 import { CATEGORY_LABELS } from '@/lib/constants/drinkCategories';
+import type { CollectionSocial } from '@/lib/hooks/useCollectionSocial';
 
 const labelMap = CATEGORY_LABELS;
 const typeColors: Record<string, string> = {
@@ -14,10 +16,13 @@ interface Props {
   collections: any[];
   refreshing: boolean;
   onRefresh: () => void;
+  onPressRow?: (collection: any) => void;
   onLongPressRow: (collectionId: number, hasPhoto: boolean) => void;
+  /** Optional batched social counts for inline like/comment stats. */
+  social?: CollectionSocial;
 }
 
-export function CellarList({ collections, refreshing, onRefresh, onLongPressRow }: Props) {
+export function CellarList({ collections, refreshing, onRefresh, onPressRow, onLongPressRow, social }: Props) {
   if (collections.length === 0) {
     return (
       <View style={styles.empty}>
@@ -39,6 +44,7 @@ export function CellarList({ collections, refreshing, onRefresh, onLongPressRow 
           <Pressable
             key={c.id}
             style={styles.listItem}
+            onPress={() => onPressRow?.(c)}
             onLongPress={() => onLongPressRow(c.id, !!c.photo_url)}
           >
             <View style={[styles.listDot, { backgroundColor: typeColor }]} />
@@ -52,12 +58,47 @@ export function CellarList({ collections, refreshing, onRefresh, onLongPressRow 
             <View style={styles.listRight}>
               <Text style={[styles.listType, { color: typeColor }]}>{labelMap[w.category] || w.category}</Text>
               {w.alcohol_pct && <Text style={styles.listAlc}>{w.alcohol_pct}%</Text>}
+              {social && <SocialCounts liked={social.get(c.id).liked} likes={social.get(c.id).likes} comments={social.get(c.id).comments} />}
             </View>
           </Pressable>
         );
       })}
       <View style={{ height: 20 }} />
     </ScrollView>
+  );
+}
+
+function SocialCounts({
+  liked, likes, comments,
+}: { liked: boolean; likes: number; comments: number }) {
+  // Zero-state is common when others haven't engaged yet; keep the row
+  // visually calm by not showing counts that are both zero.
+  if (likes === 0 && comments === 0) return null;
+  return (
+    <View style={styles.statsRow}>
+      {likes > 0 && (
+        <View style={styles.statItem}>
+          <Svg width={12} height={12} viewBox="0 0 24 24">
+            <Path
+              d="M12 21s-7.5-4.35-9.5-9.5C1.3 8.3 3.5 5 7 5c2 0 3.5 1 5 3 1.5-2 3-3 5-3 3.5 0 5.7 3.3 4.5 6.5C19.5 16.65 12 21 12 21z"
+              fill={liked ? '#ed4956' : 'none'}
+              stroke={liked ? '#ed4956' : '#bbb'}
+              strokeWidth={1.8}
+              strokeLinejoin="round"
+            />
+          </Svg>
+          <Text style={[styles.statText, liked && { color: '#ed4956' }]}>{likes}</Text>
+        </View>
+      )}
+      {comments > 0 && (
+        <View style={styles.statItem}>
+          <Svg width={12} height={12} fill="none" stroke="#bbb" strokeWidth={1.8} viewBox="0 0 24 24">
+            <Path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
+          </Svg>
+          <Text style={styles.statText}>{comments}</Text>
+        </View>
+      )}
+    </View>
   );
 }
 
@@ -89,4 +130,8 @@ const styles = StyleSheet.create({
   listRight: { alignItems: 'flex-end' },
   listType: { fontSize: 11, fontWeight: '600' },
   listAlc: { fontSize: 10, color: '#bbb', marginTop: 2 },
+
+  statsRow: { flexDirection: 'row', gap: 8, marginTop: 4 },
+  statItem: { flexDirection: 'row', alignItems: 'center', gap: 3 },
+  statText: { fontSize: 10, color: '#999', fontWeight: '500' },
 });

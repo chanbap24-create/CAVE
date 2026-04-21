@@ -1,7 +1,9 @@
 import React, { useState } from 'react';
 import {
   View, Text, TextInput, Pressable, Modal, StyleSheet, Alert,
+  KeyboardAvoidingView, Platform, ScrollView,
 } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Image } from 'expo-image';
 import { MyCollectionPickerSheet } from '@/components/MyCollectionPickerSheet';
 import type { MyCollectionItem } from '@/lib/hooks/useMyCollectionPicker';
@@ -36,6 +38,7 @@ export function ApplyGatheringSheet({ visible, gatheringType, onClose, onSubmit 
   const [picked, setPicked] = useState<PickedWine | null>(null);
   const [pickerOpen, setPickerOpen] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  const insets = useSafeAreaInsets();
 
   function handlePick(item: MyCollectionItem) {
     setPicked({
@@ -77,10 +80,24 @@ export function ApplyGatheringSheet({ visible, gatheringType, onClose, onSubmit 
   return (
     <Modal visible={visible} animationType="slide" transparent>
       <Pressable style={styles.backdrop} onPress={onClose} />
-      <View style={styles.sheet}>
-        <View style={styles.handle} />
-        <Text style={styles.title}>Apply to Join</Text>
-        <Text style={styles.desc}>Send a message to the host</Text>
+      <KeyboardAvoidingView
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        style={styles.avoidingWrap}
+        pointerEvents="box-none"
+      >
+        <View style={styles.sheet}>
+          <ScrollView
+            keyboardShouldPersistTaps="handled"
+            contentContainerStyle={[
+              styles.scroll,
+              // Keep the Send Request button above the home indicator.
+              { paddingBottom: 20 + Math.max(insets.bottom, 16) },
+            ]}
+            showsVerticalScrollIndicator={false}
+          >
+            <View style={styles.handle} />
+            <Text style={styles.title}>Apply to Join</Text>
+            <Text style={styles.desc}>Send a message to the host</Text>
 
         <TextInput
           style={styles.messageInput}
@@ -130,14 +147,16 @@ export function ApplyGatheringSheet({ visible, gatheringType, onClose, onSubmit 
           </Pressable>
         )}
 
-        <Pressable
-          style={[styles.submitBtn, submitting && { opacity: 0.5 }]}
-          onPress={handleSubmit}
-          disabled={submitting}
-        >
-          <Text style={styles.submitText}>{submitting ? 'Sending...' : 'Send Request'}</Text>
-        </Pressable>
-      </View>
+            <Pressable
+              style={[styles.submitBtn, submitting && { opacity: 0.5 }]}
+              onPress={handleSubmit}
+              disabled={submitting}
+            >
+              <Text style={styles.submitText}>{submitting ? 'Sending...' : 'Send Request'}</Text>
+            </Pressable>
+          </ScrollView>
+        </View>
+      </KeyboardAvoidingView>
 
       <MyCollectionPickerSheet
         visible={pickerOpen}
@@ -150,11 +169,20 @@ export function ApplyGatheringSheet({ visible, gatheringType, onClose, onSubmit 
 }
 
 const styles = StyleSheet.create({
-  backdrop: { flex: 1, backgroundColor: 'rgba(0,0,0,0.3)' },
+  backdrop: { ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(0,0,0,0.3)' },
+  // Full-screen flex container anchored bottom so the keyboard push
+  // translates to the sheet sliding up rather than growing downward.
+  avoidingWrap: {
+    ...StyleSheet.absoluteFillObject,
+    justifyContent: 'flex-end',
+  },
   sheet: {
     backgroundColor: '#fff', borderTopLeftRadius: 20, borderTopRightRadius: 20,
-    padding: 20, paddingBottom: 40,
+    maxHeight: '85%',
   },
+  // Inner ScrollView lets users see content even when the keyboard push
+  // alone isn't enough (small screens, landscape).
+  scroll: { padding: 20 },
   handle: {
     width: 36, height: 4, borderRadius: 2,
     backgroundColor: '#ddd', alignSelf: 'center', marginBottom: 16,

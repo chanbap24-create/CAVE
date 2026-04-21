@@ -145,8 +145,15 @@ async function claudeExtract(imageUri: string): Promise<ExtractedWineInfo> {
   });
 
   if (!res.ok) {
-    const detail = await safeText(res);
-    throw new Error(`Vision request failed (${res.status}): ${detail}`);
+    // Try to pull out the `detail` field the Edge Function now returns.
+    // Fall back to raw text for older server builds.
+    const text = await safeText(res);
+    let msg = text;
+    try {
+      const parsed = JSON.parse(text);
+      msg = parsed?.detail ?? parsed?.error ?? text;
+    } catch { /* not JSON */ }
+    throw new Error(`Vision request failed (${res.status}): ${msg}`);
   }
 
   const raw = await res.json();

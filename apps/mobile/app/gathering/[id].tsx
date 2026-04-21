@@ -11,12 +11,12 @@ import { ApplyGatheringSheet } from '@/components/ApplyGatheringSheet';
 import { GatheringWineLineup } from '@/components/GatheringWineLineup';
 import { ChangeWineRequestSheet } from '@/components/ChangeWineRequestSheet';
 import { PendingApprovalsSection } from '@/components/PendingApprovalsSection';
+import { MyCollectionPickerSheet } from '@/components/MyCollectionPickerSheet';
+import { GatheringInfoCard } from '@/components/GatheringInfoCard';
 import { useGatheringApprovals } from '@/lib/hooks/useGatheringApprovals';
 import type { LineupEntry } from '@/lib/hooks/useGatheringDetail';
-import { UserAvatar } from '@/components/UserAvatar';
 import { ScreenHeader, BackButton } from '@/components/ScreenHeader';
-import { formatDateFull } from '@/lib/utils/dateUtils';
-import type { GatheringType } from '@/lib/types/gathering';
+import { type GatheringType } from '@/lib/types/gathering';
 
 export default function GatheringDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -24,11 +24,15 @@ export default function GatheringDetailScreen() {
   const { user } = useAuth();
   const [gathering, setGathering] = useState<any>(null);
   const [host, setHost] = useState<any>(null);
-  const { members, lineup, myStatus, loadMembers, applyToJoin, respondToApplicant, leaveGathering } = useGatheringDetail(parseInt(id!));
+  const {
+    members, lineup, myStatus,
+    loadMembers, applyToJoin, respondToApplicant, leaveGathering, revealBlindSlot,
+  } = useGatheringDetail(parseInt(id!));
   const { approvals, load: loadApprovals, requestWineChange, castVote, cancelRequest } = useGatheringApprovals(parseInt(id!));
   const [showApply, setShowApply] = useState(false);
   const [chatLoading, setChatLoading] = useState(false);
   const [changeTarget, setChangeTarget] = useState<LineupEntry | null>(null);
+  const [revealTarget, setRevealTarget] = useState<LineupEntry | null>(null);
 
   useEffect(() => {
     if (id) { loadGathering(); loadMembers(); loadApprovals(); }
@@ -112,82 +116,34 @@ export default function GatheringDetailScreen() {
   if (!gathering) return <View style={styles.container} />;
 
   const isHost = user?.id === gathering.host_id;
-  const isClosed = gathering.status === 'closed' || gathering.current_members >= gathering.max_members;
+  // Host takes up one slot too; DB only counts approved attendees.
+  const memberCount = gathering.current_members + 1;
+  const isClosed = gathering.status === 'closed' || memberCount >= gathering.max_members;
   const pendingMembers = members.filter(m => m.status === 'pending');
   const approvedMembers = members.filter(m => m.status === 'approved');
+
+  async function handleOpenChat() {
+    if (!user) return;
+    setChatLoading(true);
+    const roomId = await getGatheringChatRoom(parseInt(id!), user.id);
+    setChatLoading(false);
+    if (roomId) router.push(`/chat/${roomId}?title=${encodeURIComponent(gathering.title)}`);
+    else Alert.alert('Error', 'Could not open chat');
+  }
 
   return (
     <View style={styles.container}>
       <ScreenHeader title="Gathering" left={<BackButton fallbackPath="/(tabs)/gatherings" />} />
 
       <ScrollView>
-        {/* Info */}
-        <View style={styles.info}>
-          <Text style={styles.title}>{gathering.title}</Text>
-          {gathering.description && <Text style={styles.desc}>{gathering.description}</Text>}
-
-          <View style={styles.hostRow}>
-            <UserAvatar
-              uri={host?.avatar_url}
-              fallbackChar={host?.display_name?.[0]}
-              collectionCount={host?.collection_count || 0}
-              size="lg"
-            />
-            <View>
-              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-                <Text style={styles.hostName}>{host?.username}</Text>
-                {(() => {
-                  const b = getTopBadge(host?.collection_count || 0);
-                  return b ? (
-                    <View style={{ backgroundColor: b.bg, paddingHorizontal: 6, paddingVertical: 1, borderRadius: 6 }}>
-                      <Text style={{ fontSize: 9, fontWeight: '600', color: b.color }}>{b.name}</Text>
-                    </View>
-                  ) : null;
-                })()}
-              </View>
-              <Text style={styles.hostLabel}>Host</Text>
-            </View>
-          </View>
-
-          <View style={styles.detailsBox}>
-            <View style={styles.detailRow}>
-              <Text style={styles.detailLabel}>Date</Text>
-              <Text style={styles.detailValue}>{formatDateFull(gathering.gathering_date)}</Text>
-            </View>
-            <View style={styles.detailRow}>
-              <Text style={styles.detailLabel}>Location</Text>
-              <Text style={styles.detailValue}>{gathering.location}</Text>
-            </View>
-            <View style={styles.detailRow}>
-              <Text style={styles.detailLabel}>Members</Text>
-              <Text style={styles.detailValue}>{gathering.current_members} / {gathering.max_members}</Text>
-            </View>
-            {gathering.price_per_person && (
-              <View style={styles.detailRow}>
-                <Text style={styles.detailLabel}>Price</Text>
-                <Text style={styles.detailPrice}>{gathering.price_per_person.toLocaleString()}won</Text>
-              </View>
-            )}
-          </View>
-
-          {/* Chat button for host and approved members */}
-          {(isHost || myStatus === 'approved') && (
-            <Pressable
-              style={({ pressed }) => [styles.chatBtn, pressed && styles.chatBtnPressed]}
-              onPress={async () => {
-                if (!user) return;
-                setChatLoading(true);
-                const roomId = await getGatheringChatRoom(parseInt(id!), user.id);
-                setChatLoading(false);
-                if (roomId) router.push(`/chat/${roomId}?title=${encodeURIComponent(gathering.title)}`);
-                else Alert.alert('Error', 'Could not open chat');
-              }}
-              disabled={chatLoading}
-            >
-              <Text style={styles.chatBtnText}>{chatLoading ? 'Opening...' : 'Group Chat'}</Text>
-            </Pressable>
-          )}
-        </View>
+        <GatheringInfoCard
+          gathering={gathering}
+          host={host}
+          memberCount={memberCount}
+          canOpenChat={isHost || myStatus === 'approved'}
+          chatLoading={chatLoading}
+          onOpenChat={handleOpenChat}
+        />
 
         {/* Wine Lineup — host slots + approved attendees */}
         <GatheringWineLineup
@@ -199,6 +155,7 @@ export default function GatheringDetailScreen() {
               .map(a => a.target_contribution_id as number))
           }
           onRequestChange={(entry) => setChangeTarget(entry)}
+          onRevealBlind={(entry) => setRevealTarget(entry)}
         />
 
         <PendingApprovalsSection
@@ -295,6 +252,17 @@ export default function GatheringDetailScreen() {
           return requestWineChange(changeTarget.id, newCollectionId, note);
         }}
       />
+
+      <MyCollectionPickerSheet
+        visible={revealTarget != null}
+        title="블라인드 와인 공개"
+        onClose={() => setRevealTarget(null)}
+        onPick={async (item) => {
+          if (!revealTarget) return;
+          const ok = await revealBlindSlot(revealTarget.id, item.id);
+          if (ok) setRevealTarget(null);
+        }}
+      />
     </View>
   );
 }
@@ -302,29 +270,9 @@ export default function GatheringDetailScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#fff' },
-  info: { padding: 20 },
-  title: { fontSize: 22, fontWeight: '700', color: '#222', marginBottom: 8 },
-  desc: { fontSize: 14, color: '#666', lineHeight: 20, marginBottom: 16 },
-
-  hostRow: { flexDirection: 'row', alignItems: 'center', gap: 12, marginBottom: 16 },
-  hostName: { fontSize: 15, fontWeight: '600', color: '#222' },
-  hostLabel: { fontSize: 11, color: '#7b2d4e', fontWeight: '500' },
-
-  detailsBox: { backgroundColor: '#fafafa', borderRadius: 12, padding: 16, gap: 12 },
-  detailRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-  detailLabel: { fontSize: 13, color: '#999' },
-  detailValue: { fontSize: 13, fontWeight: '600', color: '#222' },
-  detailPrice: { fontSize: 15, fontWeight: '700', color: '#7b2d4e' },
 
   section: { paddingHorizontal: 20, paddingTop: 8 },
   sectionTitle: { fontSize: 15, fontWeight: '700', color: '#222', marginBottom: 12 },
-
-  chatBtn: {
-    backgroundColor: '#222', padding: 14, borderRadius: 10,
-    alignItems: 'center', marginTop: 16,
-  },
-  chatBtnPressed: { opacity: 0.6 },
-  chatBtnText: { color: '#fff', fontSize: 14, fontWeight: '600' },
 
   bottomBar: { padding: 20, paddingBottom: 34, borderTopWidth: 1, borderTopColor: '#efefef' },
   applyBtn: { backgroundColor: '#7b2d4e', padding: 16, borderRadius: 12, alignItems: 'center' },

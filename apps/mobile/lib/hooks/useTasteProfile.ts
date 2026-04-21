@@ -6,10 +6,20 @@ export interface TasteProfile {
   topCountries: string[];
   totalBottles: number;
   badgeProgress: { name: string; current: number; target: number }[];
+  /** Top-scoring country/region/wine_type/category for the compact hero
+   *  summary. Null when there's no non-null value to rank. */
+  topCategory: string | null;
+  topCountry: string | null;
+  topRegion: string | null;
+  topWineType: string | null;
 }
 
 const labelMap: Record<string, string> = {
   wine: 'Wine', spirit: 'Spirit', traditional: 'Traditional', other: 'Other',
+};
+const wineTypeLabels: Record<string, string> = {
+  red: 'Red', white: 'White', rose: 'Rosé', sparkling: 'Sparkling',
+  dessert: 'Dessert', fortified: 'Fortified', orange: 'Orange',
 };
 
 export function useTasteProfile(userId?: string) {
@@ -22,7 +32,7 @@ export function useTasteProfile(userId?: string) {
 
     const { data: collections } = await supabase
       .from('collections')
-      .select('wine_id, wines(category, country, region)')
+      .select('wine_id, wines(category, country, region, wine_type)')
       .eq('user_id', userId);
 
     if (!collections || collections.length === 0) {
@@ -34,13 +44,30 @@ export function useTasteProfile(userId?: string) {
     // Category breakdown
     const catCounts: Record<string, number> = {};
     const countryCounts: Record<string, number> = {};
+    const regionCounts: Record<string, number> = {};
+    const wineTypeCounts: Record<string, number> = {};
 
     collections.forEach((c: any) => {
       const cat = c.wines?.category;
       const country = c.wines?.country;
+      const region = c.wines?.region;
+      const wineType = c.wines?.wine_type;
       if (cat) catCounts[cat] = (catCounts[cat] || 0) + 1;
       if (country) countryCounts[country] = (countryCounts[country] || 0) + 1;
+      if (region) regionCounts[region] = (regionCounts[region] || 0) + 1;
+      if (wineType) wineTypeCounts[wineType] = (wineTypeCounts[wineType] || 0) + 1;
     });
+
+    const topKey = (counts: Record<string, number>): string | null => {
+      const entries = Object.entries(counts);
+      if (entries.length === 0) return null;
+      entries.sort((a, b) => b[1] - a[1]);
+      return entries[0][0];
+    };
+    const topCategoryRaw = topKey(catCounts);
+    const topCountry = topKey(countryCounts);
+    const topRegion = topKey(regionCounts);
+    const topWineTypeRaw = topKey(wineTypeCounts);
 
     const total = collections.length;
     const categoryBreakdown = Object.entries(catCounts)
@@ -73,7 +100,16 @@ export function useTasteProfile(userId?: string) {
     else if (uniqueCountries < 10) badgeProgress.push({ name: 'Globe Trotter', current: uniqueCountries, target: 10 });
     else if (uniqueCountries < 20) badgeProgress.push({ name: 'World Master', current: uniqueCountries, target: 20 });
 
-    setTaste({ categoryBreakdown, topCountries, totalBottles: total, badgeProgress });
+    setTaste({
+      categoryBreakdown,
+      topCountries,
+      totalBottles: total,
+      badgeProgress,
+      topCategory: topCategoryRaw ? (labelMap[topCategoryRaw] ?? topCategoryRaw) : null,
+      topCountry,
+      topRegion,
+      topWineType: topWineTypeRaw ? (wineTypeLabels[topWineTypeRaw] ?? topWineTypeRaw) : null,
+    });
     setLoading(false);
   }, [userId]);
 

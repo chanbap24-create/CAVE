@@ -18,6 +18,8 @@ const typeMessages: Record<string, string> = {
   gathering_vote_cast: 'voted on your wine-change request',
   gathering_vote_approved: 'Your wine-change request was approved',
   gathering_vote_rejected: 'Your wine-change request was rejected',
+  collection_like: 'liked your wine',
+  collection_comment: 'commented on your wine',
 };
 
 export default function NotificationsScreen() {
@@ -52,6 +54,11 @@ export default function NotificationsScreen() {
                   router.push(`/user/${n.actor_id}`);
                 } else if (['like', 'comment', 'mention'].includes(n.type) && n.reference_id && n.reference_type === 'post') {
                   router.push(`/post/${n.reference_id}`);
+                } else if (['collection_like', 'collection_comment'].includes(n.type) && n.reference_id) {
+                  // Deep-link into My Cave and auto-open the detail sheet
+                  // for the engaged wine. cellar.tsx reads the query param
+                  // via useLocalSearchParams.
+                  router.push(`/(tabs)/cellar?openCollection=${n.reference_id}`);
                 } else if (['gathering_invite', 'gathering_approved', 'gathering_rejected', 'gathering_vote_request', 'gathering_vote_cast', 'gathering_vote_approved', 'gathering_vote_rejected'].includes(n.type) && n.reference_id) {
                   router.push(`/gathering/${n.reference_id}`);
                 }

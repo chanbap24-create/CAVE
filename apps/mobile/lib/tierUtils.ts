@@ -21,3 +21,55 @@ export function getTopBadge(collectionCount: number): { name: string; bg: string
   if (collectionCount >= 10) return { name: 'Collector', bg: '#f7f0f3', color: '#7b2d4e' };
   return null;
 }
+
+// Ladder in ascending order; used to compute current/next-tier thresholds
+// and progress. Keep in sync with getTopBadge.
+const TIER_LADDER = [
+  { min: 0,    name: 'Newcomer' },
+  { min: 10,   name: 'Collector' },
+  { min: 30,   name: 'Enthusiast' },
+  { min: 50,   name: 'Expert' },
+  { min: 100,  name: 'Connoisseur' },
+  { min: 300,  name: 'Master' },
+  { min: 500,  name: 'Grand Master' },
+  { min: 1000, name: 'Legend' },
+] as const;
+
+export interface TierProgress {
+  /** Current tier name ("Newcomer" when below the first threshold). */
+  current: string;
+  /** Next tier ahead, or null when at the top. */
+  next: string | null;
+  /** 0..100 progress within the current tier bracket. 100 when at Legend. */
+  percent: number;
+  /** Bottles remaining to the next tier, or null at top. */
+  remaining: number | null;
+}
+
+/**
+ * Compute current tier + progress bar fill + remaining count for a given
+ * collection size. Used by the My Cave hero header.
+ */
+export function getTierProgress(count: number): TierProgress {
+  // Walk the ladder to find the current bracket.
+  let currentIdx = 0;
+  for (let i = TIER_LADDER.length - 1; i >= 0; i--) {
+    if (count >= TIER_LADDER[i].min) { currentIdx = i; break; }
+  }
+  const current = TIER_LADDER[currentIdx];
+  const next = TIER_LADDER[currentIdx + 1] ?? null;
+
+  if (!next) {
+    return { current: current.name, next: null, percent: 100, remaining: null };
+  }
+
+  const span = next.min - current.min;
+  const into = count - current.min;
+  const percent = span > 0 ? Math.round((into / span) * 100) : 0;
+  return {
+    current: current.name,
+    next: next.name,
+    percent: Math.max(0, Math.min(100, percent)),
+    remaining: Math.max(0, next.min - count),
+  };
+}

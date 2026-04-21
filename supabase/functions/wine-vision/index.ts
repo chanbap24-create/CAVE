@@ -38,98 +38,121 @@ function parseExtractedJson(text: string): Record<string, unknown> | null {
 }
 
 serve(async (req) => {
-  const preflight = handlePreflight(req);
-  if (preflight) return preflight;
+  // Outermost catch so any unexpected throw still yields JSON, never a
+  // platform-level "Internal Server Error" plain text.
+  try {
+    const preflight = handlePreflight(req);
+    if (preflight) return preflight;
 
-  const auth = await requireUser(req);
-  if (!auth) return json({ error: "Unauthorized" }, 401);
+    const auth = await requireUser(req);
+    if (!auth) return json({ error: "Unauthorized" }, 401);
 
-  if (await isVisionRateLimited(auth.user.id)) {
-    return json(
-      { error: "Rate limit exceeded", retry_after_minutes: VISION_RATE_LIMIT_WINDOW_MINUTES },
-      429,
+    if (await isVisionRateLimited(auth.user.id)) {
+      return json(
+        { error: "Rate limit exceeded", retry_after_minutes: VISION_RATE_LIMIT_WINDOW_MINUTES },
+        429,
+      );
+    }
+
+    let body: VisionBody;
+    try {
+      body = await req.json();
+    } catch {
+      return json({ error: "Invalid JSON body" }, 400);
+    }
+
+    const { image_base64, media_type } = body;
+    if (!image_base64 || typeof image_base64 !== "string") {
+      return json({ error: "image_base64 required" }, 400);
+    }
+    if (!media_type || !ALLOWED_MEDIA.has(media_type)) {
+      return json({ error: "media_type must be image/jpeg, image/png, image/webp, or image/gif" }, 400);
+    }
+    if (image_base64.length > MAX_BASE64_BYTES) {
+      return json({ error: "Image too large" }, 413);
+    }
+
+    console.log(
+      "[wine-vision] request accepted",
+      JSON.stringify({
+        user: auth.user.id,
+        media_type,
+        base64_len: image_base64.length,
+        model: WINE_VISION_MODEL,
+      }),
     );
-  }
 
-  let body: VisionBody;
-  try {
-    body = await req.json();
-  } catch {
-    return json({ error: "Invalid JSON body" }, 400);
-  }
-
-  const { image_base64, media_type } = body;
-  if (!image_base64 || typeof image_base64 !== "string") {
-    return json({ error: "image_base64 required" }, 400);
-  }
-  if (!media_type || !ALLOWED_MEDIA.has(media_type)) {
-    return json({ error: "media_type must be image/jpeg, image/png, image/webp, or image/gif" }, 400);
-  }
-  if (image_base64.length > MAX_BASE64_BYTES) {
-    return json({ error: "Image too large" }, 413);
-  }
-
-  // Attempt counter — record the call regardless of downstream outcome so a
-  // caller can't dodge the rate limiter by crafting payloads that make the
-  // Anthropic request fail. Success path will update confidence/tokens.
-  const callRecord = {
-    user_id: auth.user.id,
-    model: WINE_VISION_MODEL,
-    confidence: null as number | null,
-    input_tokens: null as number | null,
-    output_tokens: null as number | null,
-  };
-
-  try {
-    const response = await anthropicClient().messages.create({
+    const callRecord = {
+      user_id: auth.user.id,
       model: WINE_VISION_MODEL,
-      max_tokens: WINE_VISION_MAX_TOKENS,
-      system: [
-        {
-          type: "text",
-          text: WINE_VISION_SYSTEM_PROMPT,
-          cache_control: { type: "ephemeral" },
-        },
-      ],
-      messages: [
-        {
-          role: "user",
-          content: [
-            {
-              type: "image",
-              source: { type: "base64", media_type: media_type as "image/jpeg", data: image_base64 },
-            },
-            { type: "text", text: WINE_VISION_USER_PROMPT },
-          ],
-        },
-      ],
-    });
+      confidence: null as number | null,
+      input_tokens: null as number | null,
+      output_tokens: null as number | null,
+    };
 
-    callRecord.input_tokens = response.usage?.input_tokens ?? null;
-    callRecord.output_tokens = response.usage?.output_tokens ?? null;
+    try {
+      const response = await anthropicClient().messages.create({
+        model: WINE_VISION_MODEL,
+        max_tokens: WINE_VISION_MAX_TOKENS,
+        system: [
+          {
+            type: "text",
+            text: WINE_VISION_SYSTEM_PROMPT,
+            cache_control: { type: "ephemeral" },
+          },
+        ],
+        messages: [
+          {
+            role: "user",
+            content: [
+              {
+                type: "image",
+                source: { type: "base64", media_type: media_type as "image/jpeg", data: image_base64 },
+              },
+              { type: "text", text: WINE_VISION_USER_PROMPT },
+            ],
+          },
+        ],
+      });
 
-    const textBlock = response.content.find((b) => b.type === "text") as { type: "text"; text: string } | undefined;
-    if (!textBlock) {
-      console.error("[wine-vision] no text block in response");
+      callRecord.input_tokens = response.usage?.input_tokens ?? null;
+      callRecord.output_tokens = response.usage?.output_tokens ?? null;
+
+      const textBlock = response.content.find((b) => b.type === "text") as { type: "text"; text: string } | undefined;
+      if (!textBlock) {
+        console.error("[wine-vision] no text block in response");
+        await serviceClient().from("vision_calls").insert(callRecord);
+        return json({ error: "Vision extraction failed", detail: "no text block" }, 502);
+      }
+
+      const extracted = parseExtractedJson(textBlock.text);
+      if (!extracted) {
+        console.error("[wine-vision] JSON parse failed. Raw:", textBlock.text.slice(0, 500));
+        await serviceClient().from("vision_calls").insert(callRecord);
+        return json({ error: "Vision extraction malformed", detail: textBlock.text.slice(0, 200) }, 502);
+      }
+
+      callRecord.confidence = typeof extracted.confidence === "number" ? extracted.confidence : null;
       await serviceClient().from("vision_calls").insert(callRecord);
-      return json({ error: "Vision extraction failed" }, 502);
+      return json(extracted);
+    } catch (err) {
+      const anthroErr = err as { status?: number; message?: string; error?: { message?: string } };
+      const detail = anthroErr?.error?.message ?? anthroErr?.message ?? String(err);
+      const status = typeof anthroErr?.status === "number" ? anthroErr.status : null;
+      console.error("[wine-vision] anthropic error:", status, detail);
+      // Record the attempt so rate-limiting still counts failed calls.
+      // Supabase PostgrestBuilder is thenable but doesn't expose `.catch`;
+      // use a plain try/catch to swallow any insert error.
+      try {
+        await serviceClient().from("vision_calls").insert(callRecord);
+      } catch (logErr) {
+        console.warn("[wine-vision] failed to record vision_calls:", logErr);
+      }
+      return json({ error: "Vision extraction failed", upstream_status: status, detail }, 500);
     }
-
-    const extracted = parseExtractedJson(textBlock.text);
-    if (!extracted) {
-      console.error("[wine-vision] JSON parse failed. Raw:", textBlock.text.slice(0, 500));
-      await serviceClient().from("vision_calls").insert(callRecord);
-      return json({ error: "Vision extraction malformed" }, 502);
-    }
-
-    callRecord.confidence = typeof extracted.confidence === "number" ? extracted.confidence : null;
-    await serviceClient().from("vision_calls").insert(callRecord);
-    return json(extracted);
-  } catch (error) {
-    console.error("[wine-vision] error:", (error as Error).message);
-    // Still record the attempt so the rate-limiter can't be bypassed by
-    // crafting an Anthropic request that throws before the success path.
-    await serviceClient().from("vision_calls").insert(callRecord).throwOnError().catch(() => {});
-    return json({ error: "Vision extraction failed" }, 500);
+  } catch (fatal) {
+    const msg = fatal instanceof Error ? fatal.message : String(fatal);
+    console.error("[wine-vision] FATAL:", msg, (fatal as Error)?.stack);
+    return json({ error: "Vision handler crashed", detail: msg }, 500);
   }
 });

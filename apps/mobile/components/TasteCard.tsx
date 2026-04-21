@@ -10,32 +10,44 @@ interface Props {
 export function TasteCard({ taste, compact = false }: Props) {
   if (taste.totalBottles === 0) return null;
 
+  // `compact` callers (My Cave) surface the category bar in CaveHero
+  // above, and the badge progress bars (Expert 34/50 etc.) cluttered the
+  // space between MyPicks and the wine list — both hidden in compact.
+  // Top countries stay since they're a quick "where from" summary.
+  const showCategoryBar = !compact;
+  const showCountries = taste.topCountries.length > 0;
+  const showBadgeProgress = !compact && taste.badgeProgress.length > 0;
+
+  // Nothing left to show — render nothing rather than an empty frame.
+  if (!showCategoryBar && !showCountries && !showBadgeProgress) return null;
+
   return (
     <View style={[styles.container, compact && styles.containerCompact]}>
-      {/* Category Bars */}
-      <View style={styles.barRow}>
-        {taste.categoryBreakdown.map((cat, i) => (
-          <View key={i} style={[styles.barSegment, { flex: cat.percentage, backgroundColor: barColors[i] || '#e0e0e0' }]} />
-        ))}
-      </View>
-      <View style={styles.legendRow}>
-        {taste.categoryBreakdown.map((cat, i) => (
-          <View key={i} style={styles.legendItem}>
-            <View style={[styles.legendDot, { backgroundColor: barColors[i] || '#e0e0e0' }]} />
-            <Text style={styles.legendText}>{cat.label} {cat.percentage}%</Text>
+      {showCategoryBar && (
+        <>
+          <View style={styles.barRow}>
+            {taste.categoryBreakdown.map((cat, i) => (
+              <View key={i} style={[styles.barSegment, { flex: cat.percentage, backgroundColor: barColors[i] || '#e0e0e0' }]} />
+            ))}
           </View>
-        ))}
-      </View>
+          <View style={styles.legendRow}>
+            {taste.categoryBreakdown.map((cat, i) => (
+              <View key={i} style={styles.legendItem}>
+                <View style={[styles.legendDot, { backgroundColor: barColors[i] || '#e0e0e0' }]} />
+                <Text style={styles.legendText}>{cat.label} {cat.percentage}%</Text>
+              </View>
+            ))}
+          </View>
+        </>
+      )}
 
-      {/* Top Countries */}
-      {taste.topCountries.length > 0 && (
+      {showCountries && (
         <Text style={styles.countries}>
           {taste.topCountries.join(' · ')}
         </Text>
       )}
 
-      {/* Badge Progress */}
-      {taste.badgeProgress.length > 0 && (
+      {showBadgeProgress && (
         <View style={styles.progressSection}>
           {taste.badgeProgress.map((b, i) => (
             <View key={i} style={styles.progressItem}>

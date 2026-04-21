@@ -13,6 +13,9 @@ interface Props {
   /** If provided, the viewer sees a "Change" button on their own committed
    *  wines (when no pending request exists). */
   onRequestChange?: (entry: LineupEntry) => void;
+  /** Host-only reveal action for blind slots. Tapping opens a picker; on
+   *  pick the caller flips is_blind=false and fills collection_id. */
+  onRevealBlind?: (entry: LineupEntry) => void;
 }
 
 /**
@@ -21,7 +24,7 @@ interface Props {
  * what. Blind host slots show a padlock + "당일 공개" hint.
  */
 export function GatheringWineLineup({
-  entries, currentUserId, pendingChangeIds, onRequestChange,
+  entries, currentUserId, pendingChangeIds, onRequestChange, onRevealBlind,
 }: Props) {
   const [active, setActive] = useState<LineupEntry | null>(null);
   if (entries.length === 0) return null;
@@ -34,6 +37,8 @@ export function GatheringWineLineup({
         const mine = currentUserId != null && e.user_id === currentUserId;
         const pending = pendingChangeIds?.has(e.id) ?? false;
         const showChange = mine && !e.is_blind && !pending && onRequestChange != null;
+        // Only the slot's owner (host for host slots) can reveal.
+        const showReveal = mine && e.is_blind && onRevealBlind != null;
 
         return (
           <Pressable
@@ -92,6 +97,17 @@ export function GatheringWineLineup({
                   }}
                 >
                   <Text style={styles.changeBtnText}>Change</Text>
+                </Pressable>
+              )}
+              {showReveal && (
+                <Pressable
+                  style={[styles.changeBtn, styles.revealBtn]}
+                  onPress={(ev) => {
+                    ev.stopPropagation();
+                    onRevealBlind!(e);
+                  }}
+                >
+                  <Text style={[styles.changeBtnText, { color: '#8a6d3b' }]}>Reveal</Text>
                 </Pressable>
               )}
             </View>
@@ -155,6 +171,7 @@ const styles = StyleSheet.create({
     paddingVertical: 4, paddingHorizontal: 10,
   },
   changeBtnText: { fontSize: 11, fontWeight: '600', color: '#7b2d4e' },
+  revealBtn: { borderColor: '#8a6d3b' },
 
   pendingPill: {
     alignSelf: 'flex-start',

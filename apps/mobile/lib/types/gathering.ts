@@ -4,6 +4,17 @@
 
 export type GatheringType = 'cost_share' | 'byob' | 'donation';
 
+export const GATHERING_TYPE_LABELS: Record<GatheringType, string> = {
+  cost_share: 'Cost Share',
+  byob: 'BYOB',
+  donation: 'Host Donation',
+};
+
+export function getGatheringTypeLabel(t: GatheringType | string | null | undefined): string {
+  if (!t) return '';
+  return GATHERING_TYPE_LABELS[t as GatheringType] ?? '';
+}
+
 export type ContributionStatus = 'pending' | 'committed' | 'canceled';
 
 export interface GatheringContribution {

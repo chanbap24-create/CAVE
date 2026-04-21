@@ -1,7 +1,7 @@
 import { useCallback, useState } from 'react';
-import { Alert } from 'react-native';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/lib/auth';
+import { useGatheringApprovalActions } from '@/lib/hooks/useGatheringApprovalActions';
 
 export interface ApprovalWine {
   name: string | null;
@@ -39,9 +39,11 @@ export interface ApprovalWithDetails {
 }
 
 /**
- * Approval request + vote orchestration for wine-change and no-wine-apply
- * flows. Reads piggy-back on the DB trigger `apply_unanimous_approval` —
- * this hook only writes votes/requests and re-fetches.
+ * Read-side of gathering approval flow: fetches pending wine_change /
+ * no_wine_apply requests with joined wine + vote info, and exposes write
+ * operations (request/vote/cancel) through the companion actions hook.
+ * Reads piggy-back on the `apply_unanimous_approval` DB trigger (migration
+ * 00029), which resolves status atomically before this hook refetches.
  */
 export function useGatheringApprovals(gatheringId: number) {
   const { user } = useAuth();
@@ -155,150 +157,12 @@ export function useGatheringApprovals(gatheringId: number) {
     setLoading(false);
   }, [gatheringId]);
 
-  async function requestWineChange(
-    contributionId: number,
-    newCollectionId: number,
-    note?: string,
-  ): Promise<boolean> {
-    if (!user) return false;
+  const actions = useGatheringApprovalActions(gatheringId, async () => { await load(); });
 
-    const { data: approval, error } = await supabase
-      .from('gathering_approvals')
-      .insert({
-        gathering_id: gatheringId,
-        requester_id: user.id,
-        request_type: 'wine_change',
-        target_contribution_id: contributionId,
-        new_collection_id: newCollectionId,
-        note: note?.trim() || null,
-      })
-      .select('id')
-      .single();
-
-    if (error) {
-      // Partial-unique index rejects a second pending request per contribution.
-      const msg = error.message.toLowerCase();
-      if (msg.includes('gathering_approvals_one_pending_per_contribution')) {
-        Alert.alert('', '이전 요청이 진행중입니다.');
-      } else {
-        Alert.alert('Error', error.message);
-      }
-      return false;
-    }
-
-    // Auto-cast the requester's own approve vote — their stance is implicit
-    // in making the request. Without this they'd have to tap their own row
-    // to approve, which feels redundant. If this fails, skip silently — the
-    // voting UI can still collect it manually.
-    if (approval?.id) {
-      await supabase.from('gathering_approval_votes').insert({
-        approval_id: approval.id,
-        voter_id: user.id,
-        vote: 'approve',
-      });
-    }
-
-    // Notify host + approved members so they know a vote is needed.
-    const [{ data: gathering }, { data: approvedMembers }] = await Promise.all([
-      supabase.from('gatherings').select('host_id, title').eq('id', gatheringId).single(),
-      supabase
-        .from('gathering_members')
-        .select('user_id')
-        .eq('gathering_id', gatheringId)
-        .eq('status', 'approved'),
-    ]);
-
-    if (gathering) {
-      const voterIds = new Set<string>([gathering.host_id]);
-      for (const m of approvedMembers ?? []) voterIds.add(m.user_id);
-      voterIds.delete(user.id); // don't notify yourself
-
-      const notifRows = Array.from(voterIds).map(uid => ({
-        user_id: uid,
-        type: 'gathering_vote_request',
-        actor_id: user.id,
-        reference_id: gatheringId.toString(),
-        reference_type: 'gathering',
-        body: `requested a wine change in "${gathering.title}"`,
-      }));
-      if (notifRows.length > 0) {
-        await supabase.from('notifications').insert(notifRows);
-      }
-    }
-
-    await load();
-    return true;
-  }
-
-  async function castVote(approvalId: number, vote: 'approve' | 'reject'): Promise<boolean> {
-    if (!user) return false;
-    const { error } = await supabase.from('gathering_approval_votes').insert({
-      approval_id: approvalId,
-      voter_id: user.id,
-      vote,
-    });
-    if (error) {
-      // Duplicate votes (composite PK) silently ignored on UI level.
-      if (!error.message.toLowerCase().includes('duplicate key')) {
-        Alert.alert('Error', error.message);
-        return false;
-      }
-    }
-
-    // Notify the requester. The DB trigger already applied the outcome
-    // atomically — read the post-trigger status to pick the right notif
-    // type. Skip if I'm voting on my own request (auto-cast on create).
-    const { data: approval } = await supabase
-      .from('gathering_approvals')
-      .select('requester_id, status, gathering_id, gathering:gatherings(title)')
-      .eq('id', approvalId)
-      .single();
-
-    if (approval && approval.requester_id !== user.id) {
-      const title = (approval.gathering as any)?.title ?? '모임';
-      let notifType: string;
-      let body: string;
-      if (approval.status === 'approved') {
-        notifType = 'gathering_vote_approved';
-        body = `Your wine-change request in "${title}" was approved`;
-      } else if (approval.status === 'rejected') {
-        notifType = 'gathering_vote_rejected';
-        body = `Your wine-change request in "${title}" was rejected`;
-      } else {
-        notifType = 'gathering_vote_cast';
-        body = vote === 'approve'
-          ? `approved your wine-change request in "${title}"`
-          : `voted against your wine-change request in "${title}"`;
-      }
-      await supabase.from('notifications').insert({
-        user_id: approval.requester_id,
-        type: notifType,
-        actor_id: user.id,
-        reference_id: approval.gathering_id.toString(),
-        reference_type: 'gathering',
-        body,
-      });
-    }
-
-    await load();
-    return true;
-  }
-
-  async function cancelRequest(approvalId: number): Promise<boolean> {
-    if (!user) return false;
-    const { error } = await supabase
-      .from('gathering_approvals')
-      .update({ status: 'canceled', resolved_at: new Date().toISOString() })
-      .eq('id', approvalId)
-      .eq('requester_id', user.id)
-      .eq('status', 'pending');
-    if (error) {
-      Alert.alert('Error', error.message);
-      return false;
-    }
-    await load();
-    return true;
-  }
-
-  return { approvals, loading, load, requestWineChange, castVote, cancelRequest };
+  return {
+    approvals, loading, load,
+    requestWineChange: actions.requestWineChange,
+    castVote: actions.castVote,
+    cancelRequest: actions.cancelRequest,
+  };
 }

@@ -1,7 +1,7 @@
-import { useState, useCallback } from 'react';
+import { useCallback, useState } from 'react';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/lib/auth';
-import { Alert } from 'react-native';
+import { useGatheringMutations } from '@/lib/hooks/useGatheringMutations';
 
 export interface MemberContribution {
   id: number;
@@ -47,6 +47,31 @@ export interface LineupEntry extends MemberContribution {
   };
 }
 
+// Maps a raw contribution row (with joined collection/wine) into the shared
+// MemberContribution shape. Kept in-file to stay close to the consumer type.
+function shapeContribution(row: any): MemberContribution {
+  const col = row.collection as any;
+  return {
+    id: row.id,
+    collection_id: row.collection_id,
+    is_blind: row.is_blind,
+    status: row.status,
+    wine: col?.wine
+      ? {
+          name: col.wine.name,
+          name_ko: col.wine.name_ko ?? null,
+          producer: col.wine.producer ?? null,
+          category: col.wine.category ?? null,
+          region: col.wine.region ?? null,
+          country: col.wine.country ?? null,
+          vintage_year: col.wine.vintage_year,
+          image_url: col.wine.image_url,
+        }
+      : null,
+    collection_photo_url: col?.photo_url ?? null,
+  };
+}
+
 export function useGatheringDetail(gatheringId: number) {
   const { user } = useAuth();
   const [members, setMembers] = useState<GatheringMember[]>([]);
@@ -74,8 +99,8 @@ export function useGatheringDetail(gatheringId: number) {
     const hostId = gatheringRow?.host_id ?? null;
     const userIds = data.map(m => m.user_id);
 
-    // Batched. Profiles include the host even if they're not a "member" —
-    // we need the host's identity to render their slots in the lineup.
+    // Batched. Profiles include the host so host slots in the lineup show
+    // identity even when the host isn't in gathering_members.
     const allIds = Array.from(new Set([...userIds, ...(hostId ? [hostId] : [])]));
     const [{ data: profiles }, { data: contribs }] = await Promise.all([
       allIds.length > 0
@@ -84,8 +109,6 @@ export function useGatheringDetail(gatheringId: number) {
             .select('id, username, display_name, avatar_url, collection_count')
             .in('id', allIds)
         : Promise.resolve({ data: [] as any[] }),
-      // All non-canceled contributions for this gathering — both host and
-      // attendees. We'll split pending vs committed below.
       supabase
         .from('gathering_contributions')
         .select(`
@@ -99,36 +122,14 @@ export function useGatheringDetail(gatheringId: number) {
 
     const profileMap = new Map(profiles?.map(p => [p.id, p]) || []);
 
-    // Prefer 'committed' over 'pending' for the member's displayed wine.
-    // A member should only have one active contribution at a time anyway,
-    // but if both exist (mid-transition) the committed one is the source
-    // of truth.
+    // Per-user active contribution: prefer 'committed' over 'pending' when
+    // both exist mid-transition.
     const contribMap = new Map<string, MemberContribution>();
-    for (const c of (contribs ?? []) as any[]) {
-      const existing = contribMap.get(c.user_id);
+    for (const row of (contribs ?? []) as any[]) {
+      const existing = contribMap.get(row.user_id);
       const isBetter = !existing
-        || (existing.status === 'pending' && c.status === 'committed');
-      if (!isBetter) continue;
-      const col = c.collection as any;
-      contribMap.set(c.user_id, {
-        id: c.id,
-        collection_id: c.collection_id,
-        is_blind: c.is_blind,
-        status: c.status,
-        wine: col?.wine
-          ? {
-              name: col.wine.name,
-              name_ko: col.wine.name_ko ?? null,
-              producer: col.wine.producer ?? null,
-              category: col.wine.category ?? null,
-              region: col.wine.region ?? null,
-              country: col.wine.country ?? null,
-              vintage_year: col.wine.vintage_year,
-              image_url: col.wine.image_url,
-            }
-          : null,
-        collection_photo_url: col?.photo_url ?? null,
-      });
+        || (existing.status === 'pending' && row.status === 'committed');
+      if (isBetter) contribMap.set(row.user_id, shapeContribution(row));
     }
 
     const enriched = data.map(m => ({
@@ -136,44 +137,21 @@ export function useGatheringDetail(gatheringId: number) {
       profile: profileMap.get(m.user_id),
       contribution: contribMap.get(m.user_id) ?? null,
     }));
-
     setMembers(enriched);
 
-    // Lineup = every committed contribution, host first then attendees in
-    // slot_order. Used by the detail page's "Wine Lineup" section.
+    // Wine Lineup: every committed contribution, host first. DB already
+    // ordered by slot_order so the within-host / within-guest order holds.
     const committed: LineupEntry[] = [];
-    for (const c of (contribs ?? []) as any[]) {
-      if (c.status !== 'committed') continue;
-      const col = c.collection as any;
+    for (const row of (contribs ?? []) as any[]) {
+      if (row.status !== 'committed') continue;
       committed.push({
-        id: c.id,
-        user_id: c.user_id,
-        is_host: c.user_id === hostId,
-        collection_id: c.collection_id,
-        is_blind: c.is_blind,
-        status: c.status,
-        wine: col?.wine
-          ? {
-              name: col.wine.name,
-              name_ko: col.wine.name_ko ?? null,
-              producer: col.wine.producer ?? null,
-              category: col.wine.category ?? null,
-              region: col.wine.region ?? null,
-              country: col.wine.country ?? null,
-              vintage_year: col.wine.vintage_year,
-              image_url: col.wine.image_url,
-            }
-          : null,
-        collection_photo_url: col?.photo_url ?? null,
-        profile: profileMap.get(c.user_id),
+        ...shapeContribution(row),
+        user_id: row.user_id,
+        is_host: row.user_id === hostId,
+        profile: profileMap.get(row.user_id),
       });
     }
-    // Stable order: host slots first, then attendees, preserving slot_order
-    // within each group (the DB query already sorted by slot_order asc).
-    committed.sort((a, b) => {
-      if (a.is_host !== b.is_host) return a.is_host ? -1 : 1;
-      return 0;
-    });
+    committed.sort((a, b) => (a.is_host === b.is_host ? 0 : a.is_host ? -1 : 1));
     setLineup(committed);
 
     if (user) {
@@ -184,137 +162,29 @@ export function useGatheringDetail(gatheringId: number) {
     setLoading(false);
   }, [gatheringId, user]);
 
-  /**
-   * Apply to join. `collectionId` may be null for cost_share/donation rooms
-   * (no-wine apply path — will require a unanimous vote in Phase 6).
-   * For byob the caller must pass a non-null id; we defensively double-check.
-   */
-  async function applyToJoin(
-    message: string,
-    collectionId: number | null,
-    gatheringType: string,
-  ) {
-    if (!user) return false;
-
-    if (gatheringType === 'byob' && collectionId == null) {
-      Alert.alert('', 'BYOB 모임은 가져갈 와인을 선택해야 합니다');
-      return false;
-    }
-
-    const { error } = await supabase.from('gathering_members').insert({
-      gathering_id: gatheringId,
-      user_id: user.id,
-      status: 'pending',
-      message: message.trim() || null,
-    });
-
-    if (error) {
-      Alert.alert('Error', error.message);
-      return false;
-    }
-
-    // Insert a pending contribution if a wine was picked. Not a fatal error
-    // if this fails — the membership row is already in. Surface so the user
-    // can retry from the detail screen later.
-    if (collectionId != null) {
-      const { error: contribError } = await supabase
-        .from('gathering_contributions')
-        .insert({
-          gathering_id: gatheringId,
-          user_id: user.id,
-          collection_id: collectionId,
-          is_blind: false,
-          slot_order: 0,
-          status: 'pending',
-        });
-      if (contribError) {
-        console.error('[applyToJoin] contribution insert failed:', contribError.message);
-        Alert.alert('주의', '신청은 완료했으나 와인 정보 저장에 실패했습니다. 상세 페이지에서 다시 시도해주세요.');
-      }
-    }
-
-    // Notify host
-    const { data: gathering } = await supabase
-      .from('gatherings')
-      .select('host_id, title')
-      .eq('id', gatheringId)
-      .single();
-
-    if (gathering && gathering.host_id !== user.id) {
-      await supabase.from('notifications').insert({
-        user_id: gathering.host_id,
-        type: 'gathering_invite',
-        actor_id: user.id,
-        reference_id: gatheringId.toString(),
-        reference_type: 'gathering',
-        body: `wants to join "${gathering.title}"`,
-      });
-    }
-
-    setMyStatus('pending');
+  // Mutations are split into their own hook; we bind loadMembers so any
+  // write triggers a refetch. Pass-through also keeps the public API of
+  // useGatheringDetail unchanged for existing callers.
+  const mutations = useGatheringMutations(gatheringId, async () => {
     await loadMembers();
-    return true;
+  });
+
+  async function applyToJoinAndSetStatus(message: string, collectionId: number | null, gatheringType: string) {
+    const ok = await mutations.applyToJoin(message, collectionId, gatheringType);
+    if (ok) setMyStatus('pending');
+    return ok;
   }
-
-  async function respondToApplicant(applicantUserId: string, approve: boolean) {
-    if (!user) return;
-
-    const newStatus = approve ? 'approved' : 'rejected';
-    await supabase
-      .from('gathering_members')
-      .update({ status: newStatus, responded_at: new Date().toISOString() })
-      .eq('gathering_id', gatheringId)
-      .eq('user_id', applicantUserId);
-
-    // Sync the contribution: on approve → committed, on reject → canceled.
-    // We target only that user's pending row; host slots are always
-    // committed from day one so they're untouched.
-    await supabase
-      .from('gathering_contributions')
-      .update({ status: approve ? 'committed' : 'canceled' })
-      .eq('gathering_id', gatheringId)
-      .eq('user_id', applicantUserId)
-      .eq('status', 'pending');
-
-    // Notify applicant
-    const notifType = approve ? 'gathering_approved' : 'gathering_rejected';
-    const { data: gathering } = await supabase
-      .from('gatherings')
-      .select('title')
-      .eq('id', gatheringId)
-      .single();
-
-    await supabase.from('notifications').insert({
-      user_id: applicantUserId,
-      type: notifType,
-      actor_id: user.id,
-      reference_id: gatheringId.toString(),
-      reference_type: 'gathering',
-      body: approve
-        ? `approved your request to join "${gathering?.title}"`
-        : `declined your request to join "${gathering?.title}"`,
-    });
-
-    await loadMembers();
-  }
-
-  async function leaveGathering() {
-    if (!user) return;
-    // Cancel any pending/committed contribution first (unique-index on
-    // (gathering_id, collection_id) would block re-applying later otherwise).
-    await supabase
-      .from('gathering_contributions')
-      .delete()
-      .eq('gathering_id', gatheringId)
-      .eq('user_id', user.id);
-    await supabase
-      .from('gathering_members')
-      .delete()
-      .eq('gathering_id', gatheringId)
-      .eq('user_id', user.id);
+  async function leaveAndClear() {
+    await mutations.leaveGathering();
     setMyStatus(null);
-    await loadMembers();
   }
 
-  return { members, lineup, myStatus, loading, loadMembers, applyToJoin, respondToApplicant, leaveGathering };
+  return {
+    members, lineup, myStatus, loading,
+    loadMembers,
+    applyToJoin: applyToJoinAndSetStatus,
+    respondToApplicant: mutations.respondToApplicant,
+    leaveGathering: leaveAndClear,
+    revealBlindSlot: mutations.revealBlindSlot,
+  };
 }

@@ -6,6 +6,7 @@ import type { Gathering } from '@/lib/hooks/useGatherings';
 import { getAvatarRingColor, getTopBadge } from '@/lib/tierUtils';
 import { formatDate } from '@/lib/utils/dateUtils';
 import { CATEGORY_TAG_STYLES, getCategoryLabel } from '@/lib/constants/drinkCategories';
+import { getGatheringTypeLabel } from '@/lib/types/gathering';
 import { WineThumbStrip } from './WineThumbStrip';
 
 interface Props {
@@ -17,13 +18,20 @@ export function GatheringCard({ gathering, onPress }: Props) {
   const g = gathering;
   const host = g.host;
   const hostInitial = host?.display_name?.[0]?.toUpperCase() || host?.username?.[0]?.toUpperCase() || '?';
-  const isClosed = g.status === 'closed' || g.status === 'completed' || g.current_members >= g.max_members;
+  // DB counts approved attendees only; the host occupies one of the
+  // max_members slots too, so include them in the displayed count.
+  const memberCount = g.current_members + 1;
+  const isClosed = g.status === 'closed' || g.status === 'completed' || memberCount >= g.max_members;
+  const typeLabel = getGatheringTypeLabel(g.gathering_type);
 
   return (
     <View style={styles.card}>
       <View style={styles.body}>
         <View style={styles.titleRow}>
-          <Text style={styles.title} numberOfLines={2}>{g.title}</Text>
+          <Text style={styles.title} numberOfLines={2}>
+            {typeLabel ? <Text style={styles.typePrefix}>[{typeLabel}] </Text> : null}
+            {g.title}
+          </Text>
           {g.category ? <CategoryBadge category={g.category} /> : null}
         </View>
 
@@ -74,7 +82,7 @@ export function GatheringCard({ gathering, onPress }: Props) {
                 <Path d="M23 21v-2a4 4 0 0 0-3-3.87" />
                 <Path d="M16 3.13a4 4 0 0 1 0 7.75" />
               </Svg>
-              <Text style={styles.detailText}>{g.current_members} / {g.max_members}{isClosed ? ' (Closed)' : ''}</Text>
+              <Text style={styles.detailText}>{memberCount} / {g.max_members}{isClosed ? ' (Closed)' : ''}</Text>
             </View>
           </View>
           {g.wine_total > 0 && (
@@ -112,6 +120,7 @@ const styles = StyleSheet.create({
   body: { padding: 16, paddingHorizontal: 20 },
   titleRow: { flexDirection: 'row', alignItems: 'flex-start', gap: 8, marginBottom: 10 },
   title: { flex: 1, fontSize: 17, fontWeight: '700', color: '#222' },
+  typePrefix: { color: '#7b2d4e', fontWeight: '700' },
   catBadge: { paddingHorizontal: 8, paddingVertical: 3, borderRadius: 6, marginTop: 3 },
   catBadgeText: { fontSize: 11, fontWeight: '600' },
 

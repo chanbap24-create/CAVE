@@ -18,8 +18,8 @@ export function ShareToggleRow({ share, caption, onShareChange, onCaptionChange 
     <View style={styles.box}>
       <View style={styles.header}>
         <View style={{ flex: 1 }}>
-          <Text style={styles.title}>Share with community</Text>
-          <Text style={styles.hint}>Creates a post in the feed · optional</Text>
+          <Text style={styles.title}>커뮤니티에 공유</Text>
+          <Text style={styles.hint}>피드에 게시물로 등록 · 선택</Text>
         </View>
         <Switch
           value={share}
@@ -34,7 +34,7 @@ export function ShareToggleRow({ share, caption, onShareChange, onCaptionChange 
           style={styles.caption}
           value={caption}
           onChangeText={onCaptionChange}
-          placeholder="Add a note (optional)..."
+          placeholder="메모 추가 (선택)..."
           placeholderTextColor="#bbb"
           multiline
           maxLength={300}

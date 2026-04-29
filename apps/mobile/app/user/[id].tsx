@@ -90,15 +90,15 @@ export default function UserProfileScreen() {
           <View style={styles.profileStats}>
             <View style={styles.stat}>
               <Text style={styles.statNum}>{profile.post_count || 0}</Text>
-              <Text style={styles.statLabel}>Posts</Text>
+              <Text style={styles.statLabel}>게시물</Text>
             </View>
             <View style={styles.stat}>
               <Text style={styles.statNum}>{profile.follower_count || 0}</Text>
-              <Text style={styles.statLabel}>Followers</Text>
+              <Text style={styles.statLabel}>팔로워</Text>
             </View>
             <View style={styles.stat}>
               <Text style={styles.statNum}>{profile.following_count || 0}</Text>
-              <Text style={styles.statLabel}>Following</Text>
+              <Text style={styles.statLabel}>팔로잉</Text>
             </View>
           </View>
         </View>
@@ -123,14 +123,14 @@ export default function UserProfileScreen() {
               }
               router.push(`/chat/${res.roomId}?title=${encodeURIComponent(profile.username)}`);
             }}>
-              <Text style={styles.dmBtnText}>Message</Text>
+              <Text style={styles.dmBtnText}>메시지</Text>
             </Pressable>
           )}
         </View>
 
         {userBadges.length > 0 && (
           <View style={{ marginBottom: 12 }}>
-            <Text style={[styles.sectionTitle, { paddingHorizontal: 20, marginBottom: 8 }]}>Badges</Text>
+            <Text style={[styles.sectionTitle, { paddingHorizontal: 20, marginBottom: 8 }]}>배지</Text>
             <BadgeList allBadges={allBadges} earnedIds={new Set(userBadges.map(b => b.badge_id))} />
           </View>
         )}

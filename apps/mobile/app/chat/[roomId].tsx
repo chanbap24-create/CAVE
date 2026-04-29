@@ -74,13 +74,13 @@ export default function ChatScreen() {
           style={styles.input}
           value={text}
           onChangeText={setText}
-          placeholder="Message..."
+          placeholder="메시지 입력..."
           placeholderTextColor="#bbb"
           multiline
           maxLength={500}
         />
         <Pressable onPress={handleSend} disabled={!text.trim()}>
-          <Text style={[styles.sendBtn, !text.trim() && { opacity: 0.3 }]}>Send</Text>
+          <Text style={[styles.sendBtn, !text.trim() && { opacity: 0.3 }]}>전송</Text>
         </Pressable>
       </View>
     </KeyboardAvoidingView>

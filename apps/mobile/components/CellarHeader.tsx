@@ -19,7 +19,7 @@ export function CellarHeader({ unreadCount, onPlusPress }: Props) {
   return (
     <ScreenHeader
       variant="centered"
-      title="My Cave"
+      title="내 셀러"
       left={
         <Pressable onPress={onPlusPress} hitSlop={8}>
           <Svg width={24} height={24} fill="none" stroke="#222" strokeWidth={1.8} viewBox="0 0 24 24">

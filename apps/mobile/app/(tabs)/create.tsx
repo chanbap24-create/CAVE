@@ -67,7 +67,7 @@ export default function CreateScreen() {
   if (step === 'pick') {
     return (
       <View style={styles.container}>
-        <ScreenHeader variant="centered" title="New Post" />
+        <ScreenHeader variant="centered" title="새 게시물" />
         <PickStep
           onTakePhoto={() => handlePick('image', 'camera')}
           onPickImage={() => handlePick('image')}
@@ -82,13 +82,13 @@ export default function CreateScreen() {
   return (
     <View style={styles.container}>
       <ScreenHeader
-        title="New Post"
+        title="새 게시물"
         left={
           <Pressable
             onPress={() => { setStep('pick'); media.reset(); }}
             hitSlop={8}
           >
-            <Text style={styles.backBtn}>Back</Text>
+            <Text style={styles.backBtn}>뒤로</Text>
           </Pressable>
         }
         right={
@@ -103,7 +103,7 @@ export default function CreateScreen() {
                 )}
               </View>
             ) : (
-              <Text style={styles.shareBtn}>Share</Text>
+              <Text style={styles.shareBtn}>공유</Text>
             )}
           </Pressable>
         }
@@ -123,7 +123,7 @@ export default function CreateScreen() {
         <View style={styles.composeSection}>
           <TextInput
             style={styles.captionInput}
-            placeholder="Write a caption... use @ to tag"
+            placeholder="문구 입력... @를 입력해 태그"
             placeholderTextColor="#bbb"
             value={caption}
             onChangeText={(text) => { setCaption(text); detectMention(text); }}

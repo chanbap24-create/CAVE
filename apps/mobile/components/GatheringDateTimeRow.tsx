@@ -18,13 +18,13 @@ export function GatheringDateTimeRow({ date, onChange }: Props) {
     <>
       <View style={styles.row}>
         <View style={styles.half}>
-          <Text style={styles.label}>Date *</Text>
+          <Text style={styles.label}>날짜 *</Text>
           <Pressable style={styles.btn} onPress={() => setShowDate(true)}>
             <Text style={styles.text}>{formatPickerDate(date)}</Text>
           </Pressable>
         </View>
         <View style={styles.half}>
-          <Text style={styles.label}>Time</Text>
+          <Text style={styles.label}>시간</Text>
           <Pressable style={styles.btn} onPress={() => setShowTime(true)}>
             <Text style={styles.text}>{formatPickerTime(date)}</Text>
           </Pressable>

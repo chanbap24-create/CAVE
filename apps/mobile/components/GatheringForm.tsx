@@ -53,7 +53,7 @@ interface Props {
 }
 
 /** All form inputs for a new gathering. Caller owns submit + reset. */
-export function GatheringForm({ value, onChange, onSubmit, submitting, submitLabel = 'Create Gathering' }: Props) {
+export function GatheringForm({ value, onChange, onSubmit, submitting, submitLabel = '모임 만들기' }: Props) {
   const { categories } = useDrinkCategories();
   const { isPartner, partnerLabel } = useIsPartner();
 
@@ -63,28 +63,28 @@ export function GatheringForm({ value, onChange, onSubmit, submitting, submitLab
 
   return (
     <ScrollView style={styles.form} keyboardShouldPersistTaps="handled">
-      <Text style={styles.label}>Title *</Text>
+      <Text style={styles.label}>제목 *</Text>
       <TextInput
         style={styles.input}
         value={value.title}
         onChangeText={t => set('title', t)}
-        placeholder="e.g. Burgundy Blind Tasting"
+        placeholder="예: 부르고뉴 블라인드 시음회"
         placeholderTextColor="#ccc"
       />
 
-      <Text style={styles.label}>Description</Text>
+      <Text style={styles.label}>설명</Text>
       <TextInput
         style={[styles.input, { height: 80, textAlignVertical: 'top' }]}
         value={value.description}
         onChangeText={t => set('description', t)}
-        placeholder="What's this gathering about?"
+        placeholder="어떤 모임인가요?"
         placeholderTextColor="#ccc"
         multiline
       />
 
       {isPartner && (
         <>
-          <Text style={styles.label}>Host (파트너 전용)</Text>
+          <Text style={styles.label}>호스트 (파트너 전용)</Text>
           <HostTypeSelector
             value={value.hostType}
             onChange={v => set('hostType', v)}
@@ -93,7 +93,7 @@ export function GatheringForm({ value, onChange, onSubmit, submitting, submitLab
         </>
       )}
 
-      <Text style={styles.label}>Type *</Text>
+      <Text style={styles.label}>유형 *</Text>
       <GatheringTypeSelector
         value={value.gatheringType ?? 'cost_share'}
         onChange={v => set('gatheringType', v)}
@@ -109,19 +109,19 @@ export function GatheringForm({ value, onChange, onSubmit, submitting, submitLab
         allowBlind={(value.gatheringType ?? 'cost_share') !== 'byob'}
       />
 
-      <Text style={styles.label}>Category (optional)</Text>
+      <Text style={styles.label}>카테고리 (선택)</Text>
       <CategoryPicker
         categories={categories}
         selected={value.category}
         onChange={k => set('category', k)}
       />
 
-      <Text style={styles.label}>Location *</Text>
+      <Text style={styles.label}>장소 *</Text>
       <TextInput
         style={styles.input}
         value={value.location}
         onChangeText={t => set('location', t)}
-        placeholder="e.g. Le Bar, Cheongdam"
+        placeholder="예: 청담 르 바"
         placeholderTextColor="#ccc"
       />
 
@@ -129,7 +129,7 @@ export function GatheringForm({ value, onChange, onSubmit, submitting, submitLab
 
       <View style={styles.row}>
         <View style={styles.half}>
-          <Text style={styles.label}>Max Members</Text>
+          <Text style={styles.label}>최대 인원</Text>
           <TextInput
             style={styles.input}
             value={value.maxMembers}
@@ -141,12 +141,12 @@ export function GatheringForm({ value, onChange, onSubmit, submitting, submitLab
         </View>
         {value.gatheringType === 'cost_share' && (
           <View style={styles.half}>
-            <Text style={styles.label}>Price (won)</Text>
+            <Text style={styles.label}>가격 (원)</Text>
             <TextInput
               style={styles.input}
               value={value.price}
               onChangeText={t => set('price', t)}
-              placeholder="Per person"
+              placeholder="1인당"
               placeholderTextColor="#ccc"
               keyboardType="number-pad"
             />

@@ -14,9 +14,9 @@ interface Option {
 }
 
 const OPTIONS: Option[] = [
-  { key: 'cost_share', title: 'Cost Share',    subtitle: '방장이 와인 준비 · 비용 분담 (블라인드 슬롯 가능)' },
+  { key: 'cost_share', title: '비용 분담',     subtitle: '방장이 와인 준비 · 비용 분담 (블라인드 슬롯 가능)' },
   { key: 'byob',       title: 'BYOB',          subtitle: '각자 자기 셀러에서 한 병 지참' },
-  { key: 'donation',   title: 'Host Donation', subtitle: '방장이 전부 제공 · 참가자는 옵션으로 가져올 수 있음' },
+  { key: 'donation',   title: '호스트 제공',   subtitle: '방장이 전부 제공 · 참가자는 옵션으로 가져올 수 있음' },
 ];
 
 /** Three-way card selector for the gathering type at create time. */

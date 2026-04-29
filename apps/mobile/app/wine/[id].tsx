@@ -57,16 +57,16 @@ export default function WineDetailScreen() {
 
   function confirmDelete(commentId: number) {
     Alert.alert('Delete comment?', undefined, [
-      { text: 'Cancel', style: 'cancel' },
-      { text: 'Delete', style: 'destructive', onPress: () => remove(commentId) },
+      { text: '취소', style: 'cancel' },
+      { text: '삭제', style: 'destructive', onPress: () => remove(commentId) },
     ]);
   }
 
   if (loading && !data) {
     return (
       <View style={styles.container}>
-        <ScreenHeader title="Wine" left={<BackButton fallbackPath="/(tabs)/cellar" />} />
-        <Text style={styles.loading}>Loading…</Text>
+        <ScreenHeader title="와인" left={<BackButton fallbackPath="/(tabs)/cellar" />} />
+        <Text style={styles.loading}>불러오는 중…</Text>
       </View>
     );
   }
@@ -74,7 +74,7 @@ export default function WineDetailScreen() {
   if (!data) {
     return (
       <View style={styles.container}>
-        <ScreenHeader title="Wine" left={<BackButton fallbackPath="/(tabs)/cellar" />} />
+        <ScreenHeader title="와인" left={<BackButton fallbackPath="/(tabs)/cellar" />} />
         <Text style={styles.loading}>와인을 찾을 수 없습니다.</Text>
       </View>
     );
@@ -86,7 +86,7 @@ export default function WineDetailScreen() {
   return (
     <View style={styles.container}>
       <ScreenHeader
-        title="Wine"
+        title="와인"
         left={<BackButton fallbackPath="/(tabs)/cellar" />}
       />
       <KeyboardAvoidingView

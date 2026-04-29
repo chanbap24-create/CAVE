@@ -30,7 +30,7 @@ import { useRecommendedGatherings } from '@/lib/hooks/useRecommendedGatherings';
 import type { CellarActivityItem } from '@/lib/hooks/useCellarActivity';
 import { CATEGORY_DB_MAP } from '@/lib/constants/drinkCategories';
 
-const caveTabs = ['All', 'Wine', 'Spirit', 'Traditional', 'Other'];
+const caveTabs = ['전체', '와인', '양주', '전통주', '기타'];
 const catDbMap = CATEGORY_DB_MAP;
 
 function packEntry(c: any): CellarActivityItem {
@@ -59,7 +59,7 @@ export default function CellarScreen() {
   const router = useRouter();
   const params = useLocalSearchParams<{ openCollection?: string }>();
   const [collections, setCollections] = useState<any[]>([]);
-  const [activeCat, setActiveCat] = useState('All');
+  const [activeCat, setActiveCat] = useState('전체');
   const [refreshing, setRefreshing] = useState(false);
   const [showScan, setShowScan] = useState(false);
   const [detailEntries, setDetailEntries] = useState<CellarActivityItem[]>([]);
@@ -142,7 +142,7 @@ export default function CellarScreen() {
     setRefreshing(false);
   };
 
-  const filtered = activeCat === 'All'
+  const filtered = activeCat === '전체'
     ? collections
     : collections.filter(c => c.wine?.category === catDbMap[activeCat]);
 

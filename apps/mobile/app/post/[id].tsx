@@ -48,7 +48,7 @@ export default function PostDetailScreen() {
 
   return (
     <View style={styles.container}>
-      <ScreenHeader title="Post" left={<BackButton fallbackPath="/(tabs)/explore" />} />
+      <ScreenHeader title="게시물" left={<BackButton fallbackPath="/(tabs)/explore" />} />
       <ScrollView>
         {post && <PostCard post={post} />}
 
@@ -58,7 +58,7 @@ export default function PostDetailScreen() {
             style={styles.categoryRow}
             onPress={() => setShowEditCategory(true)}
           >
-            <Text style={styles.categoryLabel}>Category</Text>
+            <Text style={styles.categoryLabel}>카테고리</Text>
             {catMeta ? (
               <View
                 style={[
@@ -71,9 +71,9 @@ export default function PostDetailScreen() {
                 </Text>
               </View>
             ) : (
-              <Text style={styles.categoryPlaceholder}>Not set — tap to choose</Text>
+              <Text style={styles.categoryPlaceholder}>미설정 — 탭하여 선택</Text>
             )}
-            <Text style={styles.editHint}>Edit</Text>
+            <Text style={styles.editHint}>편집</Text>
           </Pressable>
         )}
       </ScrollView>

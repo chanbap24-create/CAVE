@@ -28,13 +28,13 @@ const REFRESH_CACHE_MS = 30_000;
 export default function ExploreScreen() {
   const [drinks, setDrinks] = useState<any[]>([]);
   const [search, setSearch] = useState('');
-  const [activeCat, setActiveCat] = useState('All');
+  const [activeCat, setActiveCat] = useState('전체');
   const [refreshing, setRefreshing] = useState(false);
   const [refreshKey, setRefreshKey] = useState(0);
   // Category filter flows through to the three discover sections (Featured
   // Caves / Trending Drinks / Popular Posts) — each hook applies the filter
-  // server-side. Under 'All' the hooks fall back to their default behavior.
-  const categoryKey = activeCat !== 'All' ? catDbMap[activeCat] : null;
+  // server-side. Under '전체' the hooks fall back to their default behavior.
+  const categoryKey = activeCat !== '전체' ? catDbMap[activeCat] : null;
   const { caves: featuredCaves, refresh: loadFeatured } = useFeaturedCaves(categoryKey);
   const { gatherings, loadGatherings } = useGatherings(categoryKey);
 
@@ -56,7 +56,7 @@ export default function ExploreScreen() {
       const s = sanitizeSearch(query);
       q = q.or(`name.ilike.%${s}%,name_ko.ilike.%${s}%,region.ilike.%${s}%,country.ilike.%${s}%`);
     }
-    if (cat !== 'All') {
+    if (cat !== '전체') {
       q = q.eq('category', catDbMap[cat]);
     }
 
@@ -68,7 +68,7 @@ export default function ExploreScreen() {
     setDrinks(data ?? []);
   }, []);
 
-  // Debounced wine list fetch — only under 'All' with an active search.
+  // Debounced wine list fetch — only under '전체' with an active search.
   // Category mode uses usePostsByCategory instead, no drinks fetch needed.
   useEffect(() => {
     if (!inSearchMode) {
@@ -110,7 +110,7 @@ export default function ExploreScreen() {
 
   return (
     <View style={styles.container}>
-      <ScreenHeader variant="centered" title="Discover" />
+      <ScreenHeader variant="centered" title="발견" />
 
       {/* Search bar — always visible */}
       <View style={styles.searchBox}>
@@ -120,7 +120,7 @@ export default function ExploreScreen() {
         </Svg>
         <TextInput
           style={styles.searchInput}
-          placeholder="Search wines, whisky, sake..."
+          placeholder="와인, 위스키, 사케 검색..."
           placeholderTextColor="#bbb"
           value={search}
           onChangeText={setSearch}
@@ -157,7 +157,7 @@ export default function ExploreScreen() {
 
           {featuredCaves.length > 0 && (
             <>
-              <Text style={styles.sectionTitle}>Featured Caves</Text>
+              <Text style={styles.sectionTitle}>추천 셀러</Text>
               <View style={styles.caveGrid}>
                 {featuredCaves.map(cave => (
                   <FeaturedCaveCard key={cave.user_id} cave={cave} />

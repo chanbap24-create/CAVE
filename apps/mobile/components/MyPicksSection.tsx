@@ -18,10 +18,10 @@ export function MyPicksSection({ picks, editable = false, onAdd, onRemove, wines
   return (
     <View style={styles.container}>
       <View style={styles.header}>
-        <Text style={styles.title}>My Picks</Text>
+        <Text style={styles.title}>내 픽</Text>
         {editable && picks.length < 5 && (
           <Pressable onPress={() => setShowAdd(true)}>
-            <Text style={styles.addText}>+ Add</Text>
+            <Text style={styles.addText}>+ 추가</Text>
           </Pressable>
         )}
       </View>
@@ -31,10 +31,10 @@ export function MyPicksSection({ picks, editable = false, onAdd, onRemove, wines
           {editable ? (
             <Pressable style={styles.emptyCard} onPress={() => setShowAdd(true)}>
               <Text style={styles.emptyPlus}>+</Text>
-              <Text style={styles.emptyLabel}>Add your best</Text>
+              <Text style={styles.emptyLabel}>인생 와인 추가</Text>
             </Pressable>
           ) : (
-            <Text style={styles.emptyText}>No picks yet</Text>
+            <Text style={styles.emptyText}>아직 픽이 없어요</Text>
           )}
         </View>
       ) : (

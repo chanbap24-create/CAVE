@@ -50,12 +50,12 @@ export function CreateGatheringSheet({ visible, onClose, onCreated }: Props) {
           <View style={styles.handle} />
           <View style={styles.sheetHeader}>
             <Pressable onPress={onClose}>
-              <Text style={styles.cancelText}>Cancel</Text>
+              <Text style={styles.cancelText}>취소</Text>
             </Pressable>
-            <Text style={styles.sheetTitle}>New Gathering</Text>
+            <Text style={styles.sheetTitle}>새 모임</Text>
             <Pressable onPress={handleCreate} disabled={creating}>
               <Text style={[styles.createText, creating && { opacity: 0.5 }]}>
-                {creating ? '...' : 'Create'}
+                {creating ? '...' : '만들기'}
               </Text>
             </Pressable>
           </View>
@@ -65,7 +65,7 @@ export function CreateGatheringSheet({ visible, onClose, onCreated }: Props) {
             onChange={setForm}
             onSubmit={handleCreate}
             submitting={creating}
-            submitLabel="Create Gathering"
+            submitLabel="모임 만들기"
           />
         </View>
       </KeyboardAvoidingView>

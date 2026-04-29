@@ -131,13 +131,13 @@ export default function GatheringDetailScreen() {
     const roomId = await getGatheringChatRoom(parseInt(id!), user.id);
     setChatLoading(false);
     if (roomId) router.push(`/chat/${roomId}?title=${encodeURIComponent(gathering.title)}`);
-    else Alert.alert('Error', 'Could not open chat');
+    else Alert.alert('오류', '채팅을 열 수 없습니다');
   }
 
   return (
     <View style={styles.container}>
       <ScreenHeader
-        title="Gathering"
+        title="모임"
         left={
           // Default behavior: pop to wherever the user came from
           // (home feed, notifications, list). Fallback path only kicks
@@ -271,7 +271,7 @@ export default function GatheringDetailScreen() {
       {!isHost && !myStatus && !isClosed && (
         <View style={styles.bottomBar}>
           <Pressable style={styles.applyBtn} onPress={() => setShowApply(true)}>
-            <Text style={styles.applyBtnText}>Apply to Join</Text>
+            <Text style={styles.applyBtnText}>참여 신청</Text>
           </Pressable>
         </View>
       )}
@@ -284,12 +284,12 @@ export default function GatheringDetailScreen() {
             </Text>
           </View>
           <Pressable style={styles.leaveBtn} onPress={() => {
-            Alert.alert('Leave', 'Are you sure you want to leave this gathering?', [
-              { text: 'Cancel', style: 'cancel' },
-              { text: 'Leave', style: 'destructive', onPress: leaveGathering },
+            Alert.alert('나가기', '이 모임에서 나가시겠어요?', [
+              { text: '취소', style: 'cancel' },
+              { text: '나가기', style: 'destructive', onPress: leaveGathering },
             ]);
           }}>
-            <Text style={styles.leaveText}>Leave</Text>
+            <Text style={styles.leaveText}>나가기</Text>
           </Pressable>
         </View>
       )}

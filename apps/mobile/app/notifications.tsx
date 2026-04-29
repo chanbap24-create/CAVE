@@ -34,12 +34,12 @@ export default function NotificationsScreen() {
 
   return (
     <View style={styles.container}>
-      <ScreenHeader title="Notifications" left={<BackButton />} />
+      <ScreenHeader title="알림" left={<BackButton />} />
 
       <ScrollView>
         {notifications.length === 0 && !loading && (
           <View style={styles.empty}>
-            <Text style={styles.emptyText}>No notifications yet</Text>
+            <Text style={styles.emptyText}>아직 알림이 없어요</Text>
           </View>
         )}
         {notifications.map(n => {

@@ -72,8 +72,8 @@ function matchesSearch(g: Gathering, q: string): boolean {
 
 export default function GatheringsScreen() {
   const router = useRouter();
-  const [activeCat, setActiveCat] = useState('All');
-  const categoryKey = activeCat !== 'All' ? CATEGORY_DB_MAP[activeCat] : null;
+  const [activeCat, setActiveCat] = useState('전체');
+  const categoryKey = activeCat !== '전체' ? CATEGORY_DB_MAP[activeCat] : null;
   const { gatherings, loading, loadGatherings } = useGatherings(categoryKey);
   const [showCreate, setShowCreate] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
@@ -100,7 +100,7 @@ export default function GatheringsScreen() {
     <View style={styles.container}>
       <ScreenHeader
         variant="centered"
-        title="Gatherings"
+        title="모임"
         left={
           <Pressable onPress={() => setShowCreate(true)} hitSlop={8}>
             <Svg width={24} height={24} fill="none" stroke="#222" strokeWidth={1.8} viewBox="0 0 24 24">
@@ -142,12 +142,12 @@ export default function GatheringsScreen() {
             <Text style={styles.emptyTitle}>
               {query
                 ? '검색 결과가 없어요'
-                : activeCat === 'All'
-                  ? 'No gatherings yet'
-                  : `No ${activeCat.toLowerCase()} gatherings`}
+                : activeCat === '전체'
+                  ? '아직 등록된 모임이 없어요'
+                  : `${activeCat} 카테고리 모임이 없어요`}
             </Text>
             <Text style={styles.emptyDesc}>
-              {query ? '검색어를 바꿔보세요' : activeCat === 'All' ? 'Tap + to create one' : 'Try another category or create one'}
+              {query ? '검색어를 바꿔보세요' : activeCat === '전체' ? '+ 버튼으로 새 모임을 만들어보세요' : '다른 카테고리를 보거나 모임을 만들어보세요'}
             </Text>
           </View>
         ) : (

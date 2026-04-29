@@ -50,19 +50,19 @@ export default function LoginScreen() {
         </View>
         <View style={styles.actions}>
           <Pressable style={styles.emailBtn} onPress={() => setMode('login')}>
-            <Text style={styles.emailBtnText}>Email Login</Text>
+            <Text style={styles.emailBtnText}>이메일 로그인</Text>
           </Pressable>
           <Pressable style={styles.signupLink} onPress={() => setMode('signup')}>
-            <Text style={styles.signupLinkText}>Don't have an account? <Text style={styles.signupLinkBold}>Sign Up</Text></Text>
+            <Text style={styles.signupLinkText}>계정이 없으신가요? <Text style={styles.signupLinkBold}>가입하기</Text></Text>
           </Pressable>
 
           <View style={styles.divider}>
             <View style={styles.dividerLine} />
-            <Text style={styles.dividerText}>or</Text>
+            <Text style={styles.dividerText}>또는</Text>
             <View style={styles.dividerLine} />
           </View>
 
-          <Pressable style={styles.googleBtn} onPress={() => Alert.alert('Coming Soon', 'Google login will be available soon')}>
+          <Pressable style={styles.googleBtn} onPress={() => Alert.alert('준비 중', 'Google 로그인은 곧 지원됩니다')}>
             <Svg width={20} height={20} viewBox="0 0 24 24">
               <Path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92a5.06 5.06 0 0 1-2.2 3.32v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.1z" fill="#4285F4" />
               <Path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853" />
@@ -72,7 +72,7 @@ export default function LoginScreen() {
             <Text style={styles.googleText}>Google</Text>
           </Pressable>
 
-          <Pressable style={styles.appleBtn} onPress={() => Alert.alert('Coming Soon', 'Apple login will be available soon')}>
+          <Pressable style={styles.appleBtn} onPress={() => Alert.alert('준비 중', 'Apple 로그인은 곧 지원됩니다')}>
             <Svg width={18} height={18} viewBox="0 0 24 24">
               <Path d="M17.05 20.28c-.98.95-2.05.88-3.08.4-1.09-.5-2.08-.48-3.24 0-1.44.62-2.2.44-3.06-.4C2.79 15.25 3.51 7.59 9.05 7.31c1.35.07 2.29.74 3.08.8 1.18-.24 2.31-.93 3.57-.84 1.51.12 2.65.72 3.4 1.8-3.12 1.87-2.38 5.98.48 7.13-.57 1.5-1.31 2.99-2.54 4.09zM12.03 7.25c-.15-2.23 1.66-4.07 3.74-4.25.29 2.58-2.34 4.5-3.74 4.25z" fill="white" />
             </Svg>
@@ -92,12 +92,12 @@ export default function LoginScreen() {
     <KeyboardAvoidingView style={styles.container} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
       <View style={styles.hero}>
         <Text style={styles.logo}>Cave</Text>
-        <Text style={styles.sub}>{mode === 'login' ? 'Welcome back' : 'Create your account'}</Text>
+        <Text style={styles.sub}>{mode === 'login' ? '다시 오신 것을 환영해요' : '계정 만들기'}</Text>
       </View>
       <View style={styles.form}>
         <TextInput
           style={styles.input}
-          placeholder="Email"
+          placeholder="이메일"
           placeholderTextColor="#bbb"
           value={email}
           onChangeText={setEmail}
@@ -107,7 +107,7 @@ export default function LoginScreen() {
         />
         <TextInput
           style={styles.input}
-          placeholder="Password"
+          placeholder="비밀번호"
           placeholderTextColor="#bbb"
           value={password}
           onChangeText={setPassword}
@@ -119,17 +119,17 @@ export default function LoginScreen() {
           disabled={loading}
         >
           <Text style={styles.submitBtnText}>
-            {loading ? 'Loading...' : mode === 'login' ? 'Login' : 'Sign Up'}
+            {loading ? '로그인 중...' : mode === 'login' ? '로그인' : '가입하기'}
           </Text>
         </Pressable>
         <Pressable onPress={() => setMode(mode === 'login' ? 'signup' : 'login')}>
           <Text style={styles.switchText}>
-            {mode === 'login' ? "Don't have an account? " : 'Already have an account? '}
-            <Text style={styles.switchBold}>{mode === 'login' ? 'Sign Up' : 'Login'}</Text>
+            {mode === 'login' ? '계정이 없으신가요? ' : '이미 계정이 있으신가요? '}
+            <Text style={styles.switchBold}>{mode === 'login' ? '가입하기' : '로그인'}</Text>
           </Text>
         </Pressable>
         <Pressable onPress={() => setMode('main')} style={{ marginTop: 12 }}>
-          <Text style={[styles.switchText, { color: '#bbb' }]}>Back</Text>
+          <Text style={[styles.switchText, { color: '#bbb' }]}>뒤로</Text>
         </Pressable>
       </View>
     </KeyboardAvoidingView>

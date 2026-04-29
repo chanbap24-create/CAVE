@@ -103,7 +103,7 @@ function CommentRow({
               hitSlop={6}
               onPress={() => onReply({ id: c.id, username: c.profile?.username ?? null })}
             >
-              <Text style={styles.replyBtn}>Reply</Text>
+              <Text style={styles.replyBtn}>답글</Text>
             </Pressable>
           )}
         </View>

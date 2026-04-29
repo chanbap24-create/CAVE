@@ -22,9 +22,9 @@ export default function ProfileScreen() {
   const fallbackChar = profile?.display_name?.[0] || user?.email?.[0] || '?';
 
   function confirmSignOut() {
-    Alert.alert('Sign Out', 'Are you sure?', [
-      { text: 'Cancel', style: 'cancel' },
-      { text: 'Sign Out', style: 'destructive', onPress: signOut },
+    Alert.alert('로그아웃', '정말 로그아웃하시겠어요?', [
+      { text: '취소', style: 'cancel' },
+      { text: '로그아웃', style: 'destructive', onPress: signOut },
     ]);
   }
 
@@ -45,10 +45,10 @@ export default function ProfileScreen() {
 
         <View style={styles.actions}>
           <Pressable style={styles.editBtn} onPress={() => setShowEdit(true)}>
-            <Text style={styles.editBtnText}>Edit Profile</Text>
+            <Text style={styles.editBtnText}>프로필 편집</Text>
           </Pressable>
           <Pressable style={styles.editBtn}>
-            <Text style={styles.editBtnText}>Share Cave</Text>
+            <Text style={styles.editBtnText}>셀러 공유</Text>
           </Pressable>
         </View>
 
@@ -56,7 +56,7 @@ export default function ProfileScreen() {
 
         <View style={styles.badgeSection}>
           <Text style={styles.sectionTitle}>
-            Badges ({userBadges.length}/{allBadges.length})
+            배지 ({userBadges.length}/{allBadges.length})
           </Text>
           <BadgeList
             allBadges={allBadges}
@@ -66,17 +66,17 @@ export default function ProfileScreen() {
 
         <View style={styles.infoSection}>
           <View style={styles.infoRow}>
-            <Text style={styles.infoLabel}>Cave</Text>
-            <Text style={styles.infoValue}>{profile?.collection_count || 0} bottles</Text>
+            <Text style={styles.infoLabel}>셀러</Text>
+            <Text style={styles.infoValue}>{profile?.collection_count || 0}병</Text>
           </View>
           <View style={styles.infoRow}>
-            <Text style={styles.infoLabel}>Email</Text>
+            <Text style={styles.infoLabel}>이메일</Text>
             <Text style={styles.infoValue}>{user?.email}</Text>
           </View>
         </View>
 
         <Pressable style={styles.signOutBtn} onPress={confirmSignOut}>
-          <Text style={styles.signOutText}>Sign Out</Text>
+          <Text style={styles.signOutText}>로그아웃</Text>
         </Pressable>
 
         <View style={{ height: 40 }} />

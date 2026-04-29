@@ -23,15 +23,15 @@ export default function MessagesScreen() {
 
   return (
     <View style={styles.container}>
-      <ScreenHeader variant="centered" title="Messages" />
+      <ScreenHeader variant="centered" title="메시지" />
 
       <ScrollView
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#7b2d4e" />}
       >
         {rooms.length === 0 && !loading && (
           <View style={styles.empty}>
-            <Text style={styles.emptyTitle}>No messages yet</Text>
-            <Text style={styles.emptyDesc}>Visit a profile and tap{'\n'}Message to start chatting</Text>
+            <Text style={styles.emptyTitle}>아직 메시지가 없어요</Text>
+            <Text style={styles.emptyDesc}>다른 사람의 프로필에서{'\n'}메시지 버튼으로 대화를 시작해보세요</Text>
           </View>
         )}
 

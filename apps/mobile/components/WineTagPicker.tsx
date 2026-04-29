@@ -21,7 +21,7 @@ export function WineTagPicker({
 }: Props) {
   return (
     <View style={styles.tagSection}>
-      <Text style={styles.tagLabel}>Tag a drink</Text>
+      <Text style={styles.tagLabel}>주류 태그</Text>
       {taggedWine ? (
         <View style={styles.taggedRow}>
           <View style={styles.taggedBadge}>

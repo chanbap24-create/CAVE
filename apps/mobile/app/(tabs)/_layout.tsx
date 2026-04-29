@@ -120,13 +120,8 @@ export default function TabLayout() {
           tabBarIcon: ({ focused }) => <GatheringsIcon focused={focused} hasUnread={hasUnreadGathering} />,
         }}
       />
-      {/* 메시지 */}
-      <Tabs.Screen
-        name="messages"
-        options={{
-          tabBarIcon: ({ focused }) => <MessageIcon focused={focused} hasUnread={hasUnread} />,
-        }}
-      />
+      {/* 메시지 — 탭에서 제거됨, 프로필 메뉴에서 진입. 라우트 자체는 유지 (직접 push). */}
+      <Tabs.Screen name="messages" options={{ href: null }} />
       {/* 프로필 */}
       <Tabs.Screen
         name="profile"

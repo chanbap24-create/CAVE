@@ -5,16 +5,9 @@ import { colors } from '@/constants/theme';
 import { useUnreadDM } from '@/lib/hooks/useUnreadDM';
 import { useUnreadGathering } from '@/lib/hooks/useUnreadGathering';
 import { useUnreadCellarSocial } from '@/lib/hooks/useUnreadCellarSocial';
-import Svg, { Path, Circle, Line, Rect, Polyline, Ellipse } from 'react-native-svg';
+import Svg, { Path, Circle, Line, Rect, Polyline } from 'react-native-svg';
 
-function HomeIcon({ focused }: { focused: boolean }) {
-  return (
-    <Svg width={26} height={26} fill="none" stroke={focused ? '#222' : '#999'} strokeWidth={focused ? 2.2 : 1.8} viewBox="0 0 24 24">
-      <Path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" />
-      <Polyline points="9 22 9 12 15 12 15 22" />
-    </Svg>
-  );
-}
+// HomeIcon 제거됨 — index 탭이 더 이상 표시되지 않음 (cellar 가 첫 진입점)
 
 function SearchIcon({ focused }: { focused: boolean }) {
   return (
@@ -98,54 +91,53 @@ export default function TabLayout() {
 
   return (
     <Tabs
+      // i cave: 셀러가 첫 진입점 (홈 피드 제거됨, 2026-04-29 방향성 변경).
+      initialRouteName="cellar"
       screenOptions={{
         headerShown: false,
         tabBarStyle: styles.tabBar,
         tabBarShowLabel: false,
       }}
     >
-      <Tabs.Screen
-        name="index"
-        options={{
-          tabBarIcon: ({ focused }) => <HomeIcon focused={focused} />,
-        }}
-      />
-      <Tabs.Screen
-        name="explore"
-        options={{
-          tabBarIcon: ({ focused }) => <SearchIcon focused={focused} />,
-        }}
-      />
-      <Tabs.Screen
-        name="create"
-        options={{
-          href: null,
-        }}
-      />
-      <Tabs.Screen
-        name="messages"
-        options={{
-          tabBarIcon: ({ focused }) => <MessageIcon focused={focused} hasUnread={hasUnread} />,
-        }}
-      />
+      {/* 셀러 (홈 흡수) */}
       <Tabs.Screen
         name="cellar"
         options={{
           tabBarIcon: ({ focused }) => <CaveIcon focused={focused} hasUnread={hasUnreadCellar} />,
         }}
       />
+      {/* Discover (트레바리식 큐레이션) */}
+      <Tabs.Screen
+        name="explore"
+        options={{
+          tabBarIcon: ({ focused }) => <SearchIcon focused={focused} />,
+        }}
+      />
+      {/* 모임 */}
       <Tabs.Screen
         name="gatherings"
         options={{
           tabBarIcon: ({ focused }) => <GatheringsIcon focused={focused} hasUnread={hasUnreadGathering} />,
         }}
       />
+      {/* 메시지 */}
+      <Tabs.Screen
+        name="messages"
+        options={{
+          tabBarIcon: ({ focused }) => <MessageIcon focused={focused} hasUnread={hasUnread} />,
+        }}
+      />
+      {/* 프로필 */}
       <Tabs.Screen
         name="profile"
         options={{
           tabBarIcon: ({ focused }) => <ProfileIcon focused={focused} />,
         }}
       />
+      {/* index: 호환용 라우트 (피드 제거 — 셀러로 redirect). 탭 미노출. */}
+      <Tabs.Screen name="index" options={{ href: null }} />
+      {/* create: 라벨 스캔이 cellar 헤더 + 버튼으로 이동 — 별도 탭 불필요. */}
+      <Tabs.Screen name="create" options={{ href: null }} />
     </Tabs>
   );
 }

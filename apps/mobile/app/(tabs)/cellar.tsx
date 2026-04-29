@@ -21,9 +21,9 @@ import { CellarActivityStrip } from '@/components/CellarActivityStrip';
 import { LabelScanSheet } from '@/components/LabelScanSheet';
 import { CellarList } from '@/components/CellarList';
 import { CollectionDetailSheet } from '@/components/CollectionDetailSheet';
-import { ScreenHeader } from '@/components/ScreenHeader';
+import { CellarHeader } from '@/components/CellarHeader';
+import { useNotifications } from '@/lib/hooks/useNotifications';
 import type { CellarActivityItem } from '@/lib/hooks/useCellarActivity';
-import Svg, { Line } from 'react-native-svg';
 import { CATEGORY_DB_MAP } from '@/lib/constants/drinkCategories';
 
 const caveTabs = ['All', 'Wine', 'Spirit', 'Traditional', 'Other'];
@@ -62,12 +62,13 @@ export default function CellarScreen() {
   const { picks, loadPicks, addPick, removePick } = useMyPicks();
   const { checkAndAwardBadges } = useBadgeChecker();
   const { changePhoto } = useCollectionPhoto();
+  const { unreadCount, loadUnreadCount } = useNotifications();
   // Batched social counts — one round-trip for all rows vs per-row hooks.
   const social = useCollectionSocial(collections.map(c => c.id));
 
   useFocusEffect(
     useCallback(() => {
-      if (user) { loadCollections(); loadTaste(); loadPicks(); }
+      if (user) { loadCollections(); loadTaste(); loadPicks(); loadUnreadCount(); }
     }, [user])
   );
 
@@ -137,18 +138,7 @@ export default function CellarScreen() {
 
   return (
     <View style={styles.container}>
-      <ScreenHeader
-        variant="centered"
-        title="My Cave"
-        left={
-          <Pressable onPress={() => setShowScan(true)} hitSlop={8}>
-            <Svg width={24} height={24} fill="none" stroke="#222" strokeWidth={1.8} viewBox="0 0 24 24">
-              <Line x1={12} y1={5} x2={12} y2={19} />
-              <Line x1={5} y1={12} x2={19} y2={12} />
-            </Svg>
-          </Pressable>
-        }
-      />
+      <CellarHeader unreadCount={unreadCount} onPlusPress={() => setShowScan(true)} />
 
       <ScrollView
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#7b2d4e" />}

@@ -1,16 +1,15 @@
 import React from 'react';
-import { View, Text, ScrollView, Pressable, StyleSheet, Image } from 'react-native';
+import { View, Text, ScrollView, StyleSheet } from 'react-native';
 import { useRouter } from 'expo-router';
 import type { Gathering, GatheringHostType } from '@/lib/hooks/useGatherings';
 import {
-  getFeatureCardWidth, getFeatureSnapInterval, HORIZONTAL_PADDING, CARD_GAP,
+  getSnapInterval, HORIZONTAL_PADDING,
 } from '@/lib/utils/discoverCardWidth';
 import { DiscoverSectionHeader } from '@/components/DiscoverSectionHeader';
+import { GatheringPreviewCard } from '@/components/GatheringPreviewCard';
 
-// 위계 강조 — 시즌 클럽 다음 슬롯이라 카드를 크게. 한 화면에 1장 + 0.5장 peek.
 const PARTNER_LIMIT = 8;
-const CARD_WIDTH = getFeatureCardWidth();
-const SNAP = getFeatureSnapInterval();
+const SNAP = getSnapInterval();
 
 interface Props {
   gatherings: Gathering[];
@@ -19,16 +18,8 @@ interface Props {
 }
 
 /**
- * Discover §4 위계의 샵 큐레이션 슬롯. 시즌 클럽(히어로) 와 유저 모임 사이.
- *
- * 큐레이션 강도 ↑ → 카드도 시각적으로 더 프리미엄:
- *   - 호스트 라벨 우선 노출 (예: "ABC 와인샵", "소믈리에 김XX")
- *   - 호스트 타입 배지 (샵 / 소믈리에 / 업장)
- *   - 가격 (price_per_person) 강조
- *
- * 파트너 자격(profiles.is_partner) + host_type != 'user' 인 모임만 진입.
- * 파트너가 모임 올리는 흐름은 form 에 host_type 셀렉터로 v1 추가, 권한은
- * DB trigger(enforce_partner_host_type) 가 강제.
+ * 파트너 모임 가로 스크롤. host_type != 'user' 인 모임만.
+ * 카드는 GatheringPreviewCard 공용 프레임 사용 (사진 없이 강사 아바타 + 텍스트).
  */
 export function PartnerGatheringsRow({ gatherings, title = '샵·소믈리에 모임' }: Props) {
   const router = useRouter();
@@ -48,35 +39,22 @@ export function PartnerGatheringsRow({ gatherings, title = '샵·소믈리에 �
         </View>
       ) : (
         <ScrollView
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          // 카드 폭 + gap 단위로 snap → 자연스러운 페이지 느낌. peek 으로 다음 카드 노출.
-          snapToInterval={SNAP}
-          decelerationRate="fast"
+          horizontal showsHorizontalScrollIndicator={false}
+          snapToInterval={SNAP} decelerationRate="fast"
           contentContainerStyle={styles.row}
         >
           {partnerEvents.map(g => (
-            <Pressable key={g.id} style={styles.card} onPress={() => router.push(`/gathering/${g.id}` as any)}>
-              <View style={styles.imgWrap}>
-                <Image source={{ uri: g.wine_previews[0]?.image_url || g.wine_previews[0]?.photo_url || '' }} style={styles.img} />
-                <View style={styles.typeBadge}>
-                  <Text style={styles.typeBadgeText}>{labelOfHostType(g.host_type)}</Text>
-                </View>
-              </View>
-              <Text style={styles.host} numberOfLines={1}>
-                {g.host?.partner_label || g.host?.display_name || g.host?.username || '파트너'}
-              </Text>
-              <Text style={styles.cardTitle} numberOfLines={2}>{g.title}</Text>
-              <Text style={styles.cardMeta} numberOfLines={1}>
-                {formatDate(g.gathering_date!)}{g.location ? ` · ${g.location}` : ''}
-              </Text>
-              <View style={styles.footer}>
-                <Text style={styles.cardSeats}>{g.current_members}/{g.max_members}</Text>
-                {g.price_per_person ? (
-                  <Text style={styles.price}>{formatKRW(g.price_per_person)}</Text>
-                ) : null}
-              </View>
-            </Pressable>
+            <GatheringPreviewCard
+              key={g.id}
+              tag={{ label: labelOfHostType(g.host_type), bg: '#231115', fg: '#fff' }}
+              avatarUrl={g.host?.avatar_url}
+              avatarFallback={(g.host?.partner_label || g.host?.display_name || g.host?.username || '?')[0]}
+              hostName={g.host?.partner_label || g.host?.display_name || g.host?.username || '파트너'}
+              hostSubtitle={hostSubtitleFor(g.host_type)}
+              title={g.title}
+              metaLine={`${formatDate(g.gathering_date!)}${g.location ? ` · ${g.location}` : ''}`}
+              onPress={() => router.push(`/gathering/${g.id}` as any)}
+            />
           ))}
         </ScrollView>
       )}
@@ -93,52 +71,23 @@ function labelOfHostType(t: GatheringHostType): string {
   }
 }
 
+function hostSubtitleFor(t: GatheringHostType): string | null {
+  switch (t) {
+    case 'shop': return '와인샵 큐레이션';
+    case 'sommelier': return '소믈리에';
+    case 'venue': return '업장 직영';
+    default: return null;
+  }
+}
+
 function formatDate(iso: string) {
   const d = new Date(iso);
   return `${d.getMonth() + 1}/${d.getDate()} ${['일', '월', '화', '수', '목', '금', '토'][d.getDay()]}`;
 }
 
-function formatKRW(n: number) {
-  return `₩${n.toLocaleString('ko-KR')}`;
-}
-
 const styles = StyleSheet.create({
   wrap: { marginTop: 32 },
   row: { paddingLeft: HORIZONTAL_PADDING, paddingRight: HORIZONTAL_PADDING / 2 },
-  card: {
-    width: CARD_WIDTH, marginRight: CARD_GAP,
-    backgroundColor: '#fff', borderRadius: 12,
-    borderWidth: 1, borderColor: '#eee',
-    overflow: 'hidden',
-  },
-  imgWrap: { position: 'relative', backgroundColor: '#f0eaec' },
-  // 위계 강조 카드는 폭이 더 넓으므로(getFeatureCardWidth) 이미지도 비례에 맞춰 더 크게.
-  img: { width: '100%', height: 140 },
-  typeBadge: {
-    position: 'absolute', left: 8, top: 8,
-    backgroundColor: 'rgba(35,17,21,0.9)',
-    paddingHorizontal: 8, paddingVertical: 4, borderRadius: 4,
-  },
-  typeBadgeText: { color: '#fff', fontSize: 10, fontWeight: '700', letterSpacing: 0.5 },
-  host: {
-    fontSize: 11, fontWeight: '700', color: '#7b2d4e',
-    paddingHorizontal: 12, paddingTop: 10,
-  },
-  cardTitle: {
-    fontSize: 13, fontWeight: '600', color: '#222', lineHeight: 18,
-    paddingHorizontal: 12, paddingTop: 4,
-  },
-  cardMeta: {
-    fontSize: 11, color: '#666',
-    paddingHorizontal: 12, paddingTop: 4,
-  },
-  footer: {
-    flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
-    paddingHorizontal: 12, paddingVertical: 10, marginTop: 4,
-    borderTopWidth: 1, borderTopColor: '#f0f0f0',
-  },
-  cardSeats: { fontSize: 11, color: '#999' },
-  price: { fontSize: 12, fontWeight: '700', color: '#222' },
 
   empty: {
     marginHorizontal: 16, paddingVertical: 18, paddingHorizontal: 16,

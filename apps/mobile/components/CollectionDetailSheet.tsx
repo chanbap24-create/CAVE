@@ -11,6 +11,7 @@ import { useCollectionComments } from '@/lib/hooks/useCollectionComments';
 import { LikeButton } from '@/components/LikeButton';
 import { PhotoPager, type PhotoPagerSlide } from '@/components/PhotoPager';
 import { CommentThread } from '@/components/CommentThread';
+import { AuthenticityBadges } from '@/components/AuthenticityBadges';
 import { timeAgo } from '@/lib/utils/dateUtils';
 import type { CellarActivityItem } from '@/lib/hooks/useCellarActivity';
 
@@ -144,6 +145,7 @@ export function CollectionDetailSheet({ visible, entries, onClose, hideOwner }: 
                 {locale || 'Region unknown'}
                 {item.wine?.vintage_year ? ` · ${item.wine.vintage_year}` : ''}
               </Text>
+              <AuthenticityBadges source={item.source} />
             </View>
 
             <CommentThread

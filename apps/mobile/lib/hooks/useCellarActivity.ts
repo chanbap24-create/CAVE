@@ -2,11 +2,16 @@ import { useCallback, useEffect, useState } from 'react';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/lib/auth';
 
+/** collections.source enum 값 — collection_source 타입과 일치 */
+export type CollectionSource = 'manual' | 'photo' | 'search' | 'shop_purchase' | 'gift';
+
 export interface CellarActivityItem {
   id: number; // collections.id
   photo_url: string | null;
   created_at: string;
   user_id: string;
+  /** 등록 경로 — 진정성 배지 표시에 사용 */
+  source?: CollectionSource | null;
   wine: {
     id: number;
     name: string;
@@ -74,7 +79,7 @@ export function useCellarActivity() {
     const { data, error } = await supabase
       .from('collections')
       .select(`
-        id, photo_url, created_at, user_id,
+        id, photo_url, created_at, user_id, source,
         wine:wines(id, name, producer, category, region, country, vintage_year, image_url),
         owner:profiles!collections_user_id_fkey(username, display_name, avatar_url)
       `)

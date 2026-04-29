@@ -5,7 +5,8 @@ import { supabase } from '@/lib/supabase';
 import { useFeaturedCaves } from '@/lib/hooks/useFeaturedCaves';
 import { FeaturedCaveCard } from '@/components/FeaturedCaveCard';
 import { TrendingDrinks } from '@/components/TrendingDrinks';
-import { PopularPosts } from '@/components/PopularPosts';
+// PopularPosts deprecated — i cave 방향성 변경 (posts 진입점 차단).
+// Discover 재설계 (v1#4) 에서 트레바리식 큐레이션으로 교체 예정.
 import { CategoryChips } from '@/components/CategoryChips';
 import { WinesSearchResults } from '@/components/WinesSearchResults';
 import { ScreenHeader } from '@/components/ScreenHeader';
@@ -150,7 +151,6 @@ export default function ExploreScreen() {
           )}
 
           <TrendingDrinks refreshKey={refreshKey} category={categoryKey} />
-          <PopularPosts refreshKey={refreshKey} category={categoryKey} />
 
           <View style={{ height: 20 }} />
         </ScrollView>

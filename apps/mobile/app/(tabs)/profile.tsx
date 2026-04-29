@@ -2,12 +2,9 @@ import React, { useState } from 'react';
 import { View, Text, ScrollView, StyleSheet, Pressable, Alert } from 'react-native';
 import { useAuth } from '@/lib/auth';
 import { useProfile } from '@/lib/hooks/useProfile';
-import { useMyPosts } from '@/lib/hooks/useMyPosts';
-import { useDeletePost } from '@/lib/hooks/useDeletePost';
 import { useTasteProfile } from '@/lib/hooks/useTasteProfile';
 import { useUserBadges } from '@/lib/hooks/useUserBadges';
 import { BadgeList } from '@/components/BadgeList';
-import { PostGrid } from '@/components/PostGrid';
 import { TasteCard } from '@/components/TasteCard';
 import { ScreenHeader } from '@/components/ScreenHeader';
 import { ProfileHeader } from '@/components/ProfileHeader';
@@ -17,11 +14,10 @@ export default function ProfileScreen() {
   const { user, signOut } = useAuth();
   const [showEdit, setShowEdit] = useState(false);
 
-  const { posts: myPosts, loadPosts } = useMyPosts();
-  const { deletePost } = useDeletePost(loadPosts);
+  // Posts deprecated (i cave 방향성 변경). 셀러가 콘텐츠 단위.
   const { taste, loadTaste } = useTasteProfile(user?.id);
   const { badges: userBadges, allBadges, loadBadges } = useUserBadges(user?.id);
-  const { profile, save } = useProfile(user?.id, user?.email, [loadPosts, loadTaste, loadBadges]);
+  const { profile, save } = useProfile(user?.id, user?.email, [loadTaste, loadBadges]);
 
   const fallbackChar = profile?.display_name?.[0] || user?.email?.[0] || '?';
 
@@ -78,11 +74,6 @@ export default function ProfileScreen() {
             <Text style={styles.infoValue}>{user?.email}</Text>
           </View>
         </View>
-
-        <View style={styles.postsSection}>
-          <Text style={styles.sectionTitle}>Posts</Text>
-        </View>
-        <PostGrid posts={myPosts} onLongPress={(post) => deletePost(post.id)} />
 
         <Pressable style={styles.signOutBtn} onPress={confirmSignOut}>
           <Text style={styles.signOutText}>Sign Out</Text>

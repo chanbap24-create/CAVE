@@ -23,8 +23,10 @@ import { CellarList } from '@/components/CellarList';
 import { CollectionDetailSheet } from '@/components/CollectionDetailSheet';
 import { CellarHeader } from '@/components/CellarHeader';
 import { NextGatheringCard } from '@/components/NextGatheringCard';
+import { RecommendedGatheringsRow } from '@/components/RecommendedGatheringsRow';
 import { useNotifications } from '@/lib/hooks/useNotifications';
 import { useUserGatherings } from '@/lib/hooks/useUserGatherings';
+import { useRecommendedGatherings } from '@/lib/hooks/useRecommendedGatherings';
 import type { CellarActivityItem } from '@/lib/hooks/useCellarActivity';
 import { CATEGORY_DB_MAP } from '@/lib/constants/drinkCategories';
 
@@ -37,6 +39,7 @@ function packEntry(c: any): CellarActivityItem {
     photo_url: c.photo_url ?? null,
     created_at: c.created_at,
     user_id: c.user_id,
+    source: c.source ?? null,
     wine: c.wine ? {
       id: c.wine.id,
       name: c.wine.name,
@@ -66,6 +69,7 @@ export default function CellarScreen() {
   const { changePhoto } = useCollectionPhoto();
   const { unreadCount, loadUnreadCount } = useNotifications();
   const { gatherings, loadGatherings } = useUserGatherings(user?.id);
+  const { recs: recommendedGatherings, loadRecs } = useRecommendedGatherings(user?.id);
   // Batched social counts — one round-trip for all rows vs per-row hooks.
   const social = useCollectionSocial(collections.map(c => c.id));
 
@@ -73,7 +77,7 @@ export default function CellarScreen() {
     useCallback(() => {
       if (user) {
         loadCollections(); loadTaste(); loadPicks();
-        loadUnreadCount(); loadGatherings();
+        loadUnreadCount(); loadGatherings(); loadRecs();
       }
     }, [user])
   );
@@ -171,6 +175,8 @@ export default function CellarScreen() {
           onRemove={removePick}
           wines={collections}
         />
+
+        <RecommendedGatheringsRow recs={recommendedGatherings} />
 
         <View style={styles.tabRow}>
           {caveTabs.map(c => (

@@ -52,11 +52,15 @@ export function UserGatheringsRow({ gatherings, title = '유저 모임' }: Props
               <View style={styles.imgWrap}>
                 <Image source={{ uri: g.wine_previews[0]?.image_url || g.wine_previews[0]?.photo_url || '' }} style={styles.img} />
               </View>
-              <Text style={styles.cardTitle} numberOfLines={2}>{g.title}</Text>
-              <Text style={styles.cardMeta} numberOfLines={1}>
-                {formatDate(g.gathering_date!)}{g.location ? ` · ${g.location}` : ''}
-              </Text>
-              <Text style={styles.cardSeats}>{g.current_members}/{g.max_members} 참여</Text>
+              <View style={styles.body}>
+                <Text style={styles.cardTitle} numberOfLines={2}>{g.title}</Text>
+                <Text style={styles.cardMeta} numberOfLines={1}>
+                  {formatDate(g.gathering_date!)}{g.location ? ` · ${g.location}` : ''}
+                </Text>
+              </View>
+              <View style={styles.footer}>
+                <Text style={styles.cardSeats}>{g.current_members}/{g.max_members} 참여</Text>
+              </View>
             </Pressable>
           ))}
         </ScrollView>
@@ -79,12 +83,22 @@ const styles = StyleSheet.create({
   title: { fontSize: 15, fontWeight: '700', color: '#222' },
   more: { fontSize: 12, color: '#7b2d4e', fontWeight: '600' },
   row: { paddingLeft: HORIZONTAL_PADDING, paddingRight: HORIZONTAL_PADDING / 2 },
-  card: { width: CARD_WIDTH, marginRight: CARD_GAP },
-  imgWrap: { borderRadius: 10, overflow: 'hidden', backgroundColor: '#f5f5f5' },
+  card: {
+    width: CARD_WIDTH, marginRight: CARD_GAP,
+    backgroundColor: '#fff', borderRadius: 12,
+    borderWidth: 1, borderColor: '#eee',
+    overflow: 'hidden',
+  },
+  imgWrap: { backgroundColor: '#f5f5f5' },
   img: { width: '100%', height: 110, backgroundColor: '#efe4ea' },
-  cardTitle: { marginTop: 8, fontSize: 13, fontWeight: '600', color: '#222', lineHeight: 18 },
+  body: { paddingHorizontal: 12, paddingTop: 10 },
+  cardTitle: { fontSize: 13, fontWeight: '600', color: '#222', lineHeight: 18 },
   cardMeta: { marginTop: 4, fontSize: 11, color: '#666' },
-  cardSeats: { marginTop: 2, fontSize: 11, color: '#999' },
+  footer: {
+    paddingHorizontal: 12, paddingVertical: 10, marginTop: 8,
+    borderTopWidth: 1, borderTopColor: '#f0f0f0',
+  },
+  cardSeats: { fontSize: 11, color: '#999' },
 
   empty: {
     marginHorizontal: 16, paddingVertical: 18, paddingHorizontal: 16,

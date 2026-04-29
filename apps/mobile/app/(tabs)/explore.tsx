@@ -12,6 +12,7 @@ import { EditorGuidesSection } from '@/components/EditorGuidesSection';
 import { ShopBrowseSection } from '@/components/ShopBrowseSection';
 import { DiscoverSectionHeader } from '@/components/DiscoverSectionHeader';
 import { ScreenHeader } from '@/components/ScreenHeader';
+import { HORIZONTAL_PADDING } from '@/lib/utils/discoverCardWidth';
 
 const REFRESH_CACHE_MS = 30_000;
 
@@ -68,25 +69,20 @@ export default function ExploreScreen() {
 
         {featuredCaves.length > 0 && (
           <View style={styles.cavesWrap}>
-            <DiscoverSectionHeader
-              title="셀러 발견"
-              subtitle="다양한 취향의 컬렉터들을 만나보세요"
-              actionLabel={null}
-            />
-            <View style={styles.caveGrid}>
+            <DiscoverSectionHeader title="셀러 발견" actionLabel={null} />
+            <ScrollView
+              horizontal showsHorizontalScrollIndicator={false}
+              contentContainerStyle={styles.scrollRow}
+            >
               {featuredCaves.map(cave => (
                 <FeaturedCaveCard key={cave.user_id} cave={cave} />
               ))}
-            </View>
+            </ScrollView>
           </View>
         )}
 
         <View style={styles.trendingWrap}>
-          <DiscoverSectionHeader
-            title="트렌딩 주류"
-            subtitle="요즘 컬렉터들이 자주 셀러에 담는 와인·주류"
-            actionLabel={null}
-          />
+          <DiscoverSectionHeader title="트렌딩 주류" actionLabel={null} />
           <TrendingDrinks refreshKey={refreshKey} category={categoryKey} />
         </View>
 
@@ -105,8 +101,7 @@ const styles = StyleSheet.create({
 
   cavesWrap: { marginTop: 32 },
   trendingWrap: { marginTop: 32 },
-  caveGrid: {
-    flexDirection: 'row', flexWrap: 'wrap', gap: 8,
-    paddingHorizontal: 16,
+  scrollRow: {
+    paddingLeft: HORIZONTAL_PADDING, paddingRight: HORIZONTAL_PADDING / 2,
   },
 });

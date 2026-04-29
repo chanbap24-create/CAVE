@@ -4,6 +4,12 @@ import { useTrendingDrinks } from '@/lib/hooks/useTrendingDrinks';
 import { useEffect } from 'react';
 
 import { CATEGORY_BG_COLORS, CATEGORY_TAG_STYLES, getCategoryLabel } from '@/lib/constants/drinkCategories';
+import {
+  getDiscoverCardWidth, getSnapInterval, HORIZONTAL_PADDING, CARD_GAP,
+} from '@/lib/utils/discoverCardWidth';
+
+const CARD_WIDTH = getDiscoverCardWidth();
+const SNAP = getSnapInterval();
 
 const bgColors = CATEGORY_BG_COLORS;
 const tagStyles = CATEGORY_TAG_STYLES;
@@ -23,7 +29,11 @@ export function TrendingDrinks({ refreshKey = 0, category }: Props) {
   return (
     <View>
       {/* 헤더는 explore.tsx 의 DiscoverSectionHeader 가 담당 — 중복 방지 */}
-      <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ paddingHorizontal: 20, gap: 10 }}>
+      <ScrollView
+        horizontal showsHorizontalScrollIndicator={false}
+        snapToInterval={SNAP} decelerationRate="fast"
+        contentContainerStyle={{ paddingLeft: HORIZONTAL_PADDING, paddingRight: HORIZONTAL_PADDING / 2 }}
+      >
         {drinks.map((d, i) => {
           const tag = tagStyles[d.category] || tagStyles.other;
           return (
@@ -51,14 +61,15 @@ export function TrendingDrinks({ refreshKey = 0, category }: Props) {
 
 const styles = StyleSheet.create({
   sectionTitle: { fontSize: 15, fontWeight: '700', color: '#222', paddingHorizontal: 20, paddingTop: 20, paddingBottom: 12 },
-  card: { width: 110, borderRadius: 12, overflow: 'hidden', borderWidth: 1, borderColor: '#eee' },
-  cardTop: { height: 60, justifyContent: 'flex-end', padding: 6 },
-  rank: { fontSize: 16, fontWeight: '800', color: 'rgba(0,0,0,0.12)' },
-  cardBody: { padding: 8 },
-  cardName: { fontSize: 11, fontWeight: '600', color: '#222', lineHeight: 14 },
-  cardMeta: { fontSize: 9, color: '#999', marginTop: 2 },
-  cardBottom: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: 4 },
-  catTag: { paddingHorizontal: 5, paddingVertical: 1, borderRadius: 4 },
-  catText: { fontSize: 8, fontWeight: '600' },
-  addCount: { fontSize: 9, color: '#bbb' },
+  // 다른 가로 카드(Partner / User / Caves) 와 동일 폭/이미지 110pt
+  card: { width: CARD_WIDTH, marginRight: CARD_GAP, borderRadius: 12, overflow: 'hidden', borderWidth: 1, borderColor: '#eee' },
+  cardTop: { height: 110, justifyContent: 'flex-end', padding: 12 },
+  rank: { fontSize: 28, fontWeight: '800', color: 'rgba(0,0,0,0.15)' },
+  cardBody: { padding: 12 },
+  cardName: { fontSize: 13, fontWeight: '600', color: '#222', lineHeight: 18 },
+  cardMeta: { fontSize: 11, color: '#888', marginTop: 4 },
+  cardBottom: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: 8 },
+  catTag: { paddingHorizontal: 6, paddingVertical: 2, borderRadius: 4 },
+  catText: { fontSize: 10, fontWeight: '600' },
+  addCount: { fontSize: 10, color: '#bbb' },
 });

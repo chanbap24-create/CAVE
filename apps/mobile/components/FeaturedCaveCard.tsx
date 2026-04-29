@@ -5,6 +5,9 @@ import { VideoPlayer } from './VideoPlayer';
 import { useRouter } from 'expo-router';
 import type { FeaturedCave } from '@/lib/hooks/useFeaturedCaves';
 import { getAvatarRingColor } from '@/lib/tierUtils';
+import { getDiscoverCardWidth } from '@/lib/utils/discoverCardWidth';
+
+const CARD_WIDTH = getDiscoverCardWidth();
 
 export function FeaturedCaveCard({ cave }: { cave: FeaturedCave }) {
   const router = useRouter();
@@ -99,11 +102,13 @@ function CardContent({ cave, initial, topBadge }: { cave: FeaturedCave; initial:
 }
 
 const styles = StyleSheet.create({
+  // Discover 가로 스크롤 카드 통일 폭/높이 (Partner/User Gatherings 와 동일)
   card: {
-    width: '31%', borderRadius: 12, overflow: 'hidden',
+    width: CARD_WIDTH, borderRadius: 12, overflow: 'hidden',
     borderWidth: 1, borderColor: '#eee',
+    marginRight: 12,
   },
-  cardBg: { height: 180, justifyContent: 'flex-end', overflow: 'hidden' },
+  cardBg: { height: 110, justifyContent: 'flex-end', overflow: 'hidden' },
   videoBg: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 },
   videoOverlay: { position: 'absolute', bottom: 0, left: 0, right: 0 },
   overlay: {

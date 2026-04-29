@@ -31,7 +31,6 @@ export function UserGatheringsRow({ gatherings, title = '유저 모임' }: Props
     <View style={styles.wrap}>
       <DiscoverSectionHeader
         title={title}
-        subtitle="동네 친구들이 여는 캐주얼한 와인 모임"
         onActionPress={() => router.push('/(tabs)/gatherings')}
       />
       {upcoming.length === 0 ? (

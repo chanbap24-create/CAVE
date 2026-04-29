@@ -1,5 +1,10 @@
 # Cave Project Rules
 
+> **⚠️ 제품 방향성 변경 (2026-04-29)**: 다음 작업 시작 전에 [`docs/icave_concept_updates.md`](docs/icave_concept_updates.md) 를 먼저 읽을 것.
+> i cave 는 더 이상 "와인 SNS 앱" 이 아니라 "주류 셀러 + 트레바리식 큐레이션 모임 + 샵 스마트오더" 양면 플랫폼.
+> 홈 피드/posts 테이블 deprecate, 셀러가 첫 진입점, Discover 트레바리화, 시즌 클럽이 코어 BM, 진정성 시스템 도입.
+> 아래 개발 룰은 그대로 유효하지만 **제품 우선순위**는 위 문서 기준.
+
 ## Development Rules
 1. 많은 부분을 수정해야 한다면 반드시 사용자에게 물어보고 진행할 것
 2. 하나의 파일에 코드를 다 넣지 말고, 기능별로 모듈화 할 것

@@ -40,6 +40,17 @@ function MessageIcon({ focused, hasUnread }: { focused: boolean; hasUnread: bool
   );
 }
 
+function ReviewsIcon({ focused }: { focused: boolean }) {
+  // 시음 노트 아이콘 — 와인 글라스 + 별 (펜 노트 아이콘 대체)
+  return (
+    <Svg width={26} height={26} fill="none" stroke={focused ? '#222' : '#999'} strokeWidth={focused ? 2.2 : 1.8} viewBox="0 0 24 24">
+      <Path d="M8 2h8l-1 9a4 4 0 0 1-3 4 4 4 0 0 1-3-4z" />
+      <Line x1={12} y1={15} x2={12} y2={22} />
+      <Line x1={8} y1={22} x2={16} y2={22} />
+    </Svg>
+  );
+}
+
 function CaveIcon({ focused, hasUnread }: { focused: boolean; hasUnread: boolean }) {
   return (
     <View>
@@ -118,6 +129,13 @@ export default function TabLayout() {
         name="gatherings"
         options={{
           tabBarIcon: ({ focused }) => <GatheringsIcon focused={focused} hasUnread={hasUnreadGathering} />,
+        }}
+      />
+      {/* 시음 후기 — 메시지 자리. 셀러 등록 시 작성한 tasting_note 가 모이는 피드 */}
+      <Tabs.Screen
+        name="reviews"
+        options={{
+          tabBarIcon: ({ focused }) => <ReviewsIcon focused={focused} />,
         }}
       />
       {/* 메시지 — 탭에서 제거됨, 프로필 메뉴에서 진입. 라우트 자체는 유지 (직접 push). */}

@@ -7,13 +7,11 @@ import { useProfile } from '@/lib/hooks/useProfile';
 import { useTasteProfile } from '@/lib/hooks/useTasteProfile';
 import { useUserBadges } from '@/lib/hooks/useUserBadges';
 import { useUnreadDM } from '@/lib/hooks/useUnreadDM';
-import { useCommunityReviews } from '@/lib/hooks/useCommunityReviews';
 import { BadgeList } from '@/components/BadgeList';
 import { TasteCard } from '@/components/TasteCard';
 import { ScreenHeader } from '@/components/ScreenHeader';
 import { ProfileHeader } from '@/components/ProfileHeader';
 import { EditProfileModal } from '@/components/EditProfileModal';
-import { CommunityReviewFeed } from '@/components/CommunityReviewFeed';
 
 export default function ProfileScreen() {
   const router = useRouter();
@@ -25,7 +23,6 @@ export default function ProfileScreen() {
   const { badges: userBadges, allBadges, loadBadges } = useUserBadges(user?.id);
   const { profile, save } = useProfile(user?.id, user?.email, [loadTaste, loadBadges]);
   const { hasUnread } = useUnreadDM();
-  const { reviews } = useCommunityReviews();
 
   const fallbackChar = profile?.display_name?.[0] || user?.email?.[0] || '?';
 
@@ -93,13 +90,7 @@ export default function ProfileScreen() {
           </View>
         </View>
 
-        {/* 친구들의 시음 후기 — collection_comments 기반 피드 */}
-        {reviews.length > 0 && (
-          <View style={styles.reviewsWrap}>
-            <Text style={[styles.sectionTitle, styles.reviewsTitle]}>사람들의 시음 후기</Text>
-            <CommunityReviewFeed reviews={reviews} />
-          </View>
-        )}
+        {/* 시음 후기 피드는 (tabs)/reviews 탭으로 이동 — 프로필에서 제거됨 */}
 
         <Pressable style={styles.signOutBtn} onPress={confirmSignOut}>
           <Text style={styles.signOutText}>로그아웃</Text>
@@ -157,10 +148,6 @@ const styles = StyleSheet.create({
   menuLeft: { flexDirection: 'row', alignItems: 'center', gap: 10 },
   menuLabel: { fontSize: 14, fontWeight: '500', color: '#222' },
   menuDot: { width: 8, height: 8, borderRadius: 4, backgroundColor: '#ed4956', marginLeft: 4 },
-
-  // 후기 피드 섹션
-  reviewsWrap: { marginTop: 32 },
-  reviewsTitle: { paddingHorizontal: 20 },
 
   signOutBtn: {
     marginHorizontal: 20, marginTop: 24,

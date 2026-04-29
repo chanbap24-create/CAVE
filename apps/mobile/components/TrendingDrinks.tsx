@@ -22,7 +22,7 @@ export function TrendingDrinks({ refreshKey = 0, category }: Props) {
 
   return (
     <View>
-      <Text style={styles.sectionTitle}>Trending This Week</Text>
+      {/* 헤더는 explore.tsx 의 DiscoverSectionHeader 가 담당 — 중복 방지 */}
       <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ paddingHorizontal: 20, gap: 10 }}>
         {drinks.map((d, i) => {
           const tag = tagStyles[d.category] || tagStyles.other;

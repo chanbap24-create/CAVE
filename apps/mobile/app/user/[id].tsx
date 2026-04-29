@@ -139,7 +139,7 @@ export default function UserProfileScreen() {
 
         {userGatherings.length > 0 && (
           <View style={styles.gatheringSection}>
-            <Text style={styles.sectionTitle}>Gatherings ({userGatherings.length})</Text>
+            <Text style={styles.sectionTitle}>모임 ({userGatherings.length})</Text>
             {userGatherings.map(g => {
               const dateStr = formatMonthDay(g.gathering_date);
               return (

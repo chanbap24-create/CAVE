@@ -1,7 +1,11 @@
 import React from 'react';
-import { View, Text, ScrollView, Pressable, StyleSheet, Image } from 'react-native';
+import { View, Text, Pressable, StyleSheet, Image } from 'react-native';
 import { useRouter } from 'expo-router';
 import type { Gathering, GatheringHostType } from '@/lib/hooks/useGatherings';
+
+// Discover 화면 한 페이지당 노출할 파트너 모임 수 (2열 × 3행 = 6개).
+// 더 보고 싶으면 '더보기' 로 모임 탭 이동.
+const PARTNER_PAGE_LIMIT = 6;
 
 interface Props {
   gatherings: Gathering[];
@@ -25,7 +29,7 @@ export function PartnerGatheringsRow({ gatherings, title = '샵·소믈리에 �
   const router = useRouter();
   const partnerEvents = gatherings
     .filter(g => g.host_type !== 'user' && g.status === 'open' && g.gathering_date)
-    .slice(0, 8);
+    .slice(0, PARTNER_PAGE_LIMIT);
   return (
     <View style={styles.wrap}>
       <View style={styles.titleRow}>
@@ -40,31 +44,31 @@ export function PartnerGatheringsRow({ gatherings, title = '샵·소믈리에 �
           <Text style={styles.emptySub}>샵·소믈리에 큐레이션 모임이 여기 노출됩니다</Text>
         </View>
       ) : (
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.row}>
+        <View style={styles.grid}>
           {partnerEvents.map(g => (
-          <Pressable key={g.id} style={styles.card} onPress={() => router.push(`/gathering/${g.id}` as any)}>
-            <View style={styles.imgWrap}>
-              <Image source={{ uri: g.wine_previews[0]?.image_url || g.wine_previews[0]?.photo_url || '' }} style={styles.img} />
-              <View style={styles.typeBadge}>
-                <Text style={styles.typeBadgeText}>{labelOfHostType(g.host_type)}</Text>
+            <Pressable key={g.id} style={styles.card} onPress={() => router.push(`/gathering/${g.id}` as any)}>
+              <View style={styles.imgWrap}>
+                <Image source={{ uri: g.wine_previews[0]?.image_url || g.wine_previews[0]?.photo_url || '' }} style={styles.img} />
+                <View style={styles.typeBadge}>
+                  <Text style={styles.typeBadgeText}>{labelOfHostType(g.host_type)}</Text>
+                </View>
               </View>
-            </View>
-            <Text style={styles.host} numberOfLines={1}>
-              {g.host?.partner_label || g.host?.display_name || g.host?.username || '파트너'}
-            </Text>
-            <Text style={styles.cardTitle} numberOfLines={2}>{g.title}</Text>
-            <Text style={styles.cardMeta} numberOfLines={1}>
-              {formatDate(g.gathering_date!)}{g.location ? ` · ${g.location}` : ''}
-            </Text>
-            <View style={styles.footer}>
-              <Text style={styles.cardSeats}>{g.current_members}/{g.max_members}</Text>
-              {g.price_per_person ? (
-                <Text style={styles.price}>{formatKRW(g.price_per_person)}</Text>
-              ) : null}
-            </View>
-          </Pressable>
-        ))}
-        </ScrollView>
+              <Text style={styles.host} numberOfLines={1}>
+                {g.host?.partner_label || g.host?.display_name || g.host?.username || '파트너'}
+              </Text>
+              <Text style={styles.cardTitle} numberOfLines={2}>{g.title}</Text>
+              <Text style={styles.cardMeta} numberOfLines={1}>
+                {formatDate(g.gathering_date!)}{g.location ? ` · ${g.location}` : ''}
+              </Text>
+              <View style={styles.footer}>
+                <Text style={styles.cardSeats}>{g.current_members}/{g.max_members}</Text>
+                {g.price_per_person ? (
+                  <Text style={styles.price}>{formatKRW(g.price_per_person)}</Text>
+                ) : null}
+              </View>
+            </Pressable>
+          ))}
+        </View>
       )}
     </View>
   );
@@ -96,9 +100,14 @@ const styles = StyleSheet.create({
   },
   title: { fontSize: 15, fontWeight: '700', color: '#222' },
   more: { fontSize: 12, color: '#7b2d4e', fontWeight: '600' },
-  row: { paddingHorizontal: 16, gap: 14 },
+  // 2열 그리드: 가로 패딩 16 + 카드 사이 간격 12. 카드는 width '48.5%' 로
+  // 한 행에 정확히 2개. flexWrap 으로 행이 자동 추가.
+  grid: {
+    flexDirection: 'row', flexWrap: 'wrap',
+    paddingHorizontal: 16, gap: 12,
+  },
   card: {
-    width: 200, marginRight: 14,
+    width: '48.5%',
     backgroundColor: '#fff', borderRadius: 12,
     borderWidth: 1, borderColor: '#eee',
     overflow: 'hidden',

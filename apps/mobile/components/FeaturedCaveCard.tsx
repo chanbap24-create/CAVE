@@ -1,8 +1,10 @@
 import React from 'react';
-import { View, Text, StyleSheet, Pressable, Image, ImageBackground } from 'react-native';
+import { View, Text, StyleSheet, Pressable } from 'react-native';
+import { Image } from 'expo-image';
 import { VideoPlayer } from './VideoPlayer';
 import { useRouter } from 'expo-router';
 import type { FeaturedCave } from '@/lib/hooks/useFeaturedCaves';
+import { getAvatarRingColor } from '@/lib/tierUtils';
 
 export function FeaturedCaveCard({ cave }: { cave: FeaturedCave }) {
   const router = useRouter();
@@ -25,11 +27,18 @@ export function FeaturedCaveCard({ cave }: { cave: FeaturedCave }) {
           </View>
         </View>
       ) : cave.latestPostImage ? (
-        <ImageBackground source={{ uri: cave.latestPostImage }} style={styles.cardBg} imageStyle={styles.cardBgImage}>
-          <View style={styles.overlay}>
+        <View style={styles.cardBg}>
+          <Image
+            source={cave.latestPostImage}
+            style={StyleSheet.absoluteFillObject}
+            contentFit="cover"
+            cachePolicy="memory-disk"
+            transition={200}
+          />
+          <View style={[styles.overlay, styles.videoOverlay]}>
             <CardContent cave={cave} initial={initial} topBadge={topBadge} />
           </View>
-        </ImageBackground>
+        </View>
       ) : (
         <View style={[styles.cardBg, { backgroundColor: '#f0f0f0' }]}>
           <CardContent cave={cave} initial={initial} topBadge={topBadge} />
@@ -43,16 +52,37 @@ function CardContent({ cave, initial, topBadge }: { cave: FeaturedCave; initial:
   const hasImage = !!cave.latestPostImage;
   const textColor = hasImage ? '#fff' : '#222';
   const subColor = hasImage ? 'rgba(255,255,255,0.8)' : '#999';
+  const ringColor = getAvatarRingColor(cave.collection_count);
+  const borderStyle = ringColor
+    ? { borderWidth: 1.5, borderColor: ringColor }
+    : { borderWidth: 1.5, borderColor: '#fff' };
+  const glowStyle = ringColor
+    ? {
+        borderRadius: 16,
+        padding: 1,
+        shadowColor: ringColor,
+        shadowOffset: { width: 0, height: 0 },
+        shadowOpacity: 0.6,
+        shadowRadius: 5,
+        elevation: 8,
+      }
+    : undefined;
 
   return (
     <View style={styles.content}>
       <View style={styles.topRow}>
         {cave.avatar_url ? (
-          <View style={cave.collection_count >= 50 ? styles.avatarGlow : undefined}>
-            <Image source={{ uri: cave.avatar_url }} style={[styles.avatar, cave.collection_count >= 50 && styles.avatarGoldBorder]} />
+          <View style={glowStyle}>
+            <Image
+              source={cave.avatar_url}
+              style={[styles.avatar, borderStyle]}
+              contentFit="cover"
+              cachePolicy="memory-disk"
+              transition={150}
+            />
           </View>
         ) : (
-          <View style={[styles.avatarPlaceholder, cave.collection_count >= 50 && styles.avatarGoldBorder]}>
+          <View style={[styles.avatarPlaceholder, borderStyle]}>
             <Text style={styles.avatarText}>{initial}</Text>
           </View>
         )}
@@ -74,7 +104,6 @@ const styles = StyleSheet.create({
     borderWidth: 1, borderColor: '#f0f0f0',
   },
   cardBg: { height: 180, justifyContent: 'flex-end', overflow: 'hidden' },
-  cardBgImage: { borderRadius: 11 },
   videoBg: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 },
   videoOverlay: { position: 'absolute', bottom: 0, left: 0, right: 0 },
   overlay: {
@@ -84,21 +113,12 @@ const styles = StyleSheet.create({
   },
   content: { padding: 8 },
   topRow: { position: 'relative', marginBottom: 4, alignSelf: 'flex-start' },
-  avatar: { width: 28, height: 28, borderRadius: 14, borderWidth: 1.5, borderColor: '#fff' },
+  avatar: { width: 28, height: 28, borderRadius: 14 },
   avatarPlaceholder: {
     width: 28, height: 28, borderRadius: 14, backgroundColor: '#e8e8e8',
     alignItems: 'center', justifyContent: 'center',
   },
   avatarText: { fontSize: 11, fontWeight: '600', color: '#999' },
-  avatarGlow: {
-    borderRadius: 16, padding: 1,
-    shadowColor: '#c9a84c',
-    shadowOffset: { width: 0, height: 0 },
-    shadowOpacity: 0.6,
-    shadowRadius: 5,
-    elevation: 8,
-  },
-  avatarGoldBorder: { borderWidth: 1.5, borderColor: '#c9a84c' },
   gatheringDot: {
     position: 'absolute', bottom: 0, right: -2,
     width: 10, height: 10, borderRadius: 5,

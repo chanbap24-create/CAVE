@@ -31,10 +31,12 @@ export function useUnreadDM() {
     const readMap = new Map(memberships.map(m => [m.room_id, m.last_read_at]));
 
     for (const roomId of dmRoomIds) {
+      // Only messages from OTHERS count as unread; skip self-sent.
       const { data: lastMsg } = await supabase
         .from('chat_messages')
         .select('created_at')
         .eq('room_id', roomId)
+        .neq('user_id', user.id)
         .order('created_at', { ascending: false })
         .limit(1);
 

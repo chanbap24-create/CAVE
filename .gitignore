@@ -12,3 +12,7 @@ dist/
 web-build/
 .DS_Store
 *.tsbuildinfo
+
+# Claude Code / bkit tooling state
+.claude/
+.bkit/

@@ -1,6 +1,9 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, Modal, Pressable, TextInput, ScrollView, Image, GestureResponderEvent } from 'react-native';
+import { View, Text, StyleSheet, Modal, Pressable, TextInput, ScrollView, GestureResponderEvent } from 'react-native';
+import { Image } from 'expo-image';
 import { supabase } from '@/lib/supabase';
+import { ScreenHeader } from '@/components/ScreenHeader';
+import { sanitizeSearch } from '@/lib/utils/searchUtils';
 
 interface Props {
   visible: boolean;
@@ -31,18 +34,20 @@ export function PhotoTagEditor({ visible, onClose, postId, imageUrl, onTagAdded 
     setSearch(query);
     if (query.length < 1) { setResults([]); return; }
 
+    const q = sanitizeSearch(query);
+    if (!q) { setResults([]); return; }
     if (tagType === 'user') {
       const { data } = await supabase
         .from('profiles')
         .select('id, username, display_name')
-        .or(`username.ilike.%${query}%,display_name.ilike.%${query}%`)
+        .or(`username.ilike.%${q}%,display_name.ilike.%${q}%`)
         .limit(5);
       if (data) setResults(data);
     } else {
       const { data } = await supabase
         .from('wines')
         .select('id, name, name_ko')
-        .or(`name.ilike.%${query}%,name_ko.ilike.%${query}%`)
+        .or(`name.ilike.%${q}%,name_ko.ilike.%${q}%`)
         .limit(5);
       if (data) setResults(data);
     }
@@ -85,21 +90,21 @@ export function PhotoTagEditor({ visible, onClose, postId, imageUrl, onTagAdded 
   return (
     <Modal visible={visible} animationType="slide">
       <View style={styles.container}>
-        <View style={styles.header}>
-          <Pressable onPress={onClose}>
-            <Text style={styles.done}>Done</Text>
-          </Pressable>
-          <Text style={styles.title}>Tag Photo</Text>
-          <View style={{ width: 50 }} />
-        </View>
+        <ScreenHeader
+          title={<Text style={styles.title}>Tag Photo</Text>}
+          left={<Pressable onPress={onClose} hitSlop={8}><Text style={styles.done}>Done</Text></Pressable>}
+        />
 
         <Text style={styles.hint}>Tap on the photo to add a tag</Text>
 
         <View style={styles.imageContainer}>
           <Pressable onPress={handleImageTap}>
             <Image
-              source={{ uri: imageUrl }}
+              source={imageUrl}
               style={styles.image}
+              contentFit="cover"
+              cachePolicy="memory-disk"
+              transition={150}
               onLayout={(e) => {
                 const { width, height } = e.nativeEvent.layout;
                 setImageSize({ width, height });
@@ -158,11 +163,6 @@ export function PhotoTagEditor({ visible, onClose, postId, imageUrl, onTagAdded 
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#fff' },
-  header: {
-    paddingTop: 60, paddingHorizontal: 20, paddingBottom: 14,
-    borderBottomWidth: 1, borderBottomColor: '#efefef',
-    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
-  },
   done: { fontSize: 15, fontWeight: '600', color: '#7b2d4e' },
   title: { fontSize: 16, fontWeight: '700', color: '#222' },
   hint: { fontSize: 12, color: '#999', textAlign: 'center', paddingVertical: 8 },

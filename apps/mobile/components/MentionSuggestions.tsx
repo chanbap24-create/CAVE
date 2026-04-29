@@ -1,5 +1,6 @@
 import React from 'react';
-import { View, Text, StyleSheet, Pressable, Image } from 'react-native';
+import { View, Text, StyleSheet, Pressable } from 'react-native';
+import { Image } from 'expo-image';
 import type { MentionUser } from '@/lib/hooks/useMention';
 
 interface Props {
@@ -17,7 +18,7 @@ export function MentionSuggestions({ suggestions, onSelect }: Props) {
         return (
           <Pressable key={user.id} style={styles.item} onPress={() => onSelect(user)}>
             {user.avatar_url ? (
-              <Image source={{ uri: user.avatar_url }} style={styles.avatar} />
+              <Image source={user.avatar_url} style={styles.avatar} contentFit="cover" cachePolicy="memory-disk" transition={150} />
             ) : (
               <View style={styles.avatarPlaceholder}>
                 <Text style={styles.avatarText}>{initial}</Text>

@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { supabase } from '@/lib/supabase';
+import { sanitizeSearch } from '@/lib/utils/searchUtils';
 
 export interface MentionUser {
   id: string;
@@ -29,10 +30,12 @@ export function useMention() {
   }
 
   async function searchUsers(query: string) {
+    const q = sanitizeSearch(query);
+    if (!q) { setSuggestions([]); return; }
     const { data } = await supabase
       .from('profiles')
       .select('id, username, display_name, avatar_url')
-      .or(`username.ilike.%${query}%,display_name.ilike.%${query}%`)
+      .or(`username.ilike.%${q}%,display_name.ilike.%${q}%`)
       .limit(5);
     if (data) setSuggestions(data);
   }

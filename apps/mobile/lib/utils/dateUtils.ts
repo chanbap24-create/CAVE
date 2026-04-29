@@ -1,3 +1,17 @@
+const DAY_NAMES = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+const pad = (n: number) => n.toString().padStart(2, '0');
+
+function parts(d: Date) {
+  return {
+    year: d.getFullYear(),
+    month: d.getMonth() + 1,
+    day: d.getDate(),
+    dayName: DAY_NAMES[d.getDay()],
+    hour: pad(d.getHours()),
+    min: pad(d.getMinutes()),
+  };
+}
+
 export function timeAgo(dateStr: string | null): string {
   if (!dateStr) return '';
   const diff = Date.now() - new Date(dateStr).getTime();
@@ -10,14 +24,41 @@ export function timeAgo(dateStr: string | null): string {
   return `${days}d`;
 }
 
+// "14:30"
+export function formatTime(dateStr: string | null): string {
+  if (!dateStr) return '';
+  const { hour, min } = parts(new Date(dateStr));
+  return `${hour}:${min}`;
+}
+
+// "4.17"
+export function formatMonthDay(dateStr: string | null): string {
+  if (!dateStr) return '';
+  const { month, day } = parts(new Date(dateStr));
+  return `${month}.${day}`;
+}
+
+// "4.17 (Fri) 14:30"
 export function formatDate(dateStr: string | null): string {
   if (!dateStr) return '';
-  const d = new Date(dateStr);
-  const days = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
-  const month = d.getMonth() + 1;
-  const day = d.getDate();
-  const dayName = days[d.getDay()];
-  const hour = d.getHours().toString().padStart(2, '0');
-  const min = d.getMinutes().toString().padStart(2, '0');
+  const { month, day, dayName, hour, min } = parts(new Date(dateStr));
   return `${month}.${day} (${dayName}) ${hour}:${min}`;
+}
+
+// "2026.4.17 (Fri) 14:30"
+export function formatDateFull(dateStr: string | null): string {
+  if (!dateStr) return '';
+  const { year, month, day, dayName, hour, min } = parts(new Date(dateStr));
+  return `${year}.${month}.${day} (${dayName}) ${hour}:${min}`;
+}
+
+// Date object variants (for date pickers)
+export function formatPickerDate(date: Date): string {
+  const { year, month, day, dayName } = parts(date);
+  return `${year}.${month}.${day} (${dayName})`;
+}
+
+export function formatPickerTime(date: Date): string {
+  const { hour, min } = parts(date);
+  return `${hour}:${min}`;
 }

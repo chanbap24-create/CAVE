@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { supabase } from '@/lib/supabase';
+import { sanitizeSearch } from '@/lib/utils/searchUtils';
 
 export interface WineSearchResult {
   id: number;
@@ -19,10 +20,11 @@ export function useWineSearch() {
     if (query.length < 2) { setResults([]); return; }
     setLoading(true);
 
+    const q = sanitizeSearch(query);
     const { data } = await supabase
       .from('wines')
       .select('id, name, name_ko, category, country, region, alcohol_pct')
-      .or(`name.ilike.%${query}%,name_ko.ilike.%${query}%,producer.ilike.%${query}%`)
+      .or(`name.ilike.%${q}%,name_ko.ilike.%${q}%,producer.ilike.%${q}%`)
       .order('name')
       .limit(limit);
 

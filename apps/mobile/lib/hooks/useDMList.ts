@@ -46,19 +46,29 @@ export function useDMList() {
 
     const dmRoomIds = dmRooms.map(r => r.id);
 
-    // 3. Batch: get all members of DM rooms (to find other users)
-    const { data: allMembers } = await supabase
-      .from('chat_members')
-      .select('room_id, user_id')
-      .in('room_id', dmRoomIds)
-      .neq('user_id', user.id);
+    // 3 & 5 run in parallel — both only depend on dmRoomIds
+    const [membersRes, messagesRes] = await Promise.all([
+      supabase
+        .from('chat_members')
+        .select('room_id, user_id')
+        .in('room_id', dmRoomIds)
+        .neq('user_id', user.id),
+      supabase
+        .from('chat_messages')
+        .select('room_id, user_id, content, created_at')
+        .in('room_id', dmRoomIds)
+        .order('created_at', { ascending: false }),
+    ]);
+
+    const allMembers = membersRes.data;
+    const allMessages = messagesRes.data;
 
     if (!allMembers) { setRooms([]); setLoading(false); return; }
 
     const otherUserIds = [...new Set(allMembers.map(m => m.user_id))];
     const roomToUser = new Map(allMembers.map(m => [m.room_id, m.user_id]));
 
-    // 4. Batch: get all profiles
+    // 4. Batch: get all profiles (depends on allMembers)
     const { data: profiles } = await supabase
       .from('profiles')
       .select('id, username, display_name, avatar_url')
@@ -66,17 +76,15 @@ export function useDMList() {
 
     const profileMap = new Map(profiles?.map(p => [p.id, p]) || []);
 
-    // 5. Batch: get last message per room
-    const { data: allMessages } = await supabase
-      .from('chat_messages')
-      .select('room_id, content, created_at')
-      .in('room_id', dmRoomIds)
-      .order('created_at', { ascending: false });
-
-    // Group by room, take first (latest)
+    // Group by room, take first (latest) for preview
+    // Separately track latest message from OTHERS for unread calc (skip self-sent)
     const lastMsgMap = new Map<number, { content: string; created_at: string }>();
+    const lastOtherMsgAtMap = new Map<number, string>();
     (allMessages || []).forEach(msg => {
       if (!lastMsgMap.has(msg.room_id)) lastMsgMap.set(msg.room_id, msg);
+      if (msg.user_id !== user.id && !lastOtherMsgAtMap.has(msg.room_id)) {
+        lastOtherMsgAtMap.set(msg.room_id, msg.created_at);
+      }
     });
 
     // Build result
@@ -85,8 +93,10 @@ export function useDMList() {
       const profile = otherUserId ? profileMap.get(otherUserId) : null;
       const lastMsg = lastMsgMap.get(roomId);
       const lastReadAt = readMap.get(roomId);
-      const unread = lastMsg && lastReadAt
-        ? new Date(lastMsg.created_at) > new Date(lastReadAt)
+      const lastOtherMsgAt = lastOtherMsgAtMap.get(roomId);
+      // Unread only when the OTHER user's latest message is newer than my last_read_at
+      const unread = lastOtherMsgAt
+        ? (!lastReadAt || new Date(lastOtherMsgAt) > new Date(lastReadAt))
         : false;
 
       return {

@@ -1,8 +1,10 @@
 import React, { useCallback } from 'react';
-import { View, Text, ScrollView, StyleSheet, Pressable, Image, RefreshControl } from 'react-native';
+import { View, Text, ScrollView, StyleSheet, Pressable, RefreshControl } from 'react-native';
+import { Image } from 'expo-image';
 import { useRouter, useFocusEffect } from 'expo-router';
 import { useDMList } from '@/lib/hooks/useDMList';
 import { timeAgo } from '@/lib/utils/dateUtils';
+import { ScreenHeader } from '@/components/ScreenHeader';
 
 export default function MessagesScreen() {
   const router = useRouter();
@@ -21,9 +23,7 @@ export default function MessagesScreen() {
 
   return (
     <View style={styles.container}>
-      <View style={styles.header}>
-        <Text style={styles.title}>Messages</Text>
-      </View>
+      <ScreenHeader variant="centered" title="Messages" />
 
       <ScrollView
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#7b2d4e" />}
@@ -46,7 +46,7 @@ export default function MessagesScreen() {
               onPress={() => router.push(`/chat/${room.room_id}?title=${encodeURIComponent(u.username)}`)}
             >
               {u.avatar_url ? (
-                <Image source={{ uri: u.avatar_url }} style={styles.avatar} />
+                <Image source={u.avatar_url} style={styles.avatar} contentFit="cover" cachePolicy="memory-disk" transition={150} />
               ) : (
                 <View style={styles.avatarPlaceholder}>
                   <Text style={styles.avatarText}>{initial}</Text>
@@ -72,13 +72,6 @@ export default function MessagesScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#fff' },
-  header: {
-    paddingTop: 60, paddingHorizontal: 20, paddingBottom: 14,
-    borderBottomWidth: 1, borderBottomColor: '#efefef',
-    alignItems: 'center',
-  },
-  title: { fontSize: 17, fontWeight: '700', color: '#222' },
-
   empty: { alignItems: 'center', paddingTop: 120 },
   emptyTitle: { fontSize: 17, fontWeight: '600', color: '#222', marginBottom: 6 },
   emptyDesc: { fontSize: 14, color: '#999', textAlign: 'center', lineHeight: 22 },

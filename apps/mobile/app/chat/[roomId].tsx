@@ -1,18 +1,14 @@
 import React, { useState, useRef } from 'react';
-import { View, Text, StyleSheet, Pressable, TextInput, FlatList, Image, KeyboardAvoidingView, Platform } from 'react-native';
-import { useLocalSearchParams, useRouter } from 'expo-router';
+import { View, Text, StyleSheet, Pressable, TextInput, FlatList, KeyboardAvoidingView, Platform } from 'react-native';
+import { Image } from 'expo-image';
+import { useLocalSearchParams } from 'expo-router';
 import { useAuth } from '@/lib/auth';
 import { useChat } from '@/lib/hooks/useChat';
-import Svg, { Polyline } from 'react-native-svg';
-
-function timeStr(dateStr: string) {
-  const d = new Date(dateStr);
-  return `${d.getHours().toString().padStart(2, '0')}:${d.getMinutes().toString().padStart(2, '0')}`;
-}
+import { ScreenHeader, BackButton } from '@/components/ScreenHeader';
+import { formatTime } from '@/lib/utils/dateUtils';
 
 export default function ChatScreen() {
   const { roomId, title } = useLocalSearchParams<{ roomId: string; title?: string }>();
-  const router = useRouter();
   const { user } = useAuth();
   const { messages, sendMessage } = useChat(roomId ? parseInt(roomId) : null);
   const [text, setText] = useState('');
@@ -28,15 +24,10 @@ export default function ChatScreen() {
 
   return (
     <KeyboardAvoidingView style={styles.container} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
-      <View style={styles.header}>
-        <Pressable onPress={() => router.canGoBack() ? router.back() : router.replace('/(tabs)/messages')} style={styles.backBtn}>
-          <Svg width={24} height={24} fill="none" stroke="#222" strokeWidth={1.8} viewBox="0 0 24 24">
-            <Polyline points="15 18 9 12 15 6" />
-          </Svg>
-        </Pressable>
-        <Text style={styles.headerTitle} numberOfLines={1}>{title || 'Chat'}</Text>
-        <View style={{ width: 24 }} />
-      </View>
+      <ScreenHeader
+        title={<Text style={styles.headerTitle} numberOfLines={1}>{title || 'Chat'}</Text>}
+        left={<BackButton fallbackPath="/(tabs)/messages" />}
+      />
 
       <FlatList
         ref={flatListRef}
@@ -55,7 +46,7 @@ export default function ChatScreen() {
                 <View style={styles.avatarCol}>
                   {showAvatar ? (
                     item.profile?.avatar_url ? (
-                      <Image source={{ uri: item.profile.avatar_url }} style={styles.msgAvatar} />
+                      <Image source={item.profile.avatar_url} style={styles.msgAvatar} contentFit="cover" cachePolicy="memory-disk" transition={150} />
                     ) : (
                       <View style={styles.msgAvatarPlaceholder}>
                         <Text style={styles.msgAvatarText}>{initial}</Text>
@@ -71,7 +62,7 @@ export default function ChatScreen() {
                 <View style={[styles.bubble, mine ? styles.bubbleMine : styles.bubbleOther]}>
                   <Text style={[styles.bubbleText, mine && styles.bubbleTextMine]}>{item.content}</Text>
                 </View>
-                <Text style={[styles.msgTime, mine && styles.msgTimeMine]}>{timeStr(item.created_at)}</Text>
+                <Text style={[styles.msgTime, mine && styles.msgTimeMine]}>{formatTime(item.created_at)}</Text>
               </View>
             </View>
           );
@@ -98,13 +89,7 @@ export default function ChatScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#fff' },
-  header: {
-    paddingTop: 60, paddingHorizontal: 20, paddingBottom: 14,
-    borderBottomWidth: 1, borderBottomColor: '#efefef',
-    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
-  },
-  backBtn: { padding: 4 },
-  headerTitle: { fontSize: 16, fontWeight: '700', color: '#222', flex: 1, textAlign: 'center' },
+  headerTitle: { fontSize: 16, fontWeight: '700', color: '#222', textAlign: 'center' },
 
   messageList: { padding: 16, paddingBottom: 8 },
 

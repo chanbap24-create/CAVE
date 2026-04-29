@@ -1,14 +1,19 @@
 import React, { useEffect, useState } from 'react';
 import { View, Text, ScrollView, StyleSheet, Pressable } from 'react-native';
-import { useLocalSearchParams, useRouter } from 'expo-router';
+import { useLocalSearchParams } from 'expo-router';
 import { supabase } from '@/lib/supabase';
+import { useAuth } from '@/lib/auth';
 import { PostCard } from '@/components/PostCard';
-import Svg, { Polyline } from 'react-native-svg';
+import { ScreenHeader, BackButton } from '@/components/ScreenHeader';
+import { EditCategorySheet } from '@/components/EditCategorySheet';
+import { useDrinkCategories } from '@/lib/hooks/useDrinkCategories';
 
 export default function PostDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
-  const router = useRouter();
+  const { user } = useAuth();
   const [post, setPost] = useState<any>(null);
+  const [showEditCategory, setShowEditCategory] = useState(false);
+  const { byKey } = useDrinkCategories();
 
   useEffect(() => {
     if (id) loadPost();
@@ -38,30 +43,66 @@ export default function PostDetailScreen() {
     });
   }
 
+  const isOwner = !!(user && post && user.id === post.user_id);
+  const catMeta = byKey(post?.category);
+
   return (
     <View style={styles.container}>
-      <View style={styles.header}>
-        <Pressable onPress={() => router.canGoBack() ? router.back() : router.replace('/(tabs)/explore')}>
-          <Svg width={24} height={24} fill="none" stroke="#222" strokeWidth={1.8} viewBox="0 0 24 24">
-            <Polyline points="15 18 9 12 15 6" />
-          </Svg>
-        </Pressable>
-        <Text style={styles.title}>Post</Text>
-        <View style={{ width: 24 }} />
-      </View>
+      <ScreenHeader title="Post" left={<BackButton fallbackPath="/(tabs)/explore" />} />
       <ScrollView>
         {post && <PostCard post={post} />}
+
+        {/* Owner-only: category row with edit affordance */}
+        {post && isOwner && (
+          <Pressable
+            style={styles.categoryRow}
+            onPress={() => setShowEditCategory(true)}
+          >
+            <Text style={styles.categoryLabel}>Category</Text>
+            {catMeta ? (
+              <View
+                style={[
+                  styles.categoryChip,
+                  { backgroundColor: catMeta.bg_color ?? '#f0f0f0' },
+                ]}
+              >
+                <Text style={[styles.categoryChipText, { color: catMeta.text_color ?? '#666' }]}>
+                  {catMeta.label}
+                </Text>
+              </View>
+            ) : (
+              <Text style={styles.categoryPlaceholder}>Not set — tap to choose</Text>
+            )}
+            <Text style={styles.editHint}>Edit</Text>
+          </Pressable>
+        )}
       </ScrollView>
+
+      {post && (
+        <EditCategorySheet
+          visible={showEditCategory}
+          postId={post.id}
+          initialCategory={post.category ?? null}
+          onClose={() => setShowEditCategory(false)}
+          onSaved={(cat) => setPost((p: any) => ({ ...p, category: cat }))}
+        />
+      )}
     </View>
   );
 }
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#fff' },
-  header: {
-    paddingTop: 60, paddingHorizontal: 20, paddingBottom: 14,
-    borderBottomWidth: 1, borderBottomColor: '#efefef',
-    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
+  categoryRow: {
+    flexDirection: 'row', alignItems: 'center', gap: 10,
+    paddingHorizontal: 16, paddingVertical: 14,
+    borderTopWidth: 1, borderTopColor: '#f5f5f5',
   },
-  title: { fontSize: 17, fontWeight: '700', color: '#222' },
+  categoryLabel: { fontSize: 13, color: '#999' },
+  categoryChip: {
+    paddingHorizontal: 10, paddingVertical: 4, borderRadius: 10,
+  },
+  categoryChipText: { fontSize: 12, fontWeight: '600' },
+  categoryPlaceholder: { fontSize: 13, color: '#bbb', fontStyle: 'italic', flex: 1 },
+  editHint: { fontSize: 12, color: '#7b2d4e', fontWeight: '600', marginLeft: 'auto' },
 });

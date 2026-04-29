@@ -1,5 +1,6 @@
 import React from 'react';
-import { View, Image, StyleSheet, Pressable, Text, Dimensions } from 'react-native';
+import { View, StyleSheet, Pressable, Text, Dimensions } from 'react-native';
+import { Image } from 'expo-image';
 import { useRouter } from 'expo-router';
 import type { MyPost } from '@/lib/hooks/useMyPosts';
 
@@ -32,7 +33,7 @@ export function PostGrid({ posts, onLongPress }: Props) {
           onLongPress={() => onLongPress?.(post)}
         >
           {post.image_url ? (
-            <Image source={{ uri: post.image_url }} style={styles.image} />
+            <Image source={post.image_url} style={styles.image} contentFit="cover" cachePolicy="memory-disk" transition={150} />
           ) : (
             <View style={[styles.image, { backgroundColor: '#f0f0f0' }]} />
           )}

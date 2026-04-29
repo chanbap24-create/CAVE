@@ -1,16 +1,24 @@
 import { createClient } from '@supabase/supabase-js';
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import 'react-native-url-polyfill/auto';
+import { secureStorage } from './secureStorage';
 
-const supabaseUrl = process.env.EXPO_PUBLIC_SUPABASE_URL || 'https://placeholder.supabase.co';
-const supabaseAnonKey = process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY || 'placeholder';
+const supabaseUrl = process.env.EXPO_PUBLIC_SUPABASE_URL;
+const supabaseAnonKey = process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY;
 
-export const isSupabaseConfigured =
-  supabaseUrl !== 'https://placeholder.supabase.co' && supabaseAnonKey !== 'placeholder';
+if (!supabaseUrl || !supabaseAnonKey) {
+  throw new Error(
+    '[supabase] Missing env vars. Set EXPO_PUBLIC_SUPABASE_URL and EXPO_PUBLIC_SUPABASE_ANON_KEY in apps/mobile/.env',
+  );
+}
+
+export const isSupabaseConfigured = true;
 
 export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
   auth: {
-    storage: AsyncStorage,
+    // Session tokens stored in expo-secure-store (Keychain / EncryptedSharedPreferences).
+    // See lib/secureStorage.ts — includes chunking for values > 2KB and one-time
+    // migration from AsyncStorage for upgrading users.
+    storage: secureStorage,
     autoRefreshToken: true,
     persistSession: true,
     detectSessionInUrl: false,

@@ -11,7 +11,7 @@ import { UserGatheringsRow } from '@/components/UserGatheringsRow';
 import { EditorGuidesSection } from '@/components/EditorGuidesSection';
 import { ShopBrowseSection } from '@/components/ShopBrowseSection';
 import { DiscoverSectionHeader } from '@/components/DiscoverSectionHeader';
-import { ScreenHeader } from '@/components/ScreenHeader';
+import { DiscoverBrandBar } from '@/components/DiscoverBrandBar';
 import { HORIZONTAL_PADDING } from '@/lib/utils/discoverCardWidth';
 
 const REFRESH_CACHE_MS = 30_000;
@@ -56,7 +56,7 @@ export default function ExploreScreen() {
 
   return (
     <View style={styles.container}>
-      <ScreenHeader variant="centered" title="발견" />
+      <DiscoverBrandBar />
 
       <ScrollView refreshControl={refreshControl} showsVerticalScrollIndicator={false}>
         {/* docs/icave_concept_updates.md §4 트레바리식 위계 (위→아래로 큐레이션 강도 약해짐):

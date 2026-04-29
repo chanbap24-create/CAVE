@@ -1,5 +1,5 @@
-import React from 'react';
-import { View, Text, Pressable, StyleSheet } from 'react-native';
+import React, { useRef } from 'react';
+import { View, Text, Pressable, StyleSheet, Animated } from 'react-native';
 import { Image } from 'expo-image';
 import { getDiscoverCardWidth, CARD_GAP } from '@/lib/utils/discoverCardWidth';
 import { CardTemplateHero } from '@/components/CardTemplateHero';
@@ -55,18 +55,37 @@ export function GatheringPreviewCard({
 }: Props) {
   const template = getCardTemplate(cardTemplate);
   const heroSize = CARD_WIDTH - HERO_INSET * 2;
+
+  // 누름 시 살짝 확대 — 손가락이 카드 위에 있다는 시각 피드백.
+  // scale 만 native-driven (transform). shadowOpacity 같은 layout 속성을
+  // 같은 노드에 JS-driven 으로 섞으면 RN 이 driver 충돌 에러를 던짐 → 그림자는
+  // 정적으로 둠.
+  const scale = useRef(new Animated.Value(1)).current;
+  const handlePressIn = () => {
+    Animated.spring(scale, { toValue: 1.07, useNativeDriver: true, friction: 6, tension: 110 }).start();
+  };
+  const handlePressOut = () => {
+    Animated.spring(scale, { toValue: 1, useNativeDriver: true, friction: 6, tension: 110 }).start();
+  };
+
   return (
-    <Pressable style={styles.card} onPress={onPress}>
-      <View style={styles.heroWrap}>
-        <CardTemplateHero
-          template={template}
-          width={heroSize}
-          numberOverride={slotNumber}
-          title={title}
-          subtitle={subtitle || undefined}
-          imageUrl={coverImageUrl}
-        />
-      </View>
+    <Animated.View style={[styles.cardOuter, { transform: [{ scale }] }]}>
+      <Pressable
+        style={styles.card}
+        onPress={onPress}
+        onPressIn={handlePressIn}
+        onPressOut={handlePressOut}
+      >
+        <View style={styles.heroWrap}>
+          <CardTemplateHero
+            template={template}
+            width={heroSize}
+            numberOverride={slotNumber}
+            title={title}
+            subtitle={subtitle || undefined}
+            imageUrl={coverImageUrl}
+          />
+        </View>
 
       <View style={styles.body}>
         <View style={styles.row}>
@@ -92,12 +111,19 @@ export function GatheringPreviewCard({
         {metaLine ? <Text style={styles.meta} numberOfLines={1}>{metaLine}</Text> : null}
       </View>
     </Pressable>
+    </Animated.View>
   );
 }
 
 const styles = StyleSheet.create({
-  card: {
+  // 외곽: scale 애니메이션 담당. 정적 그림자만 (드라이버 충돌 회피).
+  cardOuter: {
     width: CARD_WIDTH, marginRight: CARD_GAP,
+    shadowColor: '#000', shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.06, shadowRadius: 5,
+    elevation: 2,
+  },
+  card: {
     backgroundColor: '#fff', borderRadius: 14,
     borderWidth: 1, borderColor: '#eee',
     overflow: 'hidden',

@@ -3,10 +3,12 @@ import { View, Text, ScrollView, TextInput, StyleSheet, Pressable, RefreshContro
 import { useFocusEffect } from 'expo-router';
 import { supabase } from '@/lib/supabase';
 import { useFeaturedCaves } from '@/lib/hooks/useFeaturedCaves';
+import { useGatherings } from '@/lib/hooks/useGatherings';
 import { FeaturedCaveCard } from '@/components/FeaturedCaveCard';
 import { TrendingDrinks } from '@/components/TrendingDrinks';
-// PopularPosts deprecated — i cave 방향성 변경 (posts 진입점 차단).
-// Discover 재설계 (v1#4) 에서 트레바리식 큐레이션으로 교체 예정.
+import { SeasonClubHero } from '@/components/SeasonClubHero';
+import { UserGatheringsRow } from '@/components/UserGatheringsRow';
+// PopularPosts deprecated — posts 진입점 차단 (v1#5).
 import { CategoryChips } from '@/components/CategoryChips';
 import { WinesSearchResults } from '@/components/WinesSearchResults';
 import { ScreenHeader } from '@/components/ScreenHeader';
@@ -33,6 +35,7 @@ export default function ExploreScreen() {
   // server-side. Under 'All' the hooks fall back to their default behavior.
   const categoryKey = activeCat !== 'All' ? catDbMap[activeCat] : null;
   const { caves: featuredCaves, refresh: loadFeatured } = useFeaturedCaves(categoryKey);
+  const { gatherings, loadGatherings } = useGatherings(categoryKey);
 
   const reqSeqRef = useRef(0);          // monotonic request id for race protection
   const lastLoadRef = useRef(0);         // timestamp of last cache-invalidating load
@@ -75,16 +78,17 @@ export default function ExploreScreen() {
     return () => clearTimeout(h);
   }, [search, activeCat, inSearchMode, loadDrinks]);
 
-  // Refresh Discover feed data on focus (30s cache, consistent with tabs/index.tsx).
+  // Refresh Discover feed data on focus (30s cache).
   useFocusEffect(
     useCallback(() => {
       const now = Date.now();
       if (now - lastLoadRef.current > REFRESH_CACHE_MS) {
         lastLoadRef.current = now;
         loadFeatured();
+        loadGatherings();
         setRefreshKey(k => k + 1);
       }
-    }, [loadFeatured])
+    }, [loadFeatured, loadGatherings])
   );
 
   const onRefresh = useCallback(async () => {
@@ -92,11 +96,12 @@ export default function ExploreScreen() {
     lastLoadRef.current = Date.now();
     await Promise.all([
       loadFeatured(),
+      loadGatherings(),
       inSearchMode ? loadDrinks(search, activeCat) : Promise.resolve(),
     ]);
     setRefreshKey(k => k + 1);
     setRefreshing(false);
-  }, [loadFeatured, loadDrinks, search, activeCat, inSearchMode]);
+  }, [loadFeatured, loadGatherings, loadDrinks, search, activeCat, inSearchMode]);
 
   const refreshControl = (
     <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#7b2d4e" />
@@ -139,6 +144,14 @@ export default function ExploreScreen() {
         />
       ) : (
         <ScrollView refreshControl={refreshControl} showsVerticalScrollIndicator={false}>
+          {/* docs/icave_concept_updates.md §4 트레바리식 위계 (위→아래로 큐레이션 강도 약해짐):
+              ① 시즌 클럽 (히어로)  ② 진행 중 클럽  ③ 시음회  ④ 유저 모임  ⑤ 가이드  ⑥ 샵 둘러보기.
+              v1: 시즌 클럽 placeholder + 유저 모임 + 기존 Featured Caves / Trending Drinks 유지.
+              v2 에서 진행 중 클럽 / 시음회 / 가이드 / 샵 섹션 추가. */}
+          <SeasonClubHero />
+
+          <UserGatheringsRow gatherings={gatherings} />
+
           {featuredCaves.length > 0 && (
             <>
               <Text style={styles.sectionTitle}>Featured Caves</Text>

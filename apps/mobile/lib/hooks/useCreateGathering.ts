@@ -20,6 +20,10 @@ export interface CreateGatheringInput {
   gatheringType: GatheringType;
   /** 'user'(기본) | 'shop' | 'sommelier' | 'venue' — non-user 는 is_partner 프로필만 가능 (DB trigger 강제) */
   hostType?: GatheringHostType;
+  /** "이런 분께 추천" 픽업 라인 (최대 8개) */
+  pitchBullets?: string[];
+  /** "이 모임의 약속" — 참여 규칙·준비물 */
+  agreement?: string;
   hostSlots: HostSlotInput[];
 }
 
@@ -59,6 +63,12 @@ export function useCreateGathering(onCreated?: () => void) {
       status: 'open',
     };
     if (input.category) payload.category = input.category;
+    // 에디토리얼 필드 (선택). 빈 배열/문자열은 null 로 정규화.
+    if (input.pitchBullets) {
+      const bullets = input.pitchBullets.map(s => s.trim()).filter(Boolean);
+      if (bullets.length > 0) payload.pitch_bullets = bullets;
+    }
+    if (input.agreement && input.agreement.trim()) payload.agreement = input.agreement.trim();
 
     const { data: gathering, error } = await supabase
       .from('gatherings')

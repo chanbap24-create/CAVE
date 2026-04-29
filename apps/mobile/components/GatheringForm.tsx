@@ -3,6 +3,7 @@ import { View, Text, TextInput, Pressable, ScrollView, StyleSheet } from 'react-
 import { CategoryPicker } from '@/components/CategoryPicker';
 import { GatheringTypeSelector } from '@/components/GatheringTypeSelector';
 import { HostTypeSelector } from '@/components/HostTypeSelector';
+import { BulletEditor } from '@/components/BulletEditor';
 import { GatheringDateTimeRow } from '@/components/GatheringDateTimeRow';
 import { HostWineSlots, type HostWineSlot } from '@/components/HostWineSlots';
 import { useDrinkCategories } from '@/lib/hooks/useDrinkCategories';
@@ -21,6 +22,10 @@ export interface GatheringFormValue {
   gatheringType: GatheringType;
   /** 파트너만 'user' 외 값 사용 가능 (DB trigger 강제) */
   hostType: GatheringHostType;
+  /** "이런 분께 추천" 픽업 라인 (최대 8) */
+  pitchBullets: string[];
+  /** "이 모임의 약속" — 참여 규칙·준비물 */
+  agreement: string;
   hostWineSlots: HostWineSlot[];
 }
 
@@ -28,7 +33,9 @@ export function emptyGatheringForm(): GatheringFormValue {
   return {
     title: '', description: '', location: '',
     date: new Date(), maxMembers: '8', price: '', category: null,
-    gatheringType: 'cost_share', hostType: 'user', hostWineSlots: [],
+    gatheringType: 'cost_share', hostType: 'user',
+    pitchBullets: [], agreement: '',
+    hostWineSlots: [],
   };
 }
 
@@ -72,14 +79,37 @@ export function GatheringForm({ value, onChange, onSubmit, submitting, submitLab
         placeholderTextColor="#ccc"
       />
 
-      <Text style={styles.label}>설명</Text>
+      <Text style={styles.label}>설명 (마크다운 가능 — **굵게**, # 제목, - 목록)</Text>
       <TextInput
-        style={[styles.input, { height: 80, textAlignVertical: 'top' }]}
+        style={[styles.input, { height: 180, textAlignVertical: 'top' }]}
         value={value.description}
         onChangeText={t => set('description', t)}
-        placeholder="어떤 모임인가요?"
+        placeholder={
+          '어떤 모임인지 자유롭게 적어주세요.\n\n' +
+          '예시:\n## 왜 이 와인인가\n부르고뉴 1er Cru 4종을 블라인드로...\n\n' +
+          '- 사전 학습 X, 호스트가 노트 제공\n- 음식 페어링 한식 캐주얼'
+        }
         placeholderTextColor="#ccc"
         multiline
+        maxLength={5000}
+      />
+
+      <Text style={styles.label}>이런 분께 추천해요 (최대 8줄)</Text>
+      <BulletEditor
+        bullets={value.pitchBullets}
+        onChange={b => set('pitchBullets', b)}
+        placeholder="예: 부르고뉴를 처음 본격적으로 마셔보고 싶은 분"
+      />
+
+      <Text style={styles.label}>이 모임의 약속 (선택)</Text>
+      <TextInput
+        style={[styles.input, { height: 100, textAlignVertical: 'top' }]}
+        value={value.agreement}
+        onChangeText={t => set('agreement', t)}
+        placeholder="예: 첫 30분은 휴대폰을 내려놓고, 한 사람씩 첫인상을 나눠요."
+        placeholderTextColor="#ccc"
+        multiline
+        maxLength={2000}
       />
 
       {isPartner && (

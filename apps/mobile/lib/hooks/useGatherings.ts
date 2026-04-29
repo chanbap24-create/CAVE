@@ -32,6 +32,10 @@ export interface Gathering {
   created_at: string;
   /** 'user' = 일반 사용자 / 그 외 = 파트너 호스팅 (shop, sommelier, venue) */
   host_type: GatheringHostType;
+  /** "이런 분께 추천" 인용구 — 트레바리식 픽업 카피 */
+  pitch_bullets?: string[] | null;
+  /** "이 모임의 약속" — 참여 규칙·준비물·매너 */
+  agreement?: string | null;
   host?: {
     username: string; display_name: string | null; avatar_url: string | null;
     is_partner?: boolean | null;

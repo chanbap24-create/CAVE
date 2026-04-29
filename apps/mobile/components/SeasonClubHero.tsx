@@ -1,49 +1,74 @@
 import React from 'react';
-import { View, Text, StyleSheet } from 'react-native';
+import { View, Text, StyleSheet, Pressable } from 'react-native';
+import Svg, { Path } from 'react-native-svg';
 
 /**
- * Discover 최상단 히어로 — 시즌 클럽 placeholder.
- * v2 에서 실제 7주 코스 / 4회 모임 시즌 클럽 데이터로 교체.
+ * Discover 최상단 히어로 — 시즌 클럽 (현재 placeholder, v2 데이터로 교체 예정).
  *
- * 트레바리식 큐레이션 위계의 최상위 슬롯. 아직 제품이 없으니 사용자에게
- * "곧 나옵니다" 시그널만 명확히 주는 것이 우선.
+ * 트레바리식 큐레이션 위계의 최상위 슬롯. 트레바리 메인 히어로처럼 큰 비주얼 +
+ * 명확한 가치제안 + CTA 버튼 톤. 데이터 본격화 전이라 'COMING SOON' 상태도
+ * 사용자가 기대하도록 구성.
  *
- * docs/icave_concept_updates.md §4, §5 참조.
+ * docs/icave_concept_updates.md §4, §5.
  */
 export function SeasonClubHero() {
   return (
     <View style={styles.wrap}>
-      <View style={styles.card}>
-        <View style={styles.tag}><Text style={styles.tagText}>COMING SOON</Text></View>
+      <Pressable style={styles.card} onPress={() => {/* v2: 시즌 클럽 안내 페이지 */}}>
+        <View style={styles.tagRow}>
+          <View style={styles.tag}><Text style={styles.tagText}>COMING SOON</Text></View>
+        </View>
         <Text style={styles.title}>시즌 클럽</Text>
         <Text style={styles.subtitle}>
-          7주 코스 · 4회 모임{'\n'}
-          소믈리에가 이끄는 큐레이션
+          소믈리에가 7주간 함께 시음하는 큐레이션 코스
         </Text>
-        <Text style={styles.body}>
-          매주 다른 와인을 마시고, 노트를 남기고, 셀러에 자동으로 누적됩니다.{'\n'}
-          준비가 끝나는 대로 1차 클럽을 공개해요.
-        </Text>
-      </View>
+
+        <View style={styles.bullets}>
+          <Bullet text="매주 다른 와인 4회" />
+          <Bullet text="시즌 단위 선결제 · 비치헤드 멤버십" />
+          <Bullet text="마신 와인이 셀러에 자동 누적" />
+        </View>
+
+        <View style={styles.ctaRow}>
+          <Text style={styles.cta}>1차 클럽 사전 알림 받기 ›</Text>
+        </View>
+      </Pressable>
+    </View>
+  );
+}
+
+function Bullet({ text }: { text: string }) {
+  return (
+    <View style={styles.bulletRow}>
+      <Svg width={12} height={12} viewBox="0 0 24 24" fill="none" stroke="#e8c8d4" strokeWidth={2.5}>
+        <Path d="M5 13l4 4L19 7" />
+      </Svg>
+      <Text style={styles.bulletText}>{text}</Text>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  wrap: { paddingHorizontal: 16, paddingTop: 16, paddingBottom: 4 },
+  wrap: { paddingHorizontal: 20, paddingTop: 8, paddingBottom: 4 },
   card: {
     backgroundColor: '#231115',
-    borderRadius: 16,
-    paddingVertical: 24, paddingHorizontal: 20,
+    borderRadius: 18,
+    paddingVertical: 26, paddingHorizontal: 22,
   },
+  tagRow: { flexDirection: 'row', marginBottom: 14 },
   tag: {
-    alignSelf: 'flex-start',
-    backgroundColor: 'rgba(255,255,255,0.12)',
-    paddingHorizontal: 8, paddingVertical: 4, borderRadius: 4,
-    marginBottom: 14,
+    backgroundColor: 'rgba(255,255,255,0.14)',
+    paddingHorizontal: 9, paddingVertical: 5, borderRadius: 4,
   },
-  tagText: { color: '#f0d8e0', fontSize: 10, fontWeight: '700', letterSpacing: 1 },
-  title: { color: '#fff', fontSize: 24, fontWeight: '700', marginBottom: 4 },
-  subtitle: { color: '#e8c8d4', fontSize: 13, fontWeight: '500', lineHeight: 20, marginBottom: 16 },
-  body: { color: '#bba1ac', fontSize: 12, lineHeight: 18 },
+  tagText: { color: '#f0d8e0', fontSize: 10, fontWeight: '800', letterSpacing: 1.5 },
+  title: { color: '#fff', fontSize: 28, fontWeight: '700', marginBottom: 6, letterSpacing: -0.5 },
+  subtitle: { color: '#e8c8d4', fontSize: 14, fontWeight: '500', lineHeight: 20, marginBottom: 18 },
+  bullets: { gap: 8, marginBottom: 18 },
+  bulletRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  bulletText: { color: '#bba1ac', fontSize: 13, lineHeight: 18 },
+  ctaRow: {
+    paddingTop: 14,
+    borderTopWidth: 1, borderTopColor: 'rgba(255,255,255,0.08)',
+  },
+  cta: { color: '#fff', fontSize: 13, fontWeight: '600' },
 });

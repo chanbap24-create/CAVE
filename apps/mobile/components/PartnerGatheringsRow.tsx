@@ -5,6 +5,7 @@ import type { Gathering, GatheringHostType } from '@/lib/hooks/useGatherings';
 import {
   getDiscoverCardWidth, getSnapInterval, HORIZONTAL_PADDING, CARD_GAP,
 } from '@/lib/utils/discoverCardWidth';
+import { DiscoverSectionHeader } from '@/components/DiscoverSectionHeader';
 
 // 가로 스크롤로 더 많이 노출 가능. 8건까지.
 const PARTNER_LIMIT = 8;
@@ -36,12 +37,11 @@ export function PartnerGatheringsRow({ gatherings, title = '샵·소믈리에 �
     .slice(0, PARTNER_LIMIT);
   return (
     <View style={styles.wrap}>
-      <View style={styles.titleRow}>
-        <Text style={styles.title}>{title}</Text>
-        <Pressable onPress={() => router.push('/(tabs)/gatherings')} hitSlop={6}>
-          <Text style={styles.more}>더보기</Text>
-        </Pressable>
-      </View>
+      <DiscoverSectionHeader
+        title={title}
+        subtitle="검증된 샵·소믈리에가 직접 큐레이션한 모임"
+        onActionPress={() => router.push('/(tabs)/gatherings')}
+      />
       {partnerEvents.length === 0 ? (
         <View style={styles.empty}>
           <Text style={styles.emptyTitle}>곧 합류할 파트너 샵 모임을 준비 중이에요</Text>
@@ -104,13 +104,7 @@ function formatKRW(n: number) {
 }
 
 const styles = StyleSheet.create({
-  wrap: { marginTop: 24 },
-  titleRow: {
-    flexDirection: 'row', alignItems: 'baseline', justifyContent: 'space-between',
-    paddingHorizontal: 16, marginBottom: 10,
-  },
-  title: { fontSize: 15, fontWeight: '700', color: '#222' },
-  more: { fontSize: 12, color: '#7b2d4e', fontWeight: '600' },
+  wrap: { marginTop: 32 },
   row: { paddingLeft: HORIZONTAL_PADDING, paddingRight: HORIZONTAL_PADDING / 2 },
   card: {
     width: CARD_WIDTH, marginRight: CARD_GAP,

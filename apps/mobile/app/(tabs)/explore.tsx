@@ -9,6 +9,9 @@ import { TrendingDrinks } from '@/components/TrendingDrinks';
 import { SeasonClubHero } from '@/components/SeasonClubHero';
 import { PartnerGatheringsRow } from '@/components/PartnerGatheringsRow';
 import { UserGatheringsRow } from '@/components/UserGatheringsRow';
+import { EditorGuidesSection } from '@/components/EditorGuidesSection';
+import { ShopBrowseSection } from '@/components/ShopBrowseSection';
+import { DiscoverSectionHeader } from '@/components/DiscoverSectionHeader';
 // PopularPosts deprecated — posts 진입점 차단 (v1#5).
 import { CategoryChips } from '@/components/CategoryChips';
 import { WinesSearchResults } from '@/components/WinesSearchResults';
@@ -149,6 +152,8 @@ export default function ExploreScreen() {
               ① 시즌 클럽 (히어로)  ② 진행 중 클럽  ③ 시음회  ④ 유저 모임  ⑤ 가이드  ⑥ 샵 둘러보기.
               v1: 시즌 클럽 placeholder + 유저 모임 + 기존 Featured Caves / Trending Drinks 유지.
               v2 에서 진행 중 클럽 / 시음회 / 가이드 / 샵 섹션 추가. */}
+          {/* 트레바리/데일리샷 톤: 큰 히어로 → 에디토리얼 섹션 → 콘텐츠 → 가이드 → 샵.
+              제목+부제+더보기 가 모든 섹션에 통일된 헤더로 들어감. */}
           <SeasonClubHero />
 
           <PartnerGatheringsRow gatherings={gatherings} />
@@ -156,19 +161,34 @@ export default function ExploreScreen() {
           <UserGatheringsRow gatherings={gatherings} />
 
           {featuredCaves.length > 0 && (
-            <>
-              <Text style={styles.sectionTitle}>추천 셀러</Text>
+            <View style={styles.cavesWrap}>
+              <DiscoverSectionHeader
+                title="셀러 발견"
+                subtitle="다양한 취향의 컬렉터들을 만나보세요"
+                actionLabel={null}
+              />
               <View style={styles.caveGrid}>
                 {featuredCaves.map(cave => (
                   <FeaturedCaveCard key={cave.user_id} cave={cave} />
                 ))}
               </View>
-            </>
+            </View>
           )}
 
-          <TrendingDrinks refreshKey={refreshKey} category={categoryKey} />
+          <View style={styles.trendingWrap}>
+            <DiscoverSectionHeader
+              title="트렌딩 주류"
+              subtitle="요즘 컬렉터들이 자주 셀러에 담는 와인·주류"
+              actionLabel={null}
+            />
+            <TrendingDrinks refreshKey={refreshKey} category={categoryKey} />
+          </View>
 
-          <View style={{ height: 20 }} />
+          <EditorGuidesSection />
+
+          <ShopBrowseSection />
+
+          <View style={{ height: 40 }} />
         </ScrollView>
       )}
     </View>
@@ -183,7 +203,8 @@ const styles = StyleSheet.create({
   searchClear: { position: 'absolute', right: 10, top: 6, width: 24, height: 24, alignItems: 'center', justifyContent: 'center' },
   searchClearText: { fontSize: 18, color: '#999', lineHeight: 20 },
 
-  sectionTitle: { fontSize: 15, fontWeight: '700', color: '#222', paddingHorizontal: 20, paddingTop: 20, paddingBottom: 12 },
+  cavesWrap: { marginTop: 32 },
+  trendingWrap: { marginTop: 32 },
   caveGrid: {
     flexDirection: 'row', flexWrap: 'wrap', gap: 8,
     paddingHorizontal: 16,

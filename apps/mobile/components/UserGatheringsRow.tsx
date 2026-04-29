@@ -5,6 +5,7 @@ import type { Gathering } from '@/lib/hooks/useGatherings';
 import {
   getDiscoverCardWidth, getSnapInterval, HORIZONTAL_PADDING, CARD_GAP,
 } from '@/lib/utils/discoverCardWidth';
+import { DiscoverSectionHeader } from '@/components/DiscoverSectionHeader';
 
 const CARD_WIDTH = getDiscoverCardWidth();
 const SNAP = getSnapInterval();
@@ -28,12 +29,11 @@ export function UserGatheringsRow({ gatherings, title = '유저 모임' }: Props
     .slice(0, 8);
   return (
     <View style={styles.wrap}>
-      <View style={styles.titleRow}>
-        <Text style={styles.title}>{title}</Text>
-        <Pressable onPress={() => router.push('/(tabs)/gatherings')} hitSlop={6}>
-          <Text style={styles.more}>더보기</Text>
-        </Pressable>
-      </View>
+      <DiscoverSectionHeader
+        title={title}
+        subtitle="동네 친구들이 여는 캐주얼한 와인 모임"
+        onActionPress={() => router.push('/(tabs)/gatherings')}
+      />
       {upcoming.length === 0 ? (
         <Pressable style={styles.empty} onPress={() => router.push('/(tabs)/gatherings')}>
           <Text style={styles.emptyTitle}>아직 예정된 유저 모임이 없어요</Text>
@@ -75,13 +75,7 @@ function formatDate(iso: string) {
 }
 
 const styles = StyleSheet.create({
-  wrap: { marginTop: 24 },
-  titleRow: {
-    flexDirection: 'row', alignItems: 'baseline', justifyContent: 'space-between',
-    paddingHorizontal: 16, marginBottom: 10,
-  },
-  title: { fontSize: 15, fontWeight: '700', color: '#222' },
-  more: { fontSize: 12, color: '#7b2d4e', fontWeight: '600' },
+  wrap: { marginTop: 32 },
   row: { paddingLeft: HORIZONTAL_PADDING, paddingRight: HORIZONTAL_PADDING / 2 },
   card: {
     width: CARD_WIDTH, marginRight: CARD_GAP,

@@ -11,24 +11,18 @@ import { UserGatheringsRow } from '@/components/UserGatheringsRow';
 import { EditorGuidesSection } from '@/components/EditorGuidesSection';
 import { ShopBrowseSection } from '@/components/ShopBrowseSection';
 import { DiscoverSectionHeader } from '@/components/DiscoverSectionHeader';
-import { CategoryChips } from '@/components/CategoryChips';
 import { ScreenHeader } from '@/components/ScreenHeader';
-
-import { CATEGORY_FILTERS, CATEGORY_DB_MAP } from '@/lib/constants/drinkCategories';
-
-const categories = CATEGORY_FILTERS;
-const catDbMap = CATEGORY_DB_MAP;
 
 const REFRESH_CACHE_MS = 30_000;
 
 export default function ExploreScreen() {
-  // 검색 기능은 제거됨 (사용자 요구) — Discover 는 큐레이션 발견 전용.
-  // 와인/주류 직접 검색은 추후 별도 진입점(예: cellar 의 "+" 라벨 스캔, 모임 탭 검색)으로.
-  const [activeCat, setActiveCat] = useState('전체');
+  // 검색/카테고리 칩 모두 제거됨 (사용자 요구) — Discover 는 큐레이션 흐름만.
+  // 카테고리 필터가 필요해지면 각 섹션 단위 칩(또는 모임 탭 내부 필터)으로 분산.
   const [refreshing, setRefreshing] = useState(false);
   const [refreshKey, setRefreshKey] = useState(0);
 
-  const categoryKey = activeCat !== '전체' ? catDbMap[activeCat] : null;
+  // 카테고리 필터 비활성 — 각 hook 은 null 로 호출되어 default 동작 (전체).
+  const categoryKey: string | null = null;
   const { caves: featuredCaves, refresh: loadFeatured } = useFeaturedCaves(categoryKey);
   const { gatherings, loadGatherings } = useGatherings(categoryKey);
 
@@ -62,8 +56,6 @@ export default function ExploreScreen() {
   return (
     <View style={styles.container}>
       <ScreenHeader variant="centered" title="발견" />
-
-      <CategoryChips categories={categories} active={activeCat} onChange={setActiveCat} />
 
       <ScrollView refreshControl={refreshControl} showsVerticalScrollIndicator={false}>
         {/* docs/icave_concept_updates.md §4 트레바리식 위계 (위→아래로 큐레이션 강도 약해짐):

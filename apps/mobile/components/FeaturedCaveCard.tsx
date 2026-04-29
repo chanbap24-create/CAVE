@@ -100,8 +100,8 @@ function CardContent({ cave, initial, topBadge }: { cave: FeaturedCave; initial:
 
 const styles = StyleSheet.create({
   card: {
-    width: '31%', borderRadius: 10, overflow: 'hidden',
-    borderWidth: 1, borderColor: '#f0f0f0',
+    width: '31%', borderRadius: 12, overflow: 'hidden',
+    borderWidth: 1, borderColor: '#eee',
   },
   cardBg: { height: 180, justifyContent: 'flex-end', overflow: 'hidden' },
   videoBg: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 },

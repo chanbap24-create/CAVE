@@ -13,7 +13,8 @@ import { Dimensions } from 'react-native';
  * 사용처: PartnerGatheringsRow, UserGatheringsRow.
  * 동일 폭을 쓰면 두 섹션의 카드가 시각적으로 정렬됨.
  */
-export const HORIZONTAL_PADDING = 16;
+// DiscoverSectionHeader paddingHorizontal 와 동일 (20). 헤더-카드 좌측 정렬.
+export const HORIZONTAL_PADDING = 20;
 export const CARD_GAP = 12;
 const PEEK = 36; // 다음 카드가 우측에 보이는 양 (px). 옆으로 넘기고 싶게 만드는 정도.
 

@@ -1,7 +1,11 @@
 import React from 'react';
 import { View, Text, ScrollView, Pressable, StyleSheet } from 'react-native';
 import { DiscoverSectionHeader } from '@/components/DiscoverSectionHeader';
-import { HORIZONTAL_PADDING, CARD_GAP } from '@/lib/utils/discoverCardWidth';
+import {
+  HORIZONTAL_PADDING, CARD_GAP, getDiscoverCardWidth,
+} from '@/lib/utils/discoverCardWidth';
+
+const CARD_WIDTH = getDiscoverCardWidth();
 
 /**
  * v2 — 와인/주류 가이드 (i cave 에디터 큐레이션 매거진).
@@ -44,30 +48,31 @@ export function EditorGuidesSection() {
 const styles = StyleSheet.create({
   wrap: { marginTop: 32 },
   row: { paddingLeft: HORIZONTAL_PADDING, paddingRight: HORIZONTAL_PADDING / 2, gap: 0 },
+  // 다른 가로 카드(Partner / User Gatherings) 와 동일 폭/높이 — 시각 통일
   card: {
-    width: 240, marginRight: CARD_GAP,
+    width: CARD_WIDTH, marginRight: CARD_GAP,
     backgroundColor: '#fff', borderRadius: 12,
     borderWidth: 1, borderColor: '#eee',
     overflow: 'hidden',
   },
   thumb: {
-    width: '100%', aspectRatio: 16 / 9,
+    width: '100%', height: 110,
     backgroundColor: '#f5f0f2',
     alignItems: 'center', justifyContent: 'center',
   },
   thumbInner: {
-    width: 40, height: 40, borderRadius: 20,
+    width: 36, height: 36, borderRadius: 18,
     backgroundColor: '#e8d4dc',
   },
   tag: {
     fontSize: 10, fontWeight: '700', color: '#7b2d4e', letterSpacing: 0.5,
-    paddingHorizontal: 14, paddingTop: 14, textTransform: 'uppercase',
+    paddingHorizontal: 12, paddingTop: 10, textTransform: 'uppercase',
   },
   title: {
-    fontSize: 14, fontWeight: '600', color: '#222', lineHeight: 20,
-    paddingHorizontal: 14, paddingTop: 6,
+    fontSize: 13, fontWeight: '600', color: '#222', lineHeight: 18,
+    paddingHorizontal: 12, paddingTop: 4,
   },
   coming: {
-    fontSize: 11, color: '#aaa', paddingHorizontal: 14, paddingTop: 8, paddingBottom: 14,
+    fontSize: 11, color: '#aaa', paddingHorizontal: 12, paddingTop: 6, paddingBottom: 12,
   },
 });

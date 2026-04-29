@@ -51,7 +51,7 @@ export function TrendingDrinks({ refreshKey = 0, category }: Props) {
 
 const styles = StyleSheet.create({
   sectionTitle: { fontSize: 15, fontWeight: '700', color: '#222', paddingHorizontal: 20, paddingTop: 20, paddingBottom: 12 },
-  card: { width: 110, borderRadius: 10, overflow: 'hidden', borderWidth: 1, borderColor: '#f0f0f0' },
+  card: { width: 110, borderRadius: 12, overflow: 'hidden', borderWidth: 1, borderColor: '#eee' },
   cardTop: { height: 60, justifyContent: 'flex-end', padding: 6 },
   rank: { fontSize: 16, fontWeight: '800', color: 'rgba(0,0,0,0.12)' },
   cardBody: { padding: 8 },

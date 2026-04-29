@@ -113,7 +113,8 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
   },
   imgWrap: { position: 'relative', backgroundColor: '#f0eaec' },
-  img: { width: '100%', height: 130 },
+  // 다른 가로 카드(UserGatheringsRow, EditorGuides) 와 동일하게 110pt 통일
+  img: { width: '100%', height: 110 },
   typeBadge: {
     position: 'absolute', left: 8, top: 8,
     backgroundColor: 'rgba(35,17,21,0.9)',

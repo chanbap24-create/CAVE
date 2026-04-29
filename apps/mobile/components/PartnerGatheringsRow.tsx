@@ -3,14 +3,14 @@ import { View, Text, ScrollView, Pressable, StyleSheet, Image } from 'react-nati
 import { useRouter } from 'expo-router';
 import type { Gathering, GatheringHostType } from '@/lib/hooks/useGatherings';
 import {
-  getDiscoverCardWidth, getSnapInterval, HORIZONTAL_PADDING, CARD_GAP,
+  getFeatureCardWidth, getFeatureSnapInterval, HORIZONTAL_PADDING, CARD_GAP,
 } from '@/lib/utils/discoverCardWidth';
 import { DiscoverSectionHeader } from '@/components/DiscoverSectionHeader';
 
-// 가로 스크롤로 더 많이 노출 가능. 8건까지.
+// 위계 강조 — 시즌 클럽 다음 슬롯이라 카드를 크게. 한 화면에 1장 + 0.5장 peek.
 const PARTNER_LIMIT = 8;
-const CARD_WIDTH = getDiscoverCardWidth();
-const SNAP = getSnapInterval();
+const CARD_WIDTH = getFeatureCardWidth();
+const SNAP = getFeatureSnapInterval();
 
 interface Props {
   gatherings: Gathering[];
@@ -112,8 +112,8 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
   },
   imgWrap: { position: 'relative', backgroundColor: '#f0eaec' },
-  // 다른 가로 카드(UserGatheringsRow, EditorGuides) 와 동일하게 110pt 통일
-  img: { width: '100%', height: 110 },
+  // 위계 강조 카드는 폭이 더 넓으므로(getFeatureCardWidth) 이미지도 비례에 맞춰 더 크게.
+  img: { width: '100%', height: 140 },
   typeBadge: {
     position: 'absolute', left: 8, top: 8,
     backgroundColor: 'rgba(35,17,21,0.9)',

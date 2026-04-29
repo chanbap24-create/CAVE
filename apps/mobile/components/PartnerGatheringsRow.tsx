@@ -43,15 +43,19 @@ export function PartnerGatheringsRow({ gatherings, title = '샵·소믈리에 �
           snapToInterval={SNAP} decelerationRate="fast"
           contentContainerStyle={styles.row}
         >
-          {partnerEvents.map(g => (
+          {partnerEvents.map((g, idx) => (
             <GatheringPreviewCard
               key={g.id}
+              cardTemplate={g.card_template}
+              slotNumber={idx + 1}
               tag={{ label: labelOfHostType(g.host_type), bg: '#231115', fg: '#fff' }}
               avatarUrl={g.host?.avatar_url}
               avatarFallback={(g.host?.partner_label || g.host?.display_name || g.host?.username || '?')[0]}
               hostName={g.host?.partner_label || g.host?.display_name || g.host?.username || '파트너'}
               hostSubtitle={hostSubtitleFor(g.host_type)}
               title={g.title}
+              subtitle={g.subtitle}
+              coverImageUrl={g.cover_image_url}
               metaLine={`${formatDate(g.gathering_date!)}${g.location ? ` · ${g.location}` : ''}`}
               onPress={() => router.push(`/gathering/${g.id}` as any)}
             />

@@ -1,7 +1,8 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { View, Text, StyleSheet, Modal, Pressable, KeyboardAvoidingView, Platform } from 'react-native';
 import { useCreateGathering } from '@/lib/hooks/useCreateGathering';
 import { GatheringForm, emptyGatheringForm, type GatheringFormValue } from '@/components/GatheringForm';
+import { useDefaultCardTemplate } from '@/lib/hooks/useDefaultCardTemplate';
 
 interface Props {
   visible: boolean;
@@ -10,12 +11,21 @@ interface Props {
 }
 
 export function CreateGatheringSheet({ visible, onClose, onCreated }: Props) {
+  const { defaultCardTemplate } = useDefaultCardTemplate();
   const [form, setForm] = useState<GatheringFormValue>(emptyGatheringForm());
   const [creating, setCreating] = useState(false);
 
+  // 시트가 열릴 때마다 프로필 기본 템플릿을 폼 초기값으로 주입.
+  // 호스트가 직접 변경한 상태로 닫혔다 다시 열면 다시 default 로 되돌아감 — 의도적.
+  useEffect(() => {
+    if (visible) {
+      setForm(prev => ({ ...emptyGatheringForm(), cardTemplate: defaultCardTemplate }));
+    }
+  }, [visible, defaultCardTemplate]);
+
   const { createGathering } = useCreateGathering(() => {
     onCreated();
-    setForm(emptyGatheringForm());
+    setForm({ ...emptyGatheringForm(), cardTemplate: defaultCardTemplate });
     onClose();
   });
 
@@ -26,6 +36,7 @@ export function CreateGatheringSheet({ visible, onClose, onCreated }: Props) {
     const slots = form.hostWineSlots ?? [];
     await createGathering({
       title: form.title,
+      subtitle: form.subtitle,
       description: form.description,
       location: form.location,
       gatheringDate: form.date,
@@ -36,6 +47,8 @@ export function CreateGatheringSheet({ visible, onClose, onCreated }: Props) {
       hostType: form.hostType ?? 'user',
       pitchBullets: form.pitchBullets,
       agreement: form.agreement,
+      cardTemplate: form.cardTemplate,
+      coverImageUri: form.coverImageUri,
       hostSlots: slots.map(s => ({
         collection_id: s.collectionId,
         is_blind: s.isBlind,

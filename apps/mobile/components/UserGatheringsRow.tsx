@@ -43,15 +43,19 @@ export function UserGatheringsRow({ gatherings, title = '유저 모임' }: Props
           snapToInterval={SNAP} decelerationRate="fast"
           contentContainerStyle={styles.row}
         >
-          {upcoming.map(g => (
+          {upcoming.map((g, idx) => (
             <GatheringPreviewCard
               key={g.id}
+              cardTemplate={g.card_template}
+              slotNumber={idx + 1}
               tag={g.category ? { label: g.category, bg: '#f7f0f3', fg: '#7b2d4e' } : null}
               avatarUrl={g.host?.avatar_url}
               avatarFallback={(g.host?.display_name || g.host?.username || '?')[0]}
               hostName={g.host?.display_name || g.host?.username || '호스트'}
               hostSubtitle={null}
               title={g.title}
+              subtitle={g.subtitle}
+              coverImageUrl={g.cover_image_url}
               metaLine={`${formatDate(g.gathering_date!)}${g.location ? ` · ${g.location}` : ''}`}
               onPress={() => router.push(`/gathering/${g.id}` as any)}
             />

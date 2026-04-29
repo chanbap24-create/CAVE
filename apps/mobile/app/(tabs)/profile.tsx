@@ -13,12 +13,14 @@ import { ScreenHeader } from '@/components/ScreenHeader';
 import { ProfileHeader } from '@/components/ProfileHeader';
 import { EditProfileModal } from '@/components/EditProfileModal';
 import { EditPartnerProfileSheet } from '@/components/EditPartnerProfileSheet';
+import { CardTemplateDefaultSheet } from '@/components/CardTemplateDefaultSheet';
 
 export default function ProfileScreen() {
   const router = useRouter();
   const { user, signOut } = useAuth();
   const [showEdit, setShowEdit] = useState(false);
   const [showPartnerEdit, setShowPartnerEdit] = useState(false);
+  const [showCardTemplate, setShowCardTemplate] = useState(false);
 
   // Posts deprecated (i cave 방향성 변경). 셀러가 콘텐츠 단위.
   const { taste, loadTaste } = useTasteProfile(user?.id);
@@ -65,6 +67,15 @@ export default function ProfileScreen() {
             <Ionicons name="chatbubble-outline" size={20} color="#222" />
             <Text style={styles.menuLabel}>메시지</Text>
             {hasUnread && <View style={styles.menuDot} />}
+          </View>
+          <Ionicons name="chevron-forward" size={18} color="#bbb" />
+        </Pressable>
+
+        {/* 모임 카드 디자인 default — 모든 호스트 대상. 모임 만들 때 자동 채워짐. */}
+        <Pressable style={styles.menuRow} onPress={() => setShowCardTemplate(true)}>
+          <View style={styles.menuLeft}>
+            <Ionicons name="color-palette-outline" size={20} color="#222" />
+            <Text style={styles.menuLabel}>내 카드 디자인</Text>
           </View>
           <Ionicons name="chevron-forward" size={18} color="#bbb" />
         </Pressable>
@@ -124,6 +135,11 @@ export default function ProfileScreen() {
         profile={profile}
         onClose={() => setShowPartnerEdit(false)}
         onSaved={() => { /* useProfile 이 focus 시 reload */ }}
+      />
+
+      <CardTemplateDefaultSheet
+        visible={showCardTemplate}
+        onClose={() => setShowCardTemplate(false)}
       />
     </View>
   );

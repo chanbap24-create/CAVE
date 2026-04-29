@@ -36,6 +36,12 @@ export interface Gathering {
   pitch_bullets?: string[] | null;
   /** "이 모임의 약속" — 참여 규칙·준비물·매너 */
   agreement?: string | null;
+  /** 카드 hero 템플릿 키 (cardTemplates.ts) — 호스트 선택. null/legacy 는 default 적용 */
+  card_template?: string | null;
+  /** 카드 hero 안 부제 (한 줄 카피) */
+  subtitle?: string | null;
+  /** 카드 hero 커버 이미지 URL */
+  cover_image_url?: string | null;
   host?: {
     username: string; display_name: string | null; avatar_url: string | null;
     is_partner?: boolean | null;

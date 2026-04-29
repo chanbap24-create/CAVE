@@ -1,6 +1,7 @@
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/lib/auth';
 import { Alert } from 'react-native';
+import { uploadImage } from '@/lib/utils/imageUpload';
 import type { GatheringType } from '@/lib/types/gathering';
 import type { GatheringHostType } from '@/lib/hooks/useGatherings';
 
@@ -11,6 +12,8 @@ export interface HostSlotInput {
 
 export interface CreateGatheringInput {
   title: string;
+  /** 카드 hero 안 부제 (선택) */
+  subtitle?: string;
   description: string;
   location: string;
   gatheringDate: Date;
@@ -24,6 +27,10 @@ export interface CreateGatheringInput {
   pitchBullets?: string[];
   /** "이 모임의 약속" — 참여 규칙·준비물 */
   agreement?: string;
+  /** 발견 탭 카드 hero 템플릿 키 (cardTemplates.ts) */
+  cardTemplate?: string;
+  /** 카드 hero 커버 이미지 — 로컬 URI. submit 시 storage 업로드 후 URL 저장 */
+  coverImageUri?: string | null;
   hostSlots: HostSlotInput[];
 }
 
@@ -69,6 +76,16 @@ export function useCreateGathering(onCreated?: () => void) {
       if (bullets.length > 0) payload.pitch_bullets = bullets;
     }
     if (input.agreement && input.agreement.trim()) payload.agreement = input.agreement.trim();
+    if (input.subtitle && input.subtitle.trim()) payload.subtitle = input.subtitle.trim();
+    // CHECK 제약이 12개 키만 허용 — 빈 값은 default('classic_navy') 로 떨어짐
+    if (input.cardTemplate) payload.card_template = input.cardTemplate;
+
+    // 커버 이미지 업로드 — submit 직전에만 수행. 실패 시 카드 자체 생성은 진행.
+    if (input.coverImageUri) {
+      const url = await uploadImage(input.coverImageUri, `gathering-covers/${user.id}`);
+      if (url) payload.cover_image_url = url;
+      else if (__DEV__) console.log('[useCreateGathering] cover image upload failed — proceeding without');
+    }
 
     const { data: gathering, error } = await supabase
       .from('gatherings')

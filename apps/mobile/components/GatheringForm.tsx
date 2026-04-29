@@ -6,13 +6,19 @@ import { HostTypeSelector } from '@/components/HostTypeSelector';
 import { BulletEditor } from '@/components/BulletEditor';
 import { GatheringDateTimeRow } from '@/components/GatheringDateTimeRow';
 import { HostWineSlots, type HostWineSlot } from '@/components/HostWineSlots';
+import { CardTemplatePicker } from '@/components/CardTemplatePicker';
+import { GatheringLivePreview } from '@/components/GatheringLivePreview';
+import { GatheringCoverImageField } from '@/components/GatheringCoverImageField';
 import { useDrinkCategories } from '@/lib/hooks/useDrinkCategories';
 import { useIsPartner } from '@/lib/hooks/useIsPartner';
+import { DEFAULT_CARD_TEMPLATE } from '@/lib/constants/cardTemplates';
 import type { GatheringType } from '@/lib/types/gathering';
 import type { GatheringHostType } from '@/lib/hooks/useGatherings';
 
 export interface GatheringFormValue {
   title: string;
+  /** 카드 hero 에 제목 아래로 들어갈 한 줄 카피 */
+  subtitle: string;
   description: string;
   location: string;
   date: Date;
@@ -26,15 +32,21 @@ export interface GatheringFormValue {
   pitchBullets: string[];
   /** "이 모임의 약속" — 참여 규칙·준비물 */
   agreement: string;
+  /** 발견 탭 카드 디자인 템플릿 키 (cardTemplates.ts) */
+  cardTemplate: string;
+  /** 카드 hero 커버 이미지 — 로컬 URI (submit 시 storage 업로드). 미선택은 null */
+  coverImageUri: string | null;
   hostWineSlots: HostWineSlot[];
 }
 
 export function emptyGatheringForm(): GatheringFormValue {
   return {
-    title: '', description: '', location: '',
+    title: '', subtitle: '', description: '', location: '',
     date: new Date(), maxMembers: '8', price: '', category: null,
     gatheringType: 'cost_share', hostType: 'user',
     pitchBullets: [], agreement: '',
+    cardTemplate: DEFAULT_CARD_TEMPLATE,
+    coverImageUri: null,
     hostWineSlots: [],
   };
 }
@@ -70,6 +82,14 @@ export function GatheringForm({ value, onChange, onSubmit, submitting, submitLab
 
   return (
     <ScrollView style={styles.form} keyboardShouldPersistTaps="handled">
+      {/* 라이브 프리뷰 — 입력값/템플릿이 바뀌면 즉시 반영 */}
+      <GatheringLivePreview
+        templateKey={value.cardTemplate}
+        title={value.title}
+        subtitle={value.subtitle}
+        imageUri={value.coverImageUri}
+      />
+
       <Text style={styles.label}>제목 *</Text>
       <TextInput
         style={styles.input}
@@ -77,6 +97,31 @@ export function GatheringForm({ value, onChange, onSubmit, submitting, submitLab
         onChangeText={t => set('title', t)}
         placeholder="예: 부르고뉴 블라인드 시음회"
         placeholderTextColor="#ccc"
+        maxLength={60}
+      />
+
+      <Text style={styles.label}>부제 (선택)</Text>
+      <TextInput
+        style={styles.input}
+        value={value.subtitle}
+        onChangeText={t => set('subtitle', t)}
+        placeholder="예: 1er Cru 4종 블라인드 · 호스트 노트 제공"
+        placeholderTextColor="#ccc"
+        maxLength={200}
+      />
+
+      <Text style={styles.label}>커버 이미지 (선택)</Text>
+      <Text style={styles.hint}>1:1 정사각이 가장 깔끔하게 들어가요</Text>
+      <GatheringCoverImageField
+        value={value.coverImageUri}
+        onChange={uri => set('coverImageUri', uri)}
+      />
+
+      <Text style={styles.label}>카드 디자인 *</Text>
+      <Text style={styles.hint}>발견 탭에 노출될 컬러·번호·배치를 골라요</Text>
+      <CardTemplatePicker
+        value={value.cardTemplate}
+        onChange={k => set('cardTemplate', k)}
       />
 
       <Text style={styles.label}>설명 (마크다운 가능 — **굵게**, # 제목, - 목록)</Text>
@@ -202,6 +247,7 @@ export function GatheringForm({ value, onChange, onSubmit, submitting, submitLab
 const styles = StyleSheet.create({
   form: { padding: 20 },
   label: { fontSize: 12, fontWeight: '600', color: '#999', marginBottom: 6, marginTop: 16 },
+  hint: { fontSize: 11, color: '#bbb', marginTop: -2, marginBottom: 4 },
   input: {
     borderWidth: 1, borderColor: '#eee', borderRadius: 10,
     padding: 12, fontSize: 15, backgroundColor: '#fafafa',

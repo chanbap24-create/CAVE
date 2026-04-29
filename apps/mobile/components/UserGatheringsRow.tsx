@@ -17,7 +17,8 @@ interface Props {
 export function UserGatheringsRow({ gatherings, title = '유저 모임' }: Props) {
   const router = useRouter();
   const upcoming = gatherings
-    .filter(g => g.status === 'open' && g.gathering_date)
+    // user 타입만 — 파트너 모임은 PartnerGatheringsRow 가 노출
+    .filter(g => g.host_type === 'user' && g.status === 'open' && g.gathering_date)
     .slice(0, 8);
   if (upcoming.length === 0) return null;
   return (

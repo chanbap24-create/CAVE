@@ -2,10 +2,13 @@ import React from 'react';
 import { View, Text, TextInput, Pressable, ScrollView, StyleSheet } from 'react-native';
 import { CategoryPicker } from '@/components/CategoryPicker';
 import { GatheringTypeSelector } from '@/components/GatheringTypeSelector';
+import { HostTypeSelector } from '@/components/HostTypeSelector';
 import { GatheringDateTimeRow } from '@/components/GatheringDateTimeRow';
 import { HostWineSlots, type HostWineSlot } from '@/components/HostWineSlots';
 import { useDrinkCategories } from '@/lib/hooks/useDrinkCategories';
+import { useIsPartner } from '@/lib/hooks/useIsPartner';
 import type { GatheringType } from '@/lib/types/gathering';
+import type { GatheringHostType } from '@/lib/hooks/useGatherings';
 
 export interface GatheringFormValue {
   title: string;
@@ -16,6 +19,8 @@ export interface GatheringFormValue {
   price: string;
   category: string | null;
   gatheringType: GatheringType;
+  /** 파트너만 'user' 외 값 사용 가능 (DB trigger 강제) */
+  hostType: GatheringHostType;
   hostWineSlots: HostWineSlot[];
 }
 
@@ -23,7 +28,7 @@ export function emptyGatheringForm(): GatheringFormValue {
   return {
     title: '', description: '', location: '',
     date: new Date(), maxMembers: '8', price: '', category: null,
-    gatheringType: 'cost_share', hostWineSlots: [],
+    gatheringType: 'cost_share', hostType: 'user', hostWineSlots: [],
   };
 }
 
@@ -50,6 +55,7 @@ interface Props {
 /** All form inputs for a new gathering. Caller owns submit + reset. */
 export function GatheringForm({ value, onChange, onSubmit, submitting, submitLabel = 'Create Gathering' }: Props) {
   const { categories } = useDrinkCategories();
+  const { isPartner, partnerLabel } = useIsPartner();
 
   function set<K extends keyof GatheringFormValue>(key: K, v: GatheringFormValue[K]) {
     onChange({ ...value, [key]: v });
@@ -75,6 +81,17 @@ export function GatheringForm({ value, onChange, onSubmit, submitting, submitLab
         placeholderTextColor="#ccc"
         multiline
       />
+
+      {isPartner && (
+        <>
+          <Text style={styles.label}>Host (파트너 전용)</Text>
+          <HostTypeSelector
+            value={value.hostType}
+            onChange={v => set('hostType', v)}
+            partnerLabel={partnerLabel}
+          />
+        </>
+      )}
 
       <Text style={styles.label}>Type *</Text>
       <GatheringTypeSelector

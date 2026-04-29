@@ -12,6 +12,8 @@ export interface GatheringWinePreview {
   vintage_year: number | null;
 }
 
+export type GatheringHostType = 'user' | 'shop' | 'sommelier' | 'venue';
+
 export interface Gathering {
   id: number;
   host_id: string;
@@ -28,7 +30,13 @@ export interface Gathering {
   external_chat_url: string | null;
   metadata: any;
   created_at: string;
-  host?: { username: string; display_name: string | null; avatar_url: string | null };
+  /** 'user' = 일반 사용자 / 그 외 = 파트너 호스팅 (shop, sommelier, venue) */
+  host_type: GatheringHostType;
+  host?: {
+    username: string; display_name: string | null; avatar_url: string | null;
+    is_partner?: boolean | null;
+    partner_label?: string | null;
+  };
   // First N committed wines to render on the card (null for no-wine rooms).
   wine_previews: GatheringWinePreview[];
   // Total committed contributions (host slots + approved attendees).
@@ -64,7 +72,7 @@ export function useGatherings(category?: string | null) {
     const [{ data: profiles }, { data: contribs }] = await Promise.all([
       supabase
         .from('profiles')
-        .select('id, username, display_name, avatar_url, collection_count')
+        .select('id, username, display_name, avatar_url, collection_count, is_partner, partner_label')
         .in('id', hostIds),
       gatheringIds.length > 0
         ? supabase

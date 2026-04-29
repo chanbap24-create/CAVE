@@ -7,6 +7,7 @@ import { useGatherings } from '@/lib/hooks/useGatherings';
 import { FeaturedCaveCard } from '@/components/FeaturedCaveCard';
 import { TrendingDrinks } from '@/components/TrendingDrinks';
 import { SeasonClubHero } from '@/components/SeasonClubHero';
+import { PartnerGatheringsRow } from '@/components/PartnerGatheringsRow';
 import { UserGatheringsRow } from '@/components/UserGatheringsRow';
 // PopularPosts deprecated — posts 진입점 차단 (v1#5).
 import { CategoryChips } from '@/components/CategoryChips';
@@ -149,6 +150,8 @@ export default function ExploreScreen() {
               v1: 시즌 클럽 placeholder + 유저 모임 + 기존 Featured Caves / Trending Drinks 유지.
               v2 에서 진행 중 클럽 / 시음회 / 가이드 / 샵 섹션 추가. */}
           <SeasonClubHero />
+
+          <PartnerGatheringsRow gatherings={gatherings} />
 
           <UserGatheringsRow gatherings={gatherings} />
 

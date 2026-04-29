@@ -33,6 +33,7 @@ export function CreateGatheringSheet({ visible, onClose, onCreated }: Props) {
       pricePerPerson: form.price ? parseInt(form.price) : null,
       category: form.category,
       gatheringType: form.gatheringType ?? 'cost_share',
+      hostType: form.hostType ?? 'user',
       hostSlots: slots.map(s => ({
         collection_id: s.collectionId,
         is_blind: s.isBlind,

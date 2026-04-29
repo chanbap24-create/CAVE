@@ -2,6 +2,7 @@ import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/lib/auth';
 import { Alert } from 'react-native';
 import type { GatheringType } from '@/lib/types/gathering';
+import type { GatheringHostType } from '@/lib/hooks/useGatherings';
 
 export interface HostSlotInput {
   collection_id: number | null;
@@ -17,6 +18,8 @@ export interface CreateGatheringInput {
   pricePerPerson: number | null;
   category: string | null;
   gatheringType: GatheringType;
+  /** 'user'(기본) | 'shop' | 'sommelier' | 'venue' — non-user 는 is_partner 프로필만 가능 (DB trigger 강제) */
+  hostType?: GatheringHostType;
   hostSlots: HostSlotInput[];
 }
 
@@ -52,6 +55,7 @@ export function useCreateGathering(onCreated?: () => void) {
       // Price only meaningful for cost_share.
       price_per_person: input.gatheringType === 'cost_share' ? input.pricePerPerson : null,
       gathering_type: input.gatheringType,
+      host_type: input.hostType || 'user',
       status: 'open',
     };
     if (input.category) payload.category = input.category;

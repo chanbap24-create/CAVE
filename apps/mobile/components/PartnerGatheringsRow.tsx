@@ -26,7 +26,6 @@ export function PartnerGatheringsRow({ gatherings, title = '샵·소믈리에 �
   const partnerEvents = gatherings
     .filter(g => g.host_type !== 'user' && g.status === 'open' && g.gathering_date)
     .slice(0, 8);
-  if (partnerEvents.length === 0) return null;
   return (
     <View style={styles.wrap}>
       <View style={styles.titleRow}>
@@ -35,8 +34,14 @@ export function PartnerGatheringsRow({ gatherings, title = '샵·소믈리에 �
           <Text style={styles.more}>더보기</Text>
         </Pressable>
       </View>
-      <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.row}>
-        {partnerEvents.map(g => (
+      {partnerEvents.length === 0 ? (
+        <View style={styles.empty}>
+          <Text style={styles.emptyTitle}>곧 합류할 파트너 샵 모임을 준비 중이에요</Text>
+          <Text style={styles.emptySub}>샵·소믈리에 큐레이션 모임이 여기 노출됩니다</Text>
+        </View>
+      ) : (
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.row}>
+          {partnerEvents.map(g => (
           <Pressable key={g.id} style={styles.card} onPress={() => router.push(`/gathering/${g.id}` as any)}>
             <View style={styles.imgWrap}>
               <Image source={{ uri: g.wine_previews[0]?.image_url || g.wine_previews[0]?.photo_url || '' }} style={styles.img} />
@@ -59,7 +64,8 @@ export function PartnerGatheringsRow({ gatherings, title = '샵·소믈리에 �
             </View>
           </Pressable>
         ))}
-      </ScrollView>
+        </ScrollView>
+      )}
     </View>
   );
 }
@@ -124,4 +130,11 @@ const styles = StyleSheet.create({
   },
   cardSeats: { fontSize: 11, color: '#999' },
   price: { fontSize: 12, fontWeight: '700', color: '#222' },
+
+  empty: {
+    marginHorizontal: 16, paddingVertical: 18, paddingHorizontal: 16,
+    backgroundColor: '#231115', borderRadius: 10,
+  },
+  emptyTitle: { fontSize: 13, fontWeight: '600', color: '#fff' },
+  emptySub: { fontSize: 12, color: '#bba1ac', marginTop: 4 },
 });

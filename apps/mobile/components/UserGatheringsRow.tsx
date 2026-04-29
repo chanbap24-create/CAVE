@@ -20,7 +20,6 @@ export function UserGatheringsRow({ gatherings, title = '유저 모임' }: Props
     // user 타입만 — 파트너 모임은 PartnerGatheringsRow 가 노출
     .filter(g => g.host_type === 'user' && g.status === 'open' && g.gathering_date)
     .slice(0, 8);
-  if (upcoming.length === 0) return null;
   return (
     <View style={styles.wrap}>
       <View style={styles.titleRow}>
@@ -29,20 +28,27 @@ export function UserGatheringsRow({ gatherings, title = '유저 모임' }: Props
           <Text style={styles.more}>더보기</Text>
         </Pressable>
       </View>
-      <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.row}>
-        {upcoming.map(g => (
-          <Pressable key={g.id} style={styles.card} onPress={() => router.push(`/gathering/${g.id}` as any)}>
-            <View style={styles.imgWrap}>
-              <Image source={{ uri: g.wine_previews[0]?.image_url || g.wine_previews[0]?.photo_url || '' }} style={styles.img} />
-            </View>
-            <Text style={styles.cardTitle} numberOfLines={2}>{g.title}</Text>
-            <Text style={styles.cardMeta} numberOfLines={1}>
-              {formatDate(g.gathering_date!)}{g.location ? ` · ${g.location}` : ''}
-            </Text>
-            <Text style={styles.cardSeats}>{g.current_members}/{g.max_members} 참여</Text>
-          </Pressable>
-        ))}
-      </ScrollView>
+      {upcoming.length === 0 ? (
+        <Pressable style={styles.empty} onPress={() => router.push('/(tabs)/gatherings')}>
+          <Text style={styles.emptyTitle}>아직 예정된 유저 모임이 없어요</Text>
+          <Text style={styles.emptySub}>첫 모임을 만들고 셀러 친구들을 초대해보세요 →</Text>
+        </Pressable>
+      ) : (
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.row}>
+          {upcoming.map(g => (
+            <Pressable key={g.id} style={styles.card} onPress={() => router.push(`/gathering/${g.id}` as any)}>
+              <View style={styles.imgWrap}>
+                <Image source={{ uri: g.wine_previews[0]?.image_url || g.wine_previews[0]?.photo_url || '' }} style={styles.img} />
+              </View>
+              <Text style={styles.cardTitle} numberOfLines={2}>{g.title}</Text>
+              <Text style={styles.cardMeta} numberOfLines={1}>
+                {formatDate(g.gathering_date!)}{g.location ? ` · ${g.location}` : ''}
+              </Text>
+              <Text style={styles.cardSeats}>{g.current_members}/{g.max_members} 참여</Text>
+            </Pressable>
+          ))}
+        </ScrollView>
+      )}
     </View>
   );
 }
@@ -67,4 +73,11 @@ const styles = StyleSheet.create({
   cardTitle: { marginTop: 8, fontSize: 13, fontWeight: '600', color: '#222', lineHeight: 18 },
   cardMeta: { marginTop: 4, fontSize: 11, color: '#666' },
   cardSeats: { marginTop: 2, fontSize: 11, color: '#999' },
+
+  empty: {
+    marginHorizontal: 16, paddingVertical: 18, paddingHorizontal: 16,
+    backgroundColor: '#fafafa', borderRadius: 10, alignItems: 'flex-start',
+  },
+  emptyTitle: { fontSize: 13, fontWeight: '600', color: '#444' },
+  emptySub: { fontSize: 12, color: '#7b2d4e', marginTop: 4, fontWeight: '500' },
 });

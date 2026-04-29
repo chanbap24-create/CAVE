@@ -22,7 +22,9 @@ import { LabelScanSheet } from '@/components/LabelScanSheet';
 import { CellarList } from '@/components/CellarList';
 import { CollectionDetailSheet } from '@/components/CollectionDetailSheet';
 import { CellarHeader } from '@/components/CellarHeader';
+import { NextGatheringCard } from '@/components/NextGatheringCard';
 import { useNotifications } from '@/lib/hooks/useNotifications';
+import { useUserGatherings } from '@/lib/hooks/useUserGatherings';
 import type { CellarActivityItem } from '@/lib/hooks/useCellarActivity';
 import { CATEGORY_DB_MAP } from '@/lib/constants/drinkCategories';
 
@@ -63,12 +65,16 @@ export default function CellarScreen() {
   const { checkAndAwardBadges } = useBadgeChecker();
   const { changePhoto } = useCollectionPhoto();
   const { unreadCount, loadUnreadCount } = useNotifications();
+  const { gatherings, loadGatherings } = useUserGatherings(user?.id);
   // Batched social counts — one round-trip for all rows vs per-row hooks.
   const social = useCollectionSocial(collections.map(c => c.id));
 
   useFocusEffect(
     useCallback(() => {
-      if (user) { loadCollections(); loadTaste(); loadPicks(); loadUnreadCount(); }
+      if (user) {
+        loadCollections(); loadTaste(); loadPicks();
+        loadUnreadCount(); loadGatherings();
+      }
     }, [user])
   );
 
@@ -144,17 +150,19 @@ export default function CellarScreen() {
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#7b2d4e" />}
         contentContainerStyle={{ paddingBottom: 40 }}
       >
-        {/* Hybrid home: curated rows (Recent · Friends) at the top so
-            the page feels editorial, then stats + full cellar list below
-            for completeness. */}
-        <RecentlyAddedRow wines={collections} />
-
-        <CellarActivityStrip />
-
+        {/* docs/icave_concept_updates.md §2 cellar 흡수 순서:
+            ① 셀러 헤로  ② 다음 모임 알림  ③ 내 픽  ④ 친구 활동  ⑤ 추천 모임  ⑥ 내 와인  ⑦ 최근 모임 */}
         <CaveHero
           bottles={collections.length}
           summary={[taste?.topCategory, taste?.topCountry, taste?.topRegion, taste?.topWineType]}
         />
+
+        <NextGatheringCard gatherings={gatherings} />
+
+        {/* 기존 큐레이션 행들 — 위치는 §2 가이드에 맞춰 점진적으로 정리 */}
+        <RecentlyAddedRow wines={collections} />
+
+        <CellarActivityStrip />
 
         <MyPicksSection
           picks={picks}

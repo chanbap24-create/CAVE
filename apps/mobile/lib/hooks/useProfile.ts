@@ -12,6 +12,10 @@ export interface Profile {
   following_count: number;
   post_count: number;
   collection_count: number;
+  /** 파트너 자격 — 관리자가 부여 (v1). UI 에 PartnerBadge 노출 */
+  is_partner?: boolean | null;
+  /** 파트너 표시명 (예: 'ABC 와인샵', '소믈리에 김XX') */
+  partner_label?: string | null;
 }
 
 interface SaveInput {

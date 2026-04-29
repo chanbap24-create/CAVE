@@ -1,6 +1,7 @@
 import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import { UserAvatar } from '@/components/UserAvatar';
+import { PartnerBadge } from '@/components/PartnerBadge';
 import { getTopBadge } from '@/lib/tierUtils';
 import type { Profile } from '@/lib/hooks/useProfile';
 
@@ -29,6 +30,11 @@ export function ProfileHeader({ profile, fallbackChar }: Props) {
             </Text>
           </View>
         )}
+        {profile?.is_partner ? (
+          <View style={{ marginTop: 6 }}>
+            <PartnerBadge label={profile.partner_label} size="md" />
+          </View>
+        ) : null}
       </View>
       <View style={styles.profileStats}>
         <Stat num={profile?.post_count ?? 0} label="Posts" />

@@ -26,6 +26,8 @@ export interface CellarActivityItem {
     username: string | null;
     display_name: string | null;
     avatar_url: string | null;
+    is_partner?: boolean | null;
+    partner_label?: string | null;
   } | null;
 }
 
@@ -81,7 +83,7 @@ export function useCellarActivity() {
       .select(`
         id, photo_url, created_at, user_id, source,
         wine:wines(id, name, producer, category, region, country, vintage_year, image_url),
-        owner:profiles!collections_user_id_fkey(username, display_name, avatar_url)
+        owner:profiles!collections_user_id_fkey(username, display_name, avatar_url, is_partner, partner_label)
       `)
       .in('user_id', targetIds)
       .eq('is_public', true)

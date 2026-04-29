@@ -8,6 +8,7 @@ import {
 } from '@/lib/hooks/useCellarActivity';
 import { CATEGORY_BG_COLORS } from '@/lib/constants/drinkCategories';
 import { CollectionDetailSheet } from '@/components/CollectionDetailSheet';
+import { PartnerBadge } from '@/components/PartnerBadge';
 
 /**
  * Home-screen horizontal strip of recent cellar additions from follows.
@@ -89,6 +90,9 @@ function ActivityCard({
         <Text style={styles.ownerName} numberOfLines={1}>
           {item.owner?.display_name || item.owner?.username || ''}
         </Text>
+        {item.owner?.is_partner ? (
+          <PartnerBadge label={item.owner.partner_label} size="sm" />
+        ) : null}
       </View>
     </Pressable>
   );

@@ -12,6 +12,7 @@ import { LikeButton } from '@/components/LikeButton';
 import { PhotoPager, type PhotoPagerSlide } from '@/components/PhotoPager';
 import { CommentThread } from '@/components/CommentThread';
 import { AuthenticityBadges } from '@/components/AuthenticityBadges';
+import { PartnerBadge } from '@/components/PartnerBadge';
 import { timeAgo } from '@/lib/utils/dateUtils';
 import type { CellarActivityItem } from '@/lib/hooks/useCellarActivity';
 
@@ -124,9 +125,14 @@ export function CollectionDetailSheet({ visible, entries, onClose, hideOwner }: 
                   <View style={[styles.ownerAvatar, { backgroundColor: '#e0e0e0' }]} />
                 )}
                 <View style={{ flex: 1 }}>
-                  <Text style={styles.ownerName} numberOfLines={1}>
-                    {item.owner?.display_name || item.owner?.username || '—'}
-                  </Text>
+                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
+                    <Text style={styles.ownerName} numberOfLines={1}>
+                      {item.owner?.display_name || item.owner?.username || '—'}
+                    </Text>
+                    {item.owner?.is_partner ? (
+                      <PartnerBadge label={item.owner.partner_label} size="sm" />
+                    ) : null}
+                  </View>
                   <Text style={styles.addedAt}>{timeAgo(item.created_at)}에 추가</Text>
                 </View>
               </Pressable>

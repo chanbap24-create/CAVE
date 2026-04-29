@@ -6,6 +6,7 @@ import { useAuth } from '@/lib/auth';
 import { FollowButton } from '@/components/FollowButton';
 import { getTopBadge } from '@/lib/tierUtils';
 import { UserAvatar } from '@/components/UserAvatar';
+import { PartnerBadge } from '@/components/PartnerBadge';
 import { ScreenHeader, BackButton } from '@/components/ScreenHeader';
 import { useUserGatherings } from '@/lib/hooks/useUserGatherings';
 import { useUserPicks } from '@/lib/hooks/useUserPicks';
@@ -103,7 +104,10 @@ export default function UserProfileScreen() {
         </View>
 
         <View style={styles.profileInfo}>
-          <Text style={styles.profileName}>{profile.display_name || profile.username}</Text>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+            <Text style={styles.profileName}>{profile.display_name || profile.username}</Text>
+            {profile.is_partner ? <PartnerBadge label={profile.partner_label} size="sm" /> : null}
+          </View>
           {profile.bio && <Text style={styles.profileBio}>{profile.bio}</Text>}
         </View>
 

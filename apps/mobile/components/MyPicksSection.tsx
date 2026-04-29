@@ -1,8 +1,8 @@
 import React, { useState } from 'react';
 import { View, Text, StyleSheet, Pressable, ScrollView, Alert } from 'react-native';
-import { Image } from 'expo-image';
 import type { MyPick } from '@/lib/hooks/useMyPicks';
 import { AddPickSheet } from '@/components/AddPickSheet';
+import { PickPolaroidCard, PickPolaroidAddTile } from '@/components/PickPolaroidCard';
 
 interface Props {
   picks: MyPick[];
@@ -12,72 +12,56 @@ interface Props {
   wines?: any[]; // collection wines for selection
 }
 
+const MAX_PICKS = 5;
+
+/**
+ * "내 픽" 가로 스크롤. 카드는 폴라로이드 일기 톤(PickPolaroidCard) — 모임 카드의
+ * 정렬된 hero 와는 시각언어를 분리하여 "내 인생 와인" 의 사적 정서를 강조.
+ *
+ * editable 일 때 long-press 로 제거. 5개 미만이면 우측에 dashed add tile 노출.
+ */
 export function MyPicksSection({ picks, editable = false, onAdd, onRemove, wines = [] }: Props) {
   const [showAdd, setShowAdd] = useState(false);
+  const canAdd = editable && picks.length < MAX_PICKS;
 
   return (
     <View style={styles.container}>
       <View style={styles.header}>
         <Text style={styles.title}>내 픽</Text>
-        {editable && picks.length < 5 && (
-          <Pressable onPress={() => setShowAdd(true)}>
+        {canAdd && (
+          <Pressable onPress={() => setShowAdd(true)} hitSlop={8}>
             <Text style={styles.addText}>+ 추가</Text>
           </Pressable>
         )}
       </View>
 
-      {picks.length === 0 ? (
-        <View style={styles.emptyRow}>
-          {editable ? (
-            <Pressable style={styles.emptyCard} onPress={() => setShowAdd(true)}>
-              <Text style={styles.emptyPlus}>+</Text>
-              <Text style={styles.emptyLabel}>인생 와인 추가</Text>
-            </Pressable>
-          ) : (
-            <Text style={styles.emptyText}>아직 픽이 없어요</Text>
-          )}
+      {picks.length === 0 && !editable ? (
+        <View style={styles.emptyOnly}>
+          <Text style={styles.emptyText}>아직 픽이 없어요</Text>
         </View>
       ) : (
         <ScrollView
           horizontal
           showsHorizontalScrollIndicator={false}
-          contentContainerStyle={{ paddingHorizontal: 20, gap: 12 }}
+          contentContainerStyle={styles.row}
         >
-          {picks.map(pick => (
-            <Pressable
+          {picks.map((pick, idx) => (
+            <PickPolaroidCard
               key={pick.id}
-              style={styles.pickCard}
+              index={idx}
+              imageUrl={pick.photo_url}
+              wineName={pick.wine?.name || '?'}
+              memo={pick.memo}
               onLongPress={() => {
-                if (editable) {
-                  Alert.alert('Remove', 'Remove this pick?', [
-                    { text: 'Cancel', style: 'cancel' },
-                    { text: 'Remove', style: 'destructive', onPress: () => onRemove?.(pick.id) },
-                  ]);
-                }
+                if (!editable) return;
+                Alert.alert('제거', '이 픽을 제거할까요?', [
+                  { text: '취소', style: 'cancel' },
+                  { text: '제거', style: 'destructive', onPress: () => onRemove?.(pick.id) },
+                ]);
               }}
-            >
-              {pick.photo_url ? (
-                <Image
-                  source={pick.photo_url}
-                  style={styles.pickImage}
-                  contentFit="cover"
-                  cachePolicy="memory-disk"
-                  transition={200}
-                />
-              ) : (
-                <View style={[styles.pickImage, { backgroundColor: '#f0f0f0' }]} />
-              )}
-              <View style={styles.pickOverlay}>
-                <Text style={styles.pickName} numberOfLines={1}>{pick.wine?.name || ''}</Text>
-                {pick.memo && <Text style={styles.pickMemo} numberOfLines={1}>"{pick.memo}"</Text>}
-              </View>
-            </Pressable>
+            />
           ))}
-          {editable && picks.length < 5 && (
-            <Pressable style={styles.addCard} onPress={() => setShowAdd(true)}>
-              <Text style={styles.addCardPlus}>+</Text>
-            </Pressable>
-          )}
+          {canAdd && <PickPolaroidAddTile onPress={() => setShowAdd(true)} />}
         </ScrollView>
       )}
 
@@ -94,40 +78,18 @@ export function MyPicksSection({ picks, editable = false, onAdd, onRemove, wines
 }
 
 const styles = StyleSheet.create({
-  container: { marginTop: 10, marginBottom: 8 },
+  container: { marginTop: 14, marginBottom: 8 },
   header: {
     flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
-    paddingHorizontal: 20, marginBottom: 6,
+    paddingHorizontal: 20, marginBottom: 10,
   },
   title: { fontSize: 11, fontWeight: '700', color: '#999', textTransform: 'uppercase', letterSpacing: 0.8 },
   addText: { fontSize: 13, fontWeight: '600', color: '#7b2d4e' },
 
-  emptyRow: { paddingHorizontal: 20 },
-  emptyCard: {
-    width: 100, height: 130, borderRadius: 12, borderWidth: 1.5,
-    borderColor: '#ddd', borderStyle: 'dashed',
-    alignItems: 'center', justifyContent: 'center',
-  },
-  emptyPlus: { fontSize: 24, color: '#ccc' },
-  emptyLabel: { fontSize: 10, color: '#bbb', marginTop: 4 },
+  // 폴라로이드들이 살짝 겹치게 — 회전 + 음수에 가까운 gap 으로 album 정서.
+  // outer width 가 frame 보다 좁아서 자동으로 겹쳐 보임. 좌측 패딩만 조절.
+  row: { paddingLeft: 16, paddingRight: 8, paddingVertical: 8, gap: 4 },
+
+  emptyOnly: { paddingHorizontal: 20, paddingVertical: 12 },
   emptyText: { fontSize: 13, color: '#bbb' },
-
-  pickCard: {
-    width: 120, height: 160, borderRadius: 12,
-    overflow: 'hidden', position: 'relative',
-  },
-  pickImage: { width: '100%', height: '100%' },
-  pickOverlay: {
-    position: 'absolute', bottom: 0, left: 0, right: 0,
-    padding: 8, backgroundColor: 'rgba(0,0,0,0.4)',
-  },
-  pickName: { fontSize: 11, fontWeight: '600', color: '#fff' },
-  pickMemo: { fontSize: 10, color: 'rgba(255,255,255,0.8)', marginTop: 2, fontStyle: 'italic' },
-
-  addCard: {
-    width: 60, height: 160, borderRadius: 12, borderWidth: 1.5,
-    borderColor: '#ddd', borderStyle: 'dashed',
-    alignItems: 'center', justifyContent: 'center',
-  },
-  addCardPlus: { fontSize: 20, color: '#ccc' },
 });

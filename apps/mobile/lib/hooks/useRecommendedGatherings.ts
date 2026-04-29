@@ -1,5 +1,6 @@
 import { useState, useCallback } from 'react';
 import { supabase } from '@/lib/supabase';
+import type { GatheringHostType } from '@/lib/hooks/useGatherings';
 
 export interface RecommendedGathering {
   id: number;
@@ -15,6 +16,19 @@ export interface RecommendedGathering {
   match_score: number;
   /** 매칭 이유 (UI 노출용 한 줄) */
   match_reason: string | null;
+  // ── Discover 카드 (GatheringPreviewCard) 와 동일 프레임 렌더용 추가 필드 ──
+  card_template?: string | null;
+  subtitle?: string | null;
+  cover_image_url?: string | null;
+  host_type?: GatheringHostType;
+  category?: string | null;
+  host?: {
+    username: string | null;
+    display_name: string | null;
+    avatar_url: string | null;
+    is_partner?: boolean | null;
+    partner_label?: string | null;
+  };
 }
 
 const MAX_RESULTS = 5;
@@ -46,6 +60,12 @@ export function useRecommendedGatherings(userId?: string) {
       ));
       const themeCategoryMap = await fetchWineCategories(themeIds);
 
+      // 호스트 프로필 일괄 fetch — Discover 카드 동일 프레임용 (아바타/이름).
+      const hostIds = Array.from(new Set(
+        gatherings.map(g => g.host_id).filter(Boolean) as string[],
+      ));
+      const profileMap = await fetchHostProfiles(hostIds);
+
       const scored: RecommendedGathering[] = gatherings.map(g => {
         const themes = (g.theme_wines || []) as number[];
         const cats = themes.map(id => themeCategoryMap.get(id)).filter(Boolean) as string[];
@@ -59,6 +79,13 @@ export function useRecommendedGatherings(userId?: string) {
           image_url: g.image_url, location: g.location, gathering_date: g.gathering_date,
           host_id: g.host_id, current_members: g.current_members, max_members: g.max_members,
           match_score: score, match_reason: reason,
+          // Discover 카드 필드
+          card_template: g.card_template ?? null,
+          subtitle: g.subtitle ?? null,
+          cover_image_url: g.cover_image_url ?? null,
+          host_type: (g.host_type ?? 'user') as GatheringHostType,
+          category: g.category ?? null,
+          host: g.host_id ? profileMap.get(g.host_id) : undefined,
         };
       });
 
@@ -99,7 +126,7 @@ async function fetchFutureOpenGatherings() {
   const horizon = new Date(Date.now() + FUTURE_WINDOW_DAYS * 24 * 60 * 60 * 1000).toISOString();
   const { data } = await supabase
     .from('gatherings')
-    .select('id, title, description, image_url, location, gathering_date, host_id, current_members, max_members, theme_wines')
+    .select('id, title, description, image_url, location, gathering_date, host_id, current_members, max_members, theme_wines, card_template, subtitle, cover_image_url, host_type, category')
     .eq('status', 'open')
     .gte('gathering_date', nowIso)
     .lte('gathering_date', horizon)
@@ -116,6 +143,22 @@ async function fetchWineCategories(wineIds: number[]) {
     .select('id, category')
     .in('id', wineIds);
   for (const w of data || []) map.set(w.id, w.category);
+  return map;
+}
+
+async function fetchHostProfiles(hostIds: string[]) {
+  const map = new Map<string, RecommendedGathering['host']>();
+  if (hostIds.length === 0) return map;
+  const { data } = await supabase
+    .from('profiles')
+    .select('id, username, display_name, avatar_url, is_partner, partner_label')
+    .in('id', hostIds);
+  for (const p of data || []) {
+    map.set(p.id, {
+      username: p.username, display_name: p.display_name, avatar_url: p.avatar_url,
+      is_partner: p.is_partner, partner_label: p.partner_label,
+    });
+  }
   return map;
 }
 

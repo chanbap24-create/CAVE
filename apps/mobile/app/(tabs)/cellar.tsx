@@ -4,15 +4,13 @@ import { useFocusEffect, useLocalSearchParams, useRouter } from 'expo-router';
 import { useAuth } from '@/lib/auth';
 import { supabase } from '@/lib/supabase';
 import { useTasteProfile } from '@/lib/hooks/useTasteProfile';
-import { useProfile } from '@/lib/hooks/useProfile';
 import { useMyPicks } from '@/lib/hooks/useMyPicks';
 import { useBadgeChecker } from '@/lib/hooks/useBadgeChecker';
 import { useCollectionPhoto } from '@/lib/hooks/useCollectionPhoto';
 import { useCollectionSocial } from '@/lib/hooks/useCollectionSocial';
 import { MyPicksSection } from '@/components/MyPicksSection';
 import { CaveHero } from '@/components/CaveHero';
-import { RecentlyAddedRow } from '@/components/RecentlyAddedRow';
-import { CellarActivityStrip } from '@/components/CellarActivityStrip';
+import { FriendsActivityRow } from '@/components/FriendsActivityRow';
 // NOTE: AddToCaveSheet (DB search) and AddToCaveMenu (chooser) are hidden
 // for now — all wine registration flows through LabelScanSheet. The files
 // stay in the repo so we can restore a manual-search fallback later if
@@ -68,8 +66,6 @@ export default function CellarScreen() {
   const [showScan, setShowScan] = useState(false);
   const [detailEntries, setDetailEntries] = useState<CellarActivityItem[]>([]);
   const { taste, loadTaste } = useTasteProfile(user?.id);
-  // 본인 프로필 (RecentlyAddedRow 의 인스타 스토리 아바타에 사용).
-  const { profile } = useProfile(user?.id, user?.email);
   const { picks, loadPicks, addPick, removePick } = useMyPicks();
   const { checkAndAwardBadges } = useBadgeChecker();
   const { changePhoto } = useCollectionPhoto();
@@ -161,6 +157,11 @@ export default function CellarScreen() {
     ? collections
     : collections.filter(c => c.wine?.category === catDbMap[activeCat]);
 
+  // 셀러 탭 홈은 셀러 리스트의 첫 N개만 노출. 나머지는 /cellar/all 전용 화면에서.
+  const HOME_LIST_LIMIT = 10;
+  const visibleList = filtered.slice(0, HOME_LIST_LIMIT);
+  const hiddenCount = Math.max(0, filtered.length - HOME_LIST_LIMIT);
+
   return (
     <View style={styles.container}>
       <CellarHeader unreadCount={unreadCount} onPlusPress={() => setShowScan(true)} />
@@ -173,19 +174,18 @@ export default function CellarScreen() {
             ① 셀러 헤로  ② 다음 모임 알림  ③ 내 픽  ④ 친구 활동  ⑤ 추천 모임  ⑥ 내 와인  ⑦ 최근 모임 */}
         <CaveHero
           bottles={collections.length}
+          gatherings={gatherings.length}
+          purchases={collections.filter(c => c.source === 'shop_purchase').length}
           summary={[taste?.topCategory, taste?.topCountry, taste?.topRegion, taste?.topWineType]}
         />
 
         <NextGatheringCard gatherings={gatherings} />
 
-        {/* 기존 큐레이션 행들 — 위치는 §2 가이드에 맞춰 점진적으로 정리 */}
-        <RecentlyAddedRow
-          wines={collections}
-          avatarUrl={profile?.avatar_url}
-          avatarFallback={profile?.display_name?.[0] || profile?.username?.[0] || user?.email?.[0]}
-        />
-
-        <CellarActivityStrip />
+        {/* 친구 셀러 활동 — 인스타 스토리 톤. 친구가 와인 추가하면 그 친구의
+            아바타가 동그라미 링에 노출, 탭하면 최근 추가 와인을 swipe 로 확인.
+            기존의 "내 최근 셀러"(RecentlyAddedRow) + "Recent Additions"
+            (CellarActivityStrip) 두 비슷한 섹션을 이 한 행으로 통합. */}
+        <FriendsActivityRow />
 
         <MyPicksSection
           picks={picks}
@@ -215,11 +215,23 @@ export default function CellarScreen() {
         </View>
 
         <CellarList
-          collections={filtered}
+          collections={visibleList}
           social={social}
           onPressRow={(c) => router.push(`/wine/${c.id}`)}
           onLongPressRow={openRowActions}
         />
+
+        {hiddenCount > 0 && (
+          <Pressable
+            style={styles.seeAllRow}
+            onPress={() => router.push('/cellar/all' as any)}
+          >
+            <Text style={styles.seeAllText}>
+              전체 {filtered.length}병 보기
+            </Text>
+            <Text style={styles.seeAllArrow}>›</Text>
+          </Pressable>
+        )}
       </ScrollView>
 
       {/* Legacy sheet kept for the deep-link-from-notifications path
@@ -260,4 +272,13 @@ const styles = StyleSheet.create({
   tabActive: { borderBottomWidth: 2, borderBottomColor: '#222' },
   tabText: { fontSize: 13, fontWeight: '500', color: '#bbb' },
   tabTextActive: { color: '#222', fontWeight: '600' },
+
+  // "전체 N병 보기" — 셀러 리스트 끝에 한 줄로. 큰 CTA 가 아닌 가벼운 링크.
+  seeAllRow: {
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
+    paddingVertical: 18, paddingHorizontal: 20,
+    gap: 4,
+  },
+  seeAllText: { fontSize: 13, color: '#7b2d4e', fontWeight: '600' },
+  seeAllArrow: { fontSize: 16, color: '#7b2d4e', fontWeight: '600', marginTop: -2 },
 });

@@ -83,7 +83,7 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
   },
   imgWrap: { backgroundColor: '#f5f5f5' },
-  img: { width: '100%', height: 110, backgroundColor: '#efe4ea' },
+  img: { width: '100%', height: 140, backgroundColor: '#efe4ea' },
   body: { paddingHorizontal: 12, paddingTop: 10 },
   cardTitle: { fontSize: 13, fontWeight: '600', color: '#222', lineHeight: 18 },
   cardMeta: { marginTop: 4, fontSize: 11, color: '#666' },

@@ -16,27 +16,23 @@ import { Dimensions } from 'react-native';
 // DiscoverSectionHeader paddingHorizontal 와 동일 (20). 헤더-카드 좌측 정렬.
 export const HORIZONTAL_PADDING = 20;
 export const CARD_GAP = 12;
-const PEEK = 36; // 다음 카드가 우측에 보이는 양 (px). 일반 가로 스크롤용.
-
-export function getDiscoverCardWidth(): number {
-  const screen = Dimensions.get('window').width;
-  // 카드1 + gap + 카드2 + gap + peek = screen - leftPadding
-  // 2*W + 2*GAP + PEEK = screen - HORIZONTAL_PADDING
-  // W = (screen - HORIZONTAL_PADDING - 2*GAP - PEEK) / 2
-  return Math.floor((screen - HORIZONTAL_PADDING - CARD_GAP * 2 - PEEK) / 2);
-}
 
 /**
- * 위계 강조용 큰 카드 폭 — 한 화면에 2장이 들어오되 2번째 카드가 약 20% 정도
- * 살짝 잘려서 보이는 비율. 시즌 클럽 다음 layer (샵·소믈리에 모임).
+ * Discover 모든 가로 스크롤 카드의 통일 폭.
+ *  - 한 화면에 2장 들어오되 2번째 카드가 약 20% 잘려서 보임 (swipe 유도)
+ *  - leftPadding + W + gap + 0.8*W = screen → W = (screen - leftPadding - gap) / 1.8
  *
- * 레이아웃: leftPadding + W + gap + 0.8*W = screen
- *   → 1.8*W = screen - leftPadding - gap
- *   → W = (screen - leftPadding - gap) / 1.8
+ * 모든 섹션(Partner / User / Caves / Trending / Editor) 이 같은 폭 → 페이지
+ * 세로 리듬 통일.
  */
-export function getFeatureCardWidth(): number {
+export function getDiscoverCardWidth(): number {
   const screen = Dimensions.get('window').width;
   return Math.floor((screen - HORIZONTAL_PADDING - CARD_GAP) / 1.8);
+}
+
+/** 모든 섹션이 동일 폭이라 별칭으로 둠. 추후 위계 강조 카드만 다르게 하고 싶으면 분리. */
+export function getFeatureCardWidth(): number {
+  return getDiscoverCardWidth();
 }
 
 /** snap 단위 — 한 카드씩 정렬되며 swipe 가 자연스럽게 떨어짐 */

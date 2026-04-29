@@ -108,8 +108,9 @@ const styles = StyleSheet.create({
     borderWidth: 1, borderColor: '#eee',
     marginRight: 12,
   },
-  // 다른 카드(이미지 110 + body + footer ≈ 200) 의 약 중간값. 가로/세로 비례 보정.
-  cardBg: { height: 155, justifyContent: 'flex-end', overflow: 'hidden' },
+  // 다른 카드(이미지 140 + body + footer ≈ 250) 의 총 높이에 맞춤. 단일 오버레이 카드라서
+  // body/footer 가 없는 대신 cardBg 자체가 카드 전체 높이.
+  cardBg: { height: 240, justifyContent: 'flex-end', overflow: 'hidden' },
   videoBg: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 },
   videoOverlay: { position: 'absolute', bottom: 0, left: 0, right: 0 },
   overlay: {

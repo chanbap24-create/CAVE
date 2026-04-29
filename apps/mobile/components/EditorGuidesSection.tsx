@@ -56,7 +56,7 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
   },
   thumb: {
-    width: '100%', height: 110,
+    width: '100%', height: 140,
     backgroundColor: '#f5f0f2',
     alignItems: 'center', justifyContent: 'center',
   },

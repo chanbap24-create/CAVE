@@ -61,9 +61,9 @@ export function TrendingDrinks({ refreshKey = 0, category }: Props) {
 
 const styles = StyleSheet.create({
   sectionTitle: { fontSize: 15, fontWeight: '700', color: '#222', paddingHorizontal: 20, paddingTop: 20, paddingBottom: 12 },
-  // 다른 가로 카드(Partner / User / Caves) 와 동일 폭/이미지 110pt
+  // 다른 가로 카드(Partner / User / Caves) 와 동일 폭/이미지 140pt
   card: { width: CARD_WIDTH, marginRight: CARD_GAP, borderRadius: 12, overflow: 'hidden', borderWidth: 1, borderColor: '#eee' },
-  cardTop: { height: 110, justifyContent: 'flex-end', padding: 12 },
+  cardTop: { height: 140, justifyContent: 'flex-end', padding: 12 },
   rank: { fontSize: 28, fontWeight: '800', color: 'rgba(0,0,0,0.15)' },
   cardBody: { padding: 12 },
   cardName: { fontSize: 13, fontWeight: '600', color: '#222', lineHeight: 18 },

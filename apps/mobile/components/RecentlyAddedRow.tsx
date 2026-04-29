@@ -17,19 +17,31 @@ interface WineRow {
 
 interface Props {
   wines: WineRow[];
+  /** 본인 프로필 사진 — 인스타 스토리 톤으로 각 항목 위에 노출 */
+  avatarUrl?: string | null;
+  /** 폴백 (이니셜 등) */
+  avatarFallback?: string | null;
   /** Optional override label. Defaults to "Recently Added". */
   label?: string;
   /** Latest N → horizontal strip. */
   limit?: number;
 }
 
+const STORY_SIZE = 78; // 인스타 스토리 동그라미 크기
+
 /**
- * Aesop-style horizontal strip of the cellar's most recent additions.
- * Portrait 3:4 cards, minimal type — producer + vintage only, no
- * decorative chrome. Meant to make the Cave home feel curated rather
- * than database-y while staying minimalist.
+ * 인스타 스토리 패턴의 최근 추가 카드 — 와인 병 사진 대신 본인 프로필 사진을
+ * 그라디언트 링 안에 노출. 와인 이름은 라벨로 아래 표시.
+ *
+ * 데이터: 본인 셀러의 최근 created_at desc 와인. 본인 사진이 모두 같은 얼굴로
+ * 반복되지만 인스타 본인 스토리 영역과 동일한 시각언어.
+ *
+ * 탭 시 wine/[id] 로 이동.
  */
-export function RecentlyAddedRow({ wines, label = 'Recently Added', limit = 8 }: Props) {
+export function RecentlyAddedRow({
+  wines, avatarUrl, avatarFallback,
+  label = '내 최근 셀러', limit = 8,
+}: Props) {
   const router = useRouter();
   const items = [...wines]
     .sort((a, b) => b.created_at.localeCompare(a.created_at))
@@ -40,43 +52,40 @@ export function RecentlyAddedRow({ wines, label = 'Recently Added', limit = 8 }:
     <View style={styles.wrap}>
       <Text style={styles.label}>{label}</Text>
       <ScrollView
-        horizontal
-        showsHorizontalScrollIndicator={false}
+        horizontal showsHorizontalScrollIndicator={false}
         contentContainerStyle={styles.row}
       >
-        {items.map(w => {
-          const photo = w.photo_url ?? w.wine?.image_url ?? null;
-          return (
-            <Pressable
-              key={w.id}
-              style={styles.card}
-              onPress={() => router.push(`/wine/${w.id}`)}
-            >
-              <View style={styles.photoWrap}>
-                {photo ? (
+        {items.map(w => (
+          <Pressable
+            key={w.id}
+            style={styles.story}
+            onPress={() => router.push(`/wine/${w.id}`)}
+          >
+            {/* 인스타 스토리 그라디언트 링 — 자주색 → 핑크 → 주황 */}
+            <View style={styles.ring}>
+              <View style={styles.innerWhite}>
+                {avatarUrl ? (
                   <Image
-                    source={photo}
-                    style={styles.photo}
+                    source={avatarUrl}
+                    style={styles.avatar}
                     contentFit="cover"
                     cachePolicy="memory-disk"
                   />
                 ) : (
-                  <View style={[styles.photo, styles.photoPlaceholder]} />
+                  <View style={[styles.avatar, styles.avatarPlaceholder]}>
+                    <Text style={styles.avatarChar}>
+                      {(avatarFallback || '?').toUpperCase()}
+                    </Text>
+                  </View>
                 )}
-                {/* Semi-opaque scrim + label overlay at the bottom of the
-                    photo so the wine name reads against any artwork. */}
-                <View style={styles.scrim}>
-                  <Text style={styles.overlayName} numberOfLines={2}>
-                    {w.wine?.name ?? 'Unknown'}
-                  </Text>
-                  {w.wine?.vintage_year ? (
-                    <Text style={styles.overlayMeta}>{w.wine.vintage_year}</Text>
-                  ) : null}
-                </View>
               </View>
-            </Pressable>
-          );
-        })}
+            </View>
+            <Text style={styles.wineName} numberOfLines={2}>
+              {w.wine?.name || '와인'}
+              {w.wine?.vintage_year ? ` ${w.wine.vintage_year}` : ''}
+            </Text>
+          </Pressable>
+        ))}
       </ScrollView>
     </View>
   );
@@ -87,34 +96,32 @@ const styles = StyleSheet.create({
   label: {
     fontSize: 11, fontWeight: '700', color: '#999',
     textTransform: 'uppercase', letterSpacing: 0.8,
-    paddingHorizontal: 20, marginBottom: 6,
+    paddingHorizontal: 20, marginBottom: 10,
   },
-  row: { paddingHorizontal: 16, gap: 12 },
-  card: { width: 110 },
-  photoWrap: {
-    width: 110, aspectRatio: 3 / 4,
-    borderRadius: 8, overflow: 'hidden',
-    backgroundColor: '#eee',
-  },
-  photo: { width: '100%', height: '100%' },
-  photoPlaceholder: { backgroundColor: '#eee' },
+  row: { paddingHorizontal: 16, gap: 14 },
+  story: { width: STORY_SIZE, alignItems: 'center' },
 
-  // Fixed-height scrim so every card matches regardless of whether the
-  // wine has a vintage line. Lighter opacity than before — just enough
-  // to separate white text from the photo.
-  scrim: {
-    position: 'absolute', left: 0, right: 0, bottom: 0,
-    height: 40,
-    paddingHorizontal: 8, paddingTop: 5,
-    backgroundColor: 'rgba(0,0,0,0.32)',
-    justifyContent: 'flex-start',
+  // 그라디언트 효과 — 단순 자주색 링 (RN gradient 라이브러리 없이 단색).
+  // expo-linear-gradient 도입 가능하지만 v1 은 단색 링으로.
+  ring: {
+    width: STORY_SIZE, height: STORY_SIZE, borderRadius: STORY_SIZE / 2,
+    padding: 2.5,
+    backgroundColor: '#7b2d4e',
+    alignItems: 'center', justifyContent: 'center',
   },
-  overlayName: {
-    fontSize: 11, fontWeight: '700', color: '#fff', lineHeight: 14,
-    textShadowColor: 'rgba(0,0,0,0.5)', textShadowRadius: 2,
+  innerWhite: {
+    width: '100%', height: '100%', borderRadius: STORY_SIZE / 2,
+    padding: 2.5, backgroundColor: '#fff',
+    alignItems: 'center', justifyContent: 'center',
   },
-  overlayMeta: {
-    fontSize: 9, color: 'rgba(255,255,255,0.9)', marginTop: 1, fontWeight: '500',
-    textShadowColor: 'rgba(0,0,0,0.5)', textShadowRadius: 2,
+  avatar: { width: '100%', height: '100%', borderRadius: STORY_SIZE / 2 },
+  avatarPlaceholder: {
+    backgroundColor: '#e0e0e0', alignItems: 'center', justifyContent: 'center',
+  },
+  avatarChar: { fontSize: 22, fontWeight: '700', color: '#999' },
+
+  wineName: {
+    fontSize: 11, color: '#333', textAlign: 'center', lineHeight: 14,
+    marginTop: 8, fontWeight: '500',
   },
 });

@@ -4,6 +4,7 @@ import { useFocusEffect, useLocalSearchParams, useRouter } from 'expo-router';
 import { useAuth } from '@/lib/auth';
 import { supabase } from '@/lib/supabase';
 import { useTasteProfile } from '@/lib/hooks/useTasteProfile';
+import { useProfile } from '@/lib/hooks/useProfile';
 import { useMyPicks } from '@/lib/hooks/useMyPicks';
 import { useBadgeChecker } from '@/lib/hooks/useBadgeChecker';
 import { useCollectionPhoto } from '@/lib/hooks/useCollectionPhoto';
@@ -67,6 +68,8 @@ export default function CellarScreen() {
   const [showScan, setShowScan] = useState(false);
   const [detailEntries, setDetailEntries] = useState<CellarActivityItem[]>([]);
   const { taste, loadTaste } = useTasteProfile(user?.id);
+  // 본인 프로필 (RecentlyAddedRow 의 인스타 스토리 아바타에 사용).
+  const { profile } = useProfile(user?.id, user?.email);
   const { picks, loadPicks, addPick, removePick } = useMyPicks();
   const { checkAndAwardBadges } = useBadgeChecker();
   const { changePhoto } = useCollectionPhoto();
@@ -176,7 +179,11 @@ export default function CellarScreen() {
         <NextGatheringCard gatherings={gatherings} />
 
         {/* 기존 큐레이션 행들 — 위치는 §2 가이드에 맞춰 점진적으로 정리 */}
-        <RecentlyAddedRow wines={collections} />
+        <RecentlyAddedRow
+          wines={collections}
+          avatarUrl={profile?.avatar_url}
+          avatarFallback={profile?.display_name?.[0] || profile?.username?.[0] || user?.email?.[0]}
+        />
 
         <CellarActivityStrip />
 

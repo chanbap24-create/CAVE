@@ -106,7 +106,7 @@ export function useGatheringDetail(gatheringId: number) {
       allIds.length > 0
         ? supabase
             .from('profiles')
-            .select('id, username, display_name, avatar_url, collection_count')
+            .select('id, username, display_name, avatar_url, collection_count, is_partner, partner_label, partner_bio, partner_career, partner_specialties, partner_photo_url')
             .in('id', allIds)
         : Promise.resolve({ data: [] as any[] }),
       supabase

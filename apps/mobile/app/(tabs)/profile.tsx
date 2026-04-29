@@ -12,11 +12,13 @@ import { TasteCard } from '@/components/TasteCard';
 import { ScreenHeader } from '@/components/ScreenHeader';
 import { ProfileHeader } from '@/components/ProfileHeader';
 import { EditProfileModal } from '@/components/EditProfileModal';
+import { EditPartnerProfileSheet } from '@/components/EditPartnerProfileSheet';
 
 export default function ProfileScreen() {
   const router = useRouter();
   const { user, signOut } = useAuth();
   const [showEdit, setShowEdit] = useState(false);
+  const [showPartnerEdit, setShowPartnerEdit] = useState(false);
 
   // Posts deprecated (i cave 방향성 변경). 셀러가 콘텐츠 단위.
   const { taste, loadTaste } = useTasteProfile(user?.id);
@@ -67,6 +69,17 @@ export default function ProfileScreen() {
           <Ionicons name="chevron-forward" size={18} color="#bbb" />
         </Pressable>
 
+        {/* 파트너 소개 편집 — is_partner=true 인 계정만 노출. 모임 만들 때 자동 첨부될 인트로. */}
+        {profile?.is_partner ? (
+          <Pressable style={styles.menuRow} onPress={() => setShowPartnerEdit(true)}>
+            <View style={styles.menuLeft}>
+              <Ionicons name="ribbon-outline" size={20} color="#7b2d4e" />
+              <Text style={[styles.menuLabel, { color: '#7b2d4e' }]}>파트너 소개 편집</Text>
+            </View>
+            <Ionicons name="chevron-forward" size={18} color="#bbb" />
+          </Pressable>
+        ) : null}
+
         {taste && <TasteCard taste={taste} compact />}
 
         <View style={styles.badgeSection}>
@@ -104,6 +117,13 @@ export default function ProfileScreen() {
         profile={profile}
         onClose={() => setShowEdit(false)}
         onSave={save}
+      />
+
+      <EditPartnerProfileSheet
+        visible={showPartnerEdit}
+        profile={profile}
+        onClose={() => setShowPartnerEdit(false)}
+        onSaved={() => { /* useProfile 이 focus 시 reload */ }}
       />
     </View>
   );

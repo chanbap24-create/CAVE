@@ -13,6 +13,7 @@ import { ChangeWineRequestSheet } from '@/components/ChangeWineRequestSheet';
 import { PendingApprovalsSection } from '@/components/PendingApprovalsSection';
 import { MyCollectionPickerSheet } from '@/components/MyCollectionPickerSheet';
 import { GatheringInfoCard } from '@/components/GatheringInfoCard';
+import { PartnerHostCard } from '@/components/PartnerHostCard';
 import { UserCellarSheet } from '@/components/UserCellarSheet';
 import { useGatheringApprovals } from '@/lib/hooks/useGatheringApprovals';
 import type { LineupEntry } from '@/lib/hooks/useGatheringDetail';
@@ -155,6 +156,12 @@ export default function GatheringDetailScreen() {
           chatLoading={chatLoading}
           onOpenChat={handleOpenChat}
         />
+
+        {/* 파트너 호스트 소개 — host_type != 'user' 일 때 자동 노출.
+            트레바리 클럽 리더 카드 패턴. host.partner_bio/career/specialties 데이터 기반. */}
+        {gathering.host_type && gathering.host_type !== 'user' && host?.is_partner ? (
+          <PartnerHostCard host={host} />
+        ) : null}
 
         {/* Approval alerts stay visible across tabs — they're notifications,
             not browsable content. */}

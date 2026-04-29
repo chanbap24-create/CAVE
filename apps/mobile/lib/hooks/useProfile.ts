@@ -16,6 +16,14 @@ export interface Profile {
   is_partner?: boolean | null;
   /** 파트너 표시명 (예: 'ABC 와인샵', '소믈리에 김XX') */
   partner_label?: string | null;
+  /** 파트너 자기소개 (모임 카드에 노출) */
+  partner_bio?: string | null;
+  /** 파트너 경력/이력 (멀티라인) */
+  partner_career?: string | null;
+  /** 전문분야 태그 (예: ['부르고뉴', '내추럴 와인']) */
+  partner_specialties?: string[] | null;
+  /** 파트너 대표 사진 URL (avatar 와 별개. 모임 카드 헤더에 사용) */
+  partner_photo_url?: string | null;
 }
 
 interface SaveInput {

@@ -111,7 +111,7 @@ export default function CreateScreen() {
 
       <ScrollView keyboardShouldPersistTaps="handled">
         {media.imageUri && (
-          <Image source={media.imageUri} style={styles.previewImage} contentFit="cover" transition={100} />
+          <Image source={media.imageUri} style={styles.previewImage} contentFit="cover" transition={100} cachePolicy="memory-disk" />
         )}
         {media.videoUri && <CreateVideoPreview uri={media.videoUri} />}
 

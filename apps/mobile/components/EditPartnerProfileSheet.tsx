@@ -91,7 +91,7 @@ export function EditPartnerProfileSheet({ visible, profile, onClose, onSaved }: 
             <Text style={styles.label}>대표 사진</Text>
             <Pressable style={styles.photoBox} onPress={pickPhoto}>
               {photoUri ? (
-                <Image source={photoUri} style={styles.photo} contentFit="cover" />
+                <Image source={photoUri} style={styles.photo} contentFit="cover" cachePolicy="memory-disk" />
               ) : (
                 <Text style={styles.photoEmpty}>+ 사진 추가</Text>
               )}

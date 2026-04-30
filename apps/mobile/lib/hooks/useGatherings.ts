@@ -76,10 +76,10 @@ export function useGatherings(category?: string | null) {
     const gatheringIds = data.map(g => g.id);
 
     // One round-trip for all host profiles, another for all committed
-    // contributions (with wine + collection photo joined). Groups are
-    // assembled client-side so the card list stays O(1) network-ops
-    // regardless of how many gatherings are on screen.
-    const [{ data: profiles }, { data: contribs }] = await Promise.all([
+    // contributions (with wine + collection photo joined), another for member
+    // counts (current_members 트리거를 00051 에서 제거 — 1000 CCU 동시 가입
+    // lock 회피. 카운트는 hook 에서 합쳐 채움).
+    const [{ data: profiles }, { data: contribs }, { data: approvedMembers }] = await Promise.all([
       supabase
         .from('profiles')
         .select('id, username, display_name, avatar_url, collection_count, is_partner, partner_label')
@@ -95,9 +95,21 @@ export function useGatherings(category?: string | null) {
             .eq('status', 'committed')
             .order('slot_order', { ascending: true })
         : Promise.resolve({ data: [] as any[] }),
+      gatheringIds.length > 0
+        ? supabase
+            .from('gathering_members')
+            .select('gathering_id')
+            .in('gathering_id', gatheringIds)
+            .eq('status', 'approved')
+        : Promise.resolve({ data: [] as any[] }),
     ]);
 
     const profileMap = new Map(profiles?.map(p => [p.id, p]) || []);
+
+    const memberCountMap = new Map<number, number>();
+    for (const m of (approvedMembers ?? []) as any[]) {
+      memberCountMap.set(m.gathering_id, (memberCountMap.get(m.gathering_id) ?? 0) + 1);
+    }
 
     const contribMap = new Map<number, GatheringWinePreview[]>();
     const countMap = new Map<number, number>();
@@ -119,6 +131,8 @@ export function useGatherings(category?: string | null) {
 
     const enriched: Gathering[] = data.map(g => ({
       ...g,
+      // current_members 트리거 제거됨 — 신선한 count 로 덮어씀.
+      current_members: memberCountMap.get(g.id) ?? 0,
       host: profileMap.get(g.host_id),
       wine_previews: (contribMap.get(g.id) ?? []).slice(0, CARD_PREVIEW_LIMIT),
       wine_total: countMap.get(g.id) ?? 0,

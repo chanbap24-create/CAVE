@@ -128,11 +128,12 @@ export default function GatheringDetailScreen() {
   if (!gathering) return <View style={styles.container} />;
 
   const isHost = user?.id === gathering.host_id;
-  // Host takes up one slot too; DB only counts approved attendees.
-  const memberCount = gathering.current_members + 1;
-  const isClosed = gathering.status === 'closed' || memberCount >= gathering.max_members;
   const pendingMembers = members.filter(m => m.status === 'pending');
   const approvedMembers = members.filter(m => m.status === 'approved');
+  // approved 멤버 + 호스트 본인. current_members 캐시 컬럼은 00051 에서
+  // 트리거 제거되어 stale → members 배열에서 직접 산출.
+  const memberCount = approvedMembers.length + 1;
+  const isClosed = gathering.status === 'closed' || memberCount >= gathering.max_members;
 
   async function handleOpenChat() {
     if (!user) return;

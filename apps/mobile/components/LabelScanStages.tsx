@@ -28,7 +28,7 @@ export function PickStage({ media }: { media: Media }) {
 export function AnalyzingStage({ uri }: { uri: string | null }) {
   return (
     <View style={styles.stage}>
-      {uri && <Image source={uri} style={styles.preview} contentFit="cover" />}
+      {uri && <Image source={uri} style={styles.preview} contentFit="cover" cachePolicy="memory-disk" />}
       <ActivityIndicator color="#7b2d4e" style={{ marginTop: 16 }} />
       <Text style={styles.helpText}>Reading the label…</Text>
     </View>
@@ -92,7 +92,7 @@ export function ReviewStage(p: ReviewStageProps) {
   const lowConfidence = p.confidence < MIN_VISION_CONFIDENCE;
   return (
     <ScrollView style={styles.stage} keyboardShouldPersistTaps="handled">
-      <Image source={p.uri} style={styles.preview} contentFit="cover" />
+      <Image source={p.uri} style={styles.preview} contentFit="cover" cachePolicy="memory-disk" />
 
       {lowConfidence && (
         <Text style={styles.warn}>Label was hard to read — please double-check the fields below.</Text>

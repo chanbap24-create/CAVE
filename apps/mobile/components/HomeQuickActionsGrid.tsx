@@ -1,4 +1,4 @@
-import React, { useRef, useState } from 'react';
+import React, { useCallback, useRef, useState } from 'react';
 import { View, Text, ScrollView, Pressable, StyleSheet, Dimensions, Alert } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
@@ -47,30 +47,36 @@ interface Props {
   onPressAction?: (key: string) => void;
 }
 
+// ACTIONS 는 모듈 상수라 페이지 슬라이스도 모듈 상수로 한 번에 계산.
+// 컴포넌트 매 렌더 재계산을 막아 매번 새 배열 생성으로 인한 children reconciliation 회피.
+const PAGES: Action[][] = (() => {
+  const out: Action[][] = [];
+  for (let i = 0; i < ACTIONS.length; i += PAGE_SIZE) {
+    out.push(ACTIONS.slice(i, i + PAGE_SIZE));
+  }
+  return out;
+})();
+const TOTAL_PAGES = PAGES.length;
+
 export function HomeQuickActionsGrid({ onPressAction }: Props) {
   const scrollRef = useRef<ScrollView>(null);
   const [page, setPage] = useState(0);
-  const totalPages = Math.ceil(ACTIONS.length / PAGE_SIZE);
 
-  // 페이지 width = 화면 폭 - 좌우 패딩. 한 장 안에서 5열 자체 정렬.
+  // 페이지 width = 화면 폭. pagingEnabled 와 정확히 매칭.
   const pageWidth = SCREEN;
 
-  function handleScroll(e: any) {
+  // onScroll(60fps) 대신 onMomentumScrollEnd(페이지 전환당 1회) — setState 빈도
+  // 1/16ms 에서 페이지 전환당 1회로 떨어짐.
+  const handleMomentumEnd = useCallback((e: any) => {
     const idx = Math.round(e.nativeEvent.contentOffset.x / pageWidth);
-    if (idx !== page) setPage(idx);
-  }
+    setPage(prev => (prev === idx ? prev : idx));
+  }, [pageWidth]);
 
-  function handleAction(action: Action) {
+  const handleAction = useCallback((action: Action) => {
     if (onPressAction) onPressAction(action.key);
     else if (action.onPress) action.onPress();
     else Alert.alert(action.label, '곧 만나요');
-  }
-
-  // 페이지별로 ACTIONS 를 슬라이스
-  const pages: Action[][] = [];
-  for (let i = 0; i < ACTIONS.length; i += PAGE_SIZE) {
-    pages.push(ACTIONS.slice(i, i + PAGE_SIZE));
-  }
+  }, [onPressAction]);
 
   return (
     <View style={styles.wrap}>
@@ -78,10 +84,9 @@ export function HomeQuickActionsGrid({ onPressAction }: Props) {
         ref={scrollRef}
         horizontal pagingEnabled
         showsHorizontalScrollIndicator={false}
-        onScroll={handleScroll}
-        scrollEventThrottle={16}
+        onMomentumScrollEnd={handleMomentumEnd}
       >
-        {pages.map((pageActions, pageIdx) => (
+        {PAGES.map((pageActions, pageIdx) => (
           <View key={pageIdx} style={[styles.page, { width: pageWidth }]}>
             {pageActions.map(action => (
               <Pressable
@@ -104,9 +109,9 @@ export function HomeQuickActionsGrid({ onPressAction }: Props) {
         ))}
       </ScrollView>
 
-      {totalPages > 1 && (
+      {TOTAL_PAGES > 1 && (
         <View style={styles.dots}>
-          {Array.from({ length: totalPages }).map((_, i) => (
+          {Array.from({ length: TOTAL_PAGES }).map((_, i) => (
             <View key={i} style={[styles.dot, i === page && styles.dotActive]} />
           ))}
         </View>

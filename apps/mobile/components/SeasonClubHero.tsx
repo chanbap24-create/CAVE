@@ -1,5 +1,6 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useCallback, useRef, useState } from 'react';
 import { View, Text, StyleSheet, Pressable, ScrollView, Dimensions } from 'react-native';
+import { useFocusEffect } from 'expo-router';
 import Svg, { Path } from 'react-native-svg';
 
 /**
@@ -83,18 +84,22 @@ export function SeasonClubHero() {
   const [index, setIndex] = useState(0);
   const lastTouchAt = useRef(0);
 
-  // 자동 슬라이드 — 사용자 터치 직후 12초는 멈춤
-  useEffect(() => {
-    const t = setInterval(() => {
-      if (Date.now() - lastTouchAt.current < PAUSE_AFTER_TOUCH_MS) return;
-      setIndex(prev => {
-        const next = (prev + 1) % SLIDES.length;
-        scrollRef.current?.scrollTo({ x: next * SCREEN, animated: true });
-        return next;
-      });
-    }, AUTO_INTERVAL);
-    return () => clearInterval(t);
-  }, []);
+  // 자동 슬라이드 — 사용자 터치 직후 12초는 멈춤.
+  // useFocusEffect 로 활성 탭일 때만 인터벌 작동 → 다른 탭(셀러/모임)에 있을 때
+  // 백그라운드에서 setState/scrollTo 가 안 일어나 RN bridge 부하 0.
+  useFocusEffect(
+    useCallback(() => {
+      const t = setInterval(() => {
+        if (Date.now() - lastTouchAt.current < PAUSE_AFTER_TOUCH_MS) return;
+        setIndex(prev => {
+          const next = (prev + 1) % SLIDES.length;
+          scrollRef.current?.scrollTo({ x: next * SCREEN, animated: true });
+          return next;
+        });
+      }, AUTO_INTERVAL);
+      return () => clearInterval(t);
+    }, [])
+  );
 
   function handleScroll(e: any) {
     const idx = Math.round(e.nativeEvent.contentOffset.x / SCREEN);

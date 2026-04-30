@@ -21,16 +21,13 @@ const EMPTY: Counts = { likes: 0, comments: 0, liked: false };
 /**
  * Batched social stats for a list of collection rows.
  *
- * Replaces per-row useCollectionLike + useCollectionComments calls which
- * fan out to ~4 queries per row. This hook makes exactly 3 queries total
- * regardless of list size:
- *   1. likes counts grouped by collection_id
- *   2. current user's likes (to know which hearts are filled)
- *   3. comments counts grouped by collection_id
+ * 1000 CCU 확장성 — 이전 구현은 likes/comments 의 모든 row 를 fetch 후
+ * 클라이언트에서 group by 했음 (셀러 50병 × 좋아요 30 = 1500 row 다운로드).
+ * RPC `get_collection_social_counts` (마이그레이션 00049) 를 도입해서
+ * server-side aggregate 로 대체 — 응답 페이로드 = 컬렉션 수만큼.
  *
- * Returns a map accessor + an optimistic toggle. Comments list still
- * loads on-demand from CommentsSheet (useCollectionComments) — only the
- * count is batched here.
+ * RPC 는 security invoker 라 기존 RLS (`is_public=true` 컬렉션만 노출) 가
+ * 그대로 적용됨. 댓글 목록은 여전히 CommentsSheet 에서 on-demand.
  */
 export function useCollectionSocial(collectionIds: number[]): CollectionSocial {
   const { user } = useAuth();
@@ -43,42 +40,25 @@ export function useCollectionSocial(collectionIds: number[]): CollectionSocial {
   const load = useCallback(async () => {
     if (collectionIds.length === 0) { setCounts(new Map()); return; }
 
-    const [likesRes, myLikesRes, commentsRes] = await Promise.all([
-      supabase
-        .from('collection_likes')
-        .select('collection_id')
-        .in('collection_id', collectionIds),
-      user
-        ? supabase
-            .from('collection_likes')
-            .select('collection_id')
-            .in('collection_id', collectionIds)
-            .eq('user_id', user.id)
-        : Promise.resolve({ data: [] }),
-      supabase
-        .from('collection_comments')
-        .select('collection_id')
-        .in('collection_id', collectionIds),
-    ]);
+    // 단일 RPC 라운드트립 — count(*) group by 가 server-side 에서 수행됨.
+    const { data, error } = await supabase.rpc('get_collection_social_counts', {
+      p_ids: collectionIds,
+    });
 
-    const likeCounts = new Map<number, number>();
-    (likesRes.data ?? []).forEach((r: any) => {
-      likeCounts.set(r.collection_id, (likeCounts.get(r.collection_id) ?? 0) + 1);
-    });
-    const myLiked = new Set<number>((myLikesRes as any).data?.map((r: any) => r.collection_id) ?? []);
-    const commentCounts = new Map<number, number>();
-    (commentsRes.data ?? []).forEach((r: any) => {
-      commentCounts.set(r.collection_id, (commentCounts.get(r.collection_id) ?? 0) + 1);
-    });
+    if (error || !data) {
+      if (__DEV__) console.warn('[useCollectionSocial] rpc error:', error?.message);
+      setCounts(new Map());
+      return;
+    }
 
     const next = new Map<number, Counts>();
-    collectionIds.forEach(id => {
-      next.set(id, {
-        likes: likeCounts.get(id) ?? 0,
-        comments: commentCounts.get(id) ?? 0,
-        liked: myLiked.has(id),
+    for (const row of data as Array<{ collection_id: number; likes: number; comments: number; liked: boolean }>) {
+      next.set(row.collection_id, {
+        likes: row.likes,
+        comments: row.comments,
+        liked: !!row.liked,
       });
-    });
+    }
     setCounts(next);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [key, user?.id]);

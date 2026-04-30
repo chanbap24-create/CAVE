@@ -1,19 +1,24 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/lib/auth';
+
+type ChatProfile = { username: string; display_name: string | null; avatar_url: string | null };
 
 export interface ChatMessage {
   id: number;
   user_id: string;
   content: string;
   created_at: string;
-  profile?: { username: string; display_name: string | null; avatar_url: string | null };
+  profile?: ChatProfile;
 }
 
 export function useChat(roomId: number | null) {
   const { user } = useAuth();
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [loading, setLoading] = useState(false);
+  // 1000 CCU 확장성 — realtime INSERT 마다 profile 재페치 하지 않도록 캐시.
+  // useRef 라 리렌더 안 일으키고 컴포넌트 언마운트 시 자연 GC.
+  const profileCacheRef = useRef<Map<string, ChatProfile>>(new Map());
 
   // Load messages
   const loadMessages = useCallback(async () => {
@@ -29,18 +34,21 @@ export function useChat(roomId: number | null) {
 
     if (!data) { setLoading(false); return; }
 
-    // Enrich with profiles
+    // Enrich with profiles + warm cache
     const userIds = [...new Set(data.map(m => m.user_id))];
     const { data: profiles } = await supabase
       .from('profiles')
       .select('id, username, display_name, avatar_url')
       .in('id', userIds);
 
-    const profileMap = new Map(profiles?.map(p => [p.id, p]) || []);
+    const cache = profileCacheRef.current;
+    for (const p of profiles ?? []) {
+      cache.set(p.id, { username: p.username, display_name: p.display_name, avatar_url: p.avatar_url });
+    }
 
     setMessages(data.map(m => ({
       ...m,
-      profile: profileMap.get(m.user_id),
+      profile: cache.get(m.user_id),
     })));
     setLoading(false);
 
@@ -69,11 +77,25 @@ export function useChat(roomId: number | null) {
         filter: `room_id=eq.${roomId}`,
       }, async (payload) => {
         const msg = payload.new as any;
-        const { data: profile } = await supabase
-          .from('profiles')
-          .select('id, username, display_name, avatar_url')
-          .eq('id', msg.user_id)
-          .single();
+        const cache = profileCacheRef.current;
+        let profile = cache.get(msg.user_id);
+        // 캐시 miss 일 때만 1회 fetch — 같은 방의 같은 작성자 메시지가 연달아
+        // 와도 첫 번째에서 캐시에 들어가 이후엔 재페치 X.
+        if (!profile) {
+          const { data: fetched } = await supabase
+            .from('profiles')
+            .select('id, username, display_name, avatar_url')
+            .eq('id', msg.user_id)
+            .single();
+          if (fetched) {
+            profile = {
+              username: fetched.username,
+              display_name: fetched.display_name,
+              avatar_url: fetched.avatar_url,
+            };
+            cache.set(fetched.id, profile);
+          }
+        }
 
         setMessages(prev => {
           if (prev.some(m => m.id === msg.id)) return prev;

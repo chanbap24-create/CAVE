@@ -15,10 +15,32 @@ export interface FeaturedCave {
   latestVideoPlaybackId: string | null;
 }
 
-const labelMap: Record<string, string> = {
-  wine: 'Wine', spirit: 'Spirit', traditional: 'Traditional', other: 'Other',
-};
+interface RpcRow {
+  user_id: string;
+  username: string;
+  display_name: string | null;
+  avatar_url: string | null;
+  collection_count: number;
+  countries: number;
+  top_category: string | null;
+  hosted_count: number;
+  joined_count: number;
+  latest_post_id: number | null;
+  latest_video_playback_id: string | null;
+}
 
+/**
+ * 셀러 발견 데이터 — 1000 CCU 확장성을 위해 server-side RPC 로 일원화.
+ *
+ * 이전 구현은 collections 테이블을 1000~2000 row 다운로드 후 클라이언트에서
+ * group by → 6 round-trip batch fetch 로 enrichment 했음. 1000 CCU 가 홈 탭
+ * 진입할 때마다 큰 부하.
+ *
+ * 현재: RPC `get_featured_caves(category, limit)` 가 ranking + 거의 모든
+ * enrichment (profile / countries / top category / hosted+joined / latest post)
+ * 를 한 번에 처리. 클라이언트는 (있으면) latest post 의 이미지 URL 만 추가
+ * batch 1회로 가져옴.
+ */
 export function useFeaturedCaves(category?: string | null) {
   const [caves, setCaves] = useState<FeaturedCave[]>([]);
   const [loading, setLoading] = useState(false);
@@ -26,154 +48,67 @@ export function useFeaturedCaves(category?: string | null) {
   const loadFeatured = useCallback(async () => {
     setLoading(true);
 
-    let userIds: string[] = [];
-    if (category) {
-      // Category mode: rank by count of bottles in this category.
-      const { data: rows } = await supabase
-        .from('collections')
-        .select('user_id, wines!inner(category)')
-        .eq('wines.category', category)
-        .limit(1000);
-      const counts = new Map<string, number>();
-      (rows ?? []).forEach((r: any) => counts.set(r.user_id, (counts.get(r.user_id) ?? 0) + 1));
-      userIds = [...counts.entries()]
-        .sort((a, b) => b[1] - a[1])
-        .slice(0, 10)
-        .map(([uid]) => uid);
-    } else {
-      // All mode: reward diversity. Score each user as the sum of
-      // sqrt(count) across categories so (20,20,20,20,20) beats
-      // (100,0,0,0,0) — someone with breadth edges out a single-type
-      // hoarder even at lower total volume. Square-root gives diminishing
-      // returns within each category so scale still matters somewhat.
-      const { data: rows } = await supabase
-        .from('collections')
-        .select('user_id, wines!inner(category)')
-        .limit(2000);
-      const byUser = new Map<string, Map<string, number>>();
-      (rows ?? []).forEach((r: any) => {
-        const cat = r.wines?.category ?? 'other';
-        const perCat = byUser.get(r.user_id) ?? new Map<string, number>();
-        perCat.set(cat, (perCat.get(cat) ?? 0) + 1);
-        byUser.set(r.user_id, perCat);
-      });
-      const scores: { uid: string; score: number }[] = [];
-      byUser.forEach((perCat, uid) => {
-        let score = 0;
-        perCat.forEach(c => { score += Math.sqrt(c); });
-        scores.push({ uid, score });
-      });
-      userIds = scores
-        .sort((a, b) => b.score - a.score)
-        .slice(0, 10)
-        .map(s => s.uid);
+    const { data: rpcRows, error: rpcError } = await supabase.rpc('get_featured_caves', {
+      p_category: category ?? null,
+      p_limit: 10,
+    });
+
+    if (rpcError || !rpcRows) {
+      if (__DEV__) console.warn('[useFeaturedCaves] rpc error:', rpcError?.message);
+      setCaves([]);
+      setLoading(false);
+      return;
     }
 
-    if (userIds.length === 0) { setCaves([]); setLoading(false); return; }
+    const rows = rpcRows as RpcRow[];
+    if (rows.length === 0) {
+      setCaves([]);
+      setLoading(false);
+      return;
+    }
 
-    const { data: profiles } = await supabase
-      .from('profiles')
-      .select('id, username, display_name, collection_count, avatar_url')
-      .in('id', userIds);
-    if (!profiles || profiles.length === 0) { setCaves([]); setLoading(false); return; }
+    // latest post 의 image_url 만 추가 batch (post 가 있고 video 가 없는 경우만).
+    const photoPostIds = rows
+      .filter(r => r.latest_post_id != null && !r.latest_video_playback_id)
+      .map(r => r.latest_post_id as number);
 
-    // Preserve the category-ordered userIds ranking.
-    const profileMap = new Map(profiles.map(p => [p.id, p]));
-    const orderedProfiles = userIds.map(id => profileMap.get(id)).filter(Boolean) as typeof profiles;
-
-    // 2. Batch: collections with wine data
-    const { data: allCollections } = await supabase
-      .from('collections')
-      .select('user_id, wine_id, wines(country, category)')
-      .in('user_id', userIds);
-
-    // 3. Batch: active gatherings
-    const { data: hostedGatherings } = await supabase
-      .from('gatherings')
-      .select('host_id')
-      .in('host_id', userIds)
-      .eq('status', 'open');
-
-    const { data: joinedGatherings } = await supabase
-      .from('gathering_members')
-      .select('user_id')
-      .in('user_id', userIds)
-      .eq('status', 'approved');
-
-    // 4. Batch: latest posts
-    const { data: latestPosts } = await supabase
-      .from('posts')
-      .select('id, user_id, video_playback_id')
-      .in('user_id', userIds)
-      .order('created_at', { ascending: false });
-
-    // Get first post per user
-    const latestPostMap = new Map<string, any>();
-    (latestPosts || []).forEach(p => { if (!latestPostMap.has(p.user_id)) latestPostMap.set(p.user_id, p); });
-
-    // 5. Batch: post images for latest posts
-    const postIds = [...latestPostMap.values()].filter(p => !p.video_playback_id).map(p => p.id);
     let imgMap = new Map<number, string>();
-    if (postIds.length > 0) {
-      const { data: imgs } = await supabase.from('post_images').select('post_id, image_url').in('post_id', postIds);
-      (imgs || []).forEach(img => { if (!imgMap.has(img.post_id)) imgMap.set(img.post_id, img.image_url); });
+    if (photoPostIds.length > 0) {
+      const { data: imgs } = await supabase
+        .from('post_images')
+        .select('post_id, image_url')
+        .in('post_id', photoPostIds);
+      (imgs || []).forEach(img => {
+        if (!imgMap.has(img.post_id)) imgMap.set(img.post_id, img.image_url);
+      });
     }
 
-    // Pre-group by user_id — O(N+M) instead of O(N*M)
-    const collectionsByUser = new Map<string, any[]>();
-    (allCollections || []).forEach(c => {
-      const list = collectionsByUser.get(c.user_id) || [];
-      list.push(c);
-      collectionsByUser.set(c.user_id, list);
-    });
-    const hostedCountByUser = new Map<string, number>();
-    (hostedGatherings || []).forEach(g => {
-      hostedCountByUser.set(g.host_id, (hostedCountByUser.get(g.host_id) || 0) + 1);
-    });
-    const joinedCountByUser = new Map<string, number>();
-    (joinedGatherings || []).forEach(g => {
-      joinedCountByUser.set(g.user_id, (joinedCountByUser.get(g.user_id) || 0) + 1);
-    });
-
-    // Build results (iterate orderedProfiles to preserve category ranking)
-    const enriched: FeaturedCave[] = orderedProfiles.map(p => {
-      const collections = collectionsByUser.get(p.id) || [];
-      const countries = new Set(collections.map((c: any) => c.wines?.country).filter(Boolean));
-      const catCounts: Record<string, number> = {};
-      collections.forEach((c: any) => { const cat = c.wines?.category; if (cat) catCounts[cat] = (catCounts[cat] || 0) + 1; });
-      const topCategory = Object.entries(catCounts).sort((a, b) => b[1] - a[1])[0]?.[0] || null;
-
+    const enriched: FeaturedCave[] = rows.map(r => {
       const badges: string[] = [];
-      if (p.collection_count >= 100) badges.push('Master');
-      else if (p.collection_count >= 50) badges.push('Expert');
-      else if (p.collection_count >= 10) badges.push('Collector');
-      if (countries.size >= 5) badges.push('World Traveler');
+      if (r.collection_count >= 100) badges.push('Master');
+      else if (r.collection_count >= 50) badges.push('Expert');
+      else if (r.collection_count >= 10) badges.push('Collector');
+      if (r.countries >= 5) badges.push('World Traveler');
 
-      const hosted = hostedCountByUser.get(p.id) || 0;
-      const joined = joinedCountByUser.get(p.id) || 0;
-
-      const latestPost = latestPostMap.get(p.id);
       let latestPostImage: string | null = null;
-      let latestVideoPlaybackId: string | null = null;
-      if (latestPost?.video_playback_id) {
-        latestVideoPlaybackId = latestPost.video_playback_id;
-        latestPostImage = `https://image.mux.com/${latestPost.video_playback_id}/thumbnail.jpg?width=400&height=500&fit_mode=crop`;
-      } else if (latestPost) {
-        latestPostImage = imgMap.get(latestPost.id) || null;
+      if (r.latest_video_playback_id) {
+        latestPostImage = `https://image.mux.com/${r.latest_video_playback_id}/thumbnail.jpg?width=400&height=500&fit_mode=crop`;
+      } else if (r.latest_post_id != null) {
+        latestPostImage = imgMap.get(r.latest_post_id) || null;
       }
 
       return {
-        user_id: p.id,
-        username: p.username,
-        display_name: p.display_name,
-        avatar_url: p.avatar_url,
-        collection_count: p.collection_count,
-        activeGatherings: hosted + joined,
-        latestPostImage,
-        latestVideoPlaybackId,
-        countries: countries.size,
-        top_category: topCategory,
+        user_id: r.user_id,
+        username: r.username,
+        display_name: r.display_name,
+        avatar_url: r.avatar_url,
+        collection_count: r.collection_count,
+        countries: r.countries,
+        top_category: r.top_category,
         badges,
+        activeGatherings: (r.hosted_count || 0) + (r.joined_count || 0),
+        latestPostImage,
+        latestVideoPlaybackId: r.latest_video_playback_id,
       };
     });
 

@@ -24,7 +24,12 @@ import { ScreenHeader, BackButton } from '@/components/ScreenHeader';
 import { type GatheringType } from '@/lib/types/gathering';
 
 export default function GatheringDetailScreen() {
-  const { id } = useLocalSearchParams<{ id: string }>();
+  // `from` 쿼리: 어디서 push 했는지 명시. expo-router 의 router.back() 이 탭
+  // 전환 history 까지 거슬러 가는 경우가 있어, 명시적 fallback 으로 안전하게.
+  //   home    → 홈 탭 (explore)
+  //   cellar  → 셀러 탭
+  //   생략     → 모임 탭(gatherings) 또는 router.back() 시도
+  const { id, from } = useLocalSearchParams<{ id: string; from?: string }>();
   const router = useRouter();
   const { user } = useAuth();
   const [gathering, setGathering] = useState<any>(null);
@@ -143,10 +148,17 @@ export default function GatheringDetailScreen() {
       <ScreenHeader
         title="모임"
         left={
-          // Default behavior: pop to wherever the user came from
-          // (home feed, notifications, list). Fallback path only kicks
-          // in when there's no history (cold-boot deep link).
-          <BackButton fallbackPath="/(tabs)/gatherings" />
+          // from 쿼리가 명시되어 있으면 항상 그 탭으로 replace — router.back()
+          // 이 탭 전환 history 까지 따라가서 엉뚱한 탭으로 가는 회귀 회피.
+          // from 미지정(deep link · 모임 탭에서 진입)은 기본 동작.
+          <BackButton
+            fallbackPath="/(tabs)/gatherings"
+            onPress={
+              from === 'home' ? () => router.replace('/(tabs)/explore' as any) :
+              from === 'cellar' ? () => router.replace('/(tabs)/cellar' as any) :
+              undefined
+            }
+          />
         }
       />
 

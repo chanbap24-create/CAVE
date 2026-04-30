@@ -57,7 +57,7 @@ export function UserGatheringsRow({ gatherings, title = '유저 모임' }: Props
               subtitle={g.subtitle}
               coverImageUrl={g.cover_image_url}
               metaLine={`${formatDate(g.gathering_date!)}${g.location ? ` · ${g.location}` : ''}`}
-              onPress={() => router.push(`/gathering/${g.id}` as any)}
+              onPress={() => router.push(`/gathering/${g.id}?from=home` as any)}
             />
           ))}
         </ScrollView>
@@ -72,7 +72,7 @@ function formatDate(iso: string) {
 }
 
 const styles = StyleSheet.create({
-  wrap: { marginTop: 32 },
+  wrap: { marginTop: 48 },
   row: { paddingLeft: HORIZONTAL_PADDING, paddingRight: HORIZONTAL_PADDING / 2 },
 
   empty: {

@@ -33,7 +33,7 @@ export function NextGatheringCard({ gatherings }: Props) {
   return (
     <Pressable
       style={styles.card}
-      onPress={() => router.push(`/gathering/${next.id}` as any)}
+      onPress={() => router.push(`/gathering/${next.id}?from=cellar` as any)}
     >
       <View style={styles.dayWrap}>
         <Text style={styles.dayLabel}>{dday.label}</Text>

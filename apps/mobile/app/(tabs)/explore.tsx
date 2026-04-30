@@ -12,6 +12,7 @@ import { EditorGuidesSection } from '@/components/EditorGuidesSection';
 import { ShopBrowseSection } from '@/components/ShopBrowseSection';
 import { DiscoverSectionHeader } from '@/components/DiscoverSectionHeader';
 import { DiscoverBrandBar } from '@/components/DiscoverBrandBar';
+import { HomeQuickActionsGrid } from '@/components/HomeQuickActionsGrid';
 import { HORIZONTAL_PADDING } from '@/lib/utils/discoverCardWidth';
 
 const REFRESH_CACHE_MS = 30_000;
@@ -63,6 +64,9 @@ export default function ExploreScreen() {
             ① 시즌 클럽 (히어로)  ② 파트너 모임  ③ 유저 모임  ④ 셀러 발견  ⑤ 트렌딩  ⑥ 가이드  ⑦ 샵 둘러보기 */}
         <SeasonClubHero />
 
+        {/* 캐러셀과 첫 섹션 사이 quick action 그리드 — 5×2 가시 + 슬라이드 */}
+        <HomeQuickActionsGrid />
+
         <PartnerGatheringsRow gatherings={gatherings} />
 
         <UserGatheringsRow gatherings={gatherings} />
@@ -99,8 +103,8 @@ export default function ExploreScreen() {
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#fff' },
 
-  cavesWrap: { marginTop: 32 },
-  trendingWrap: { marginTop: 32 },
+  cavesWrap: { marginTop: 48 },
+  trendingWrap: { marginTop: 48 },
   scrollRow: {
     paddingLeft: HORIZONTAL_PADDING, paddingRight: HORIZONTAL_PADDING / 2,
   },

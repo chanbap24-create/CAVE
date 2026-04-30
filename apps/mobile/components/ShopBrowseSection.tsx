@@ -31,7 +31,7 @@ export function ShopBrowseSection() {
 }
 
 const styles = StyleSheet.create({
-  wrap: { marginTop: 32 },
+  wrap: { marginTop: 48 },
   card: {
     marginHorizontal: 20,
     backgroundColor: '#faf6f8', borderRadius: 14,

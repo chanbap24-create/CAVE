@@ -101,24 +101,44 @@ export function SeasonClubHero() {
     if (idx !== index) setIndex(idx);
   }
 
+  const activeFg = SLIDES[index]?.fg ?? '#ffffff';
+
   return (
     <View style={styles.wrap}>
-      <ScrollView
-        ref={scrollRef}
-        horizontal pagingEnabled
-        showsHorizontalScrollIndicator={false}
-        onScroll={handleScroll}
-        scrollEventThrottle={16}
-        onTouchStart={() => { lastTouchAt.current = Date.now(); }}
-      >
-        {SLIDES.map(s => (
-          <View key={s.id} style={styles.page}>
-            <SlideCard slide={s} />
-          </View>
-        ))}
-      </ScrollView>
+      <View style={styles.carousel}>
+        <ScrollView
+          ref={scrollRef}
+          horizontal pagingEnabled
+          showsHorizontalScrollIndicator={false}
+          onScroll={handleScroll}
+          scrollEventThrottle={16}
+          onTouchStart={() => { lastTouchAt.current = Date.now(); }}
+        >
+          {SLIDES.map(s => (
+            <View key={s.id} style={styles.page}>
+              <SlideCard slide={s} />
+            </View>
+          ))}
+        </ScrollView>
 
-      <Indicator count={SLIDES.length} active={index} />
+        {/* 인디케이터 — 배너(슬라이드) 안 하단 가운데에 absolute 오버레이.
+            색은 활성 슬라이드의 fg 로 동적 매핑 → 어떤 bg 위에서도 가독성. */}
+        <View style={styles.dotsOverlay} pointerEvents="none">
+          {SLIDES.map((_, i) => (
+            <View
+              key={i}
+              style={[
+                styles.dotBase,
+                {
+                  backgroundColor: activeFg,
+                  opacity: i === index ? 1 : 0.35,
+                  width: i === index ? 16 : 5,
+                },
+              ]}
+            />
+          ))}
+        </View>
+      </View>
     </View>
   );
 }
@@ -186,18 +206,6 @@ function SlideAccent({ slide }: { slide: Slide }) {
   );
 }
 
-// ─────────── indicator dots ───────────
-
-function Indicator({ count, active }: { count: number; active: number }) {
-  return (
-    <View style={styles.dots}>
-      {Array.from({ length: count }).map((_, i) => (
-        <View key={i} style={[styles.dot, i === active && styles.dotActive]} />
-      ))}
-    </View>
-  );
-}
-
 // ─────────── styles ───────────
 
 const styles = StyleSheet.create({
@@ -222,12 +230,18 @@ const styles = StyleSheet.create({
   subtitle: { fontSize: 12, fontWeight: '500' },
   cta: { fontSize: 12, fontWeight: '700', marginTop: 6 },
 
-  dots: {
+  // 배너 영역 — 슬라이드 카드와 같은 높이로 고정해서 dotsOverlay 의 absolute
+  // bottom 기준이 정확히 슬라이드 카드 바닥이 되게 함.
+  carousel: { height: CARD_HEIGHT, position: 'relative' },
+  dotsOverlay: {
+    position: 'absolute', bottom: 10,
+    left: H_PAD, right: H_PAD,
     flexDirection: 'row', justifyContent: 'center',
-    gap: 6, marginTop: 8,
+    gap: 5,
   },
-  dot: { width: 6, height: 6, borderRadius: 3, backgroundColor: '#dcdcdc' },
-  dotActive: { width: 18, backgroundColor: '#7b2d4e' },
+  dotBase: {
+    height: 5, borderRadius: 2.5,
+  },
 });
 
 const accent = StyleSheet.create({

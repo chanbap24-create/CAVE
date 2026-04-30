@@ -46,7 +46,7 @@ export function EditorGuidesSection() {
 }
 
 const styles = StyleSheet.create({
-  wrap: { marginTop: 32 },
+  wrap: { marginTop: 48 },
   row: { paddingLeft: HORIZONTAL_PADDING, paddingRight: HORIZONTAL_PADDING / 2, gap: 0 },
   // 다른 가로 카드(Partner / User Gatherings) 와 동일 폭/높이 — 시각 통일
   card: {

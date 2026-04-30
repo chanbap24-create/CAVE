@@ -60,11 +60,14 @@ export function useGatheringMutations(
         console.error('[applyToJoin] contribution insert failed:', contribError.message);
         Alert.alert('주의', '신청은 완료했으나 와인 정보 저장에 실패했습니다. 상세 페이지에서 다시 시도해주세요.');
       }
-    } else if (gatheringType !== 'byob') {
-      // No-wine apply: promotion to approved member needs a unanimous
-      // vote. DB trigger apply_unanimous_approval flips the member row
-      // to 'approved' when everyone voted yes.
-      const { data: approval, error: approvalError } = await supabase
+    } else if (gatheringType === 'donation') {
+      // donation 모임은 가져갈 와인이 선택사항. 와인 없이 신청하면 호스트 +
+      // 기존 approved 멤버의 만장일치(no_wine_apply)가 필요.
+      // cost_share / byob 는 이 분기 진입 X:
+      //   - cost_share 는 호스트가 와인 준비, 신청자는 비용만 분담 → 호스트
+      //     단독 승인으로 충분 (별도 approval 흐름 X).
+      //   - byob 는 자기 와인 필수 (위에서 collectionId 검사로 차단).
+      const { error: approvalError } = await supabase
         .from('gathering_approvals')
         .insert({
           gathering_id: gatheringId,
@@ -72,21 +75,14 @@ export function useGatheringMutations(
           request_type: 'no_wine_apply',
           target_contribution_id: null,
           new_collection_id: null,
-        })
-        .select('id')
-        .single();
+        });
       if (approvalError) {
         console.error('[applyToJoin] no_wine_apply insert failed:', approvalError.message);
-      } else if (approval?.id) {
-        // Auto-cast the requester's own approve vote so single-voter
-        // rooms (brand-new gathering with only a host) resolve instantly
-        // once the host approves.
-        await supabase.from('gathering_approval_votes').insert({
-          approval_id: approval.id,
-          voter_id: user.id,
-          vote: 'approve',
-        });
       }
+      // 신청자 자신의 approve 자가-투표는 의도적으로 제거. RLS(votes_insert_
+      // member_or_host)가 'approved' 상태인 voter 만 허용하므로 어차피 실패할
+      // 뿐 아니라, 신청자가 자기 승인 카운트를 올리는 건 만장일치 의도와도
+      // 안 맞음 (applicant 는 voter 풀에 들어가지 않음).
     }
 
     await afterChange();

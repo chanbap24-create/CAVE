@@ -56,7 +56,7 @@ export function useGatheringApprovals(gatheringId: number) {
     const [
       { data: rawApprovals },
       { data: hostRow },
-      { count: approvedCount },
+      { data: approvedRows },
     ] = await Promise.all([
       supabase
         .from('gathering_approvals')
@@ -80,9 +80,12 @@ export function useGatheringApprovals(gatheringId: number) {
         .select('host_id')
         .eq('id', gatheringId)
         .single(),
+      // 승인된 멤버의 user_id 만 가져와 host 제외 후 unique count.
+      // 호스트가 (실수/legacy 데이터로) 자기 모임에 'approved' 멤버로 들어가
+      // 있으면 +1 + 1 = 2 로 이중 카운트되는 회귀 회피.
       supabase
         .from('gathering_members')
-        .select('user_id', { count: 'exact', head: true })
+        .select('user_id')
         .eq('gathering_id', gatheringId)
         .eq('status', 'approved'),
     ]);
@@ -93,8 +96,10 @@ export function useGatheringApprovals(gatheringId: number) {
       return;
     }
 
-    // Eligible voters = host + currently approved members.
-    const eligible = 1 + (approvedCount ?? 0);
+    // Eligible voters = host + currently approved members (host 중복 제외, 신청자 자동 제외).
+    const hostId = hostRow?.host_id;
+    const approvedNonHost = (approvedRows || []).filter(r => r.user_id !== hostId);
+    const eligible = 1 + approvedNonHost.length;
 
     const approvalIds = rawApprovals.map(a => a.id);
     let voteMap = new Map<number, ApprovalVoteRow[]>();

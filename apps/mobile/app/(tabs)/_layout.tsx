@@ -7,14 +7,25 @@ import { useUnreadGathering } from '@/lib/hooks/useUnreadGathering';
 import { useUnreadCellarSocial } from '@/lib/hooks/useUnreadCellarSocial';
 import Svg, { Path, Circle, Line, Rect, Polyline } from 'react-native-svg';
 
-// HomeIcon 제거됨 — index 탭이 더 이상 표시되지 않음 (cellar 가 첫 진입점)
-
-function SearchIcon({ focused }: { focused: boolean }) {
+function HomeIcon({ focused }: { focused: boolean }) {
+  // 집(지붕+벽) — explore 탭이 "홈" 으로 자리매김 (2026-04-30 방향성 변경)
   return (
     <Svg width={26} height={26} fill="none" stroke={focused ? '#222' : '#999'} strokeWidth={focused ? 2.2 : 1.8} viewBox="0 0 24 24">
-      <Circle cx={11} cy={11} r={8} />
-      <Line x1={21} y1={21} x2={16.65} y2={16.65} />
+      <Path d="M3 9.5L12 3l9 6.5V20a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" />
+      <Path d="M9 22V12h6v10" />
     </Svg>
+  );
+}
+
+function SearchIcon({ focused, hasUnread = false }: { focused: boolean; hasUnread?: boolean }) {
+  return (
+    <View>
+      <Svg width={26} height={26} fill="none" stroke={focused ? '#222' : '#999'} strokeWidth={focused ? 2.2 : 1.8} viewBox="0 0 24 24">
+        <Circle cx={11} cy={11} r={8} />
+        <Line x1={21} y1={21} x2={16.65} y2={16.65} />
+      </Svg>
+      {hasUnread && <View style={styles.unreadDot} />}
+    </View>
   );
 }
 
@@ -64,20 +75,6 @@ function CaveIcon({ focused, hasUnread }: { focused: boolean; hasUnread: boolean
   );
 }
 
-function GatheringsIcon({ focused, hasUnread }: { focused: boolean; hasUnread: boolean }) {
-  return (
-    <View>
-      <Svg width={26} height={26} fill="none" stroke={focused ? '#222' : '#999'} strokeWidth={focused ? 2.2 : 1.8} viewBox="0 0 24 24">
-        <Path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
-        <Circle cx={9} cy={7} r={4} />
-        <Path d="M23 21v-2a4 4 0 0 0-3-3.87" />
-        <Path d="M16 3.13a4 4 0 0 1 0 7.75" />
-      </Svg>
-      {hasUnread && <View style={styles.unreadDot} />}
-    </View>
-  );
-}
-
 function ProfileIcon({ focused }: { focused: boolean }) {
   return (
     <Svg width={26} height={26} fill="none" stroke={focused ? '#222' : '#999'} strokeWidth={focused ? 2.2 : 1.8} viewBox="0 0 24 24">
@@ -102,33 +99,34 @@ export default function TabLayout() {
 
   return (
     <Tabs
-      // i cave: 셀러가 첫 진입점 (홈 피드 제거됨, 2026-04-29 방향성 변경).
-      initialRouteName="cellar"
+      // 홈(explore) 가 첫 진입점 (2026-04-30 방향성 변경 — explore 가 "홈" 으로 자리매김).
+      // 로그인 후 / 콜드 부트시 가운데 홈 탭으로 시작.
+      initialRouteName="explore"
       screenOptions={{
         headerShown: false,
         tabBarStyle: styles.tabBar,
         tabBarShowLabel: false,
       }}
     >
-      {/* 셀러 (홈 흡수) */}
+      {/* 셀러 — 첫번째 탭 */}
       <Tabs.Screen
         name="cellar"
         options={{
           tabBarIcon: ({ focused }) => <CaveIcon focused={focused} hasUnread={hasUnreadCellar} />,
         }}
       />
-      {/* Discover (트레바리식 큐레이션) */}
-      <Tabs.Screen
-        name="explore"
-        options={{
-          tabBarIcon: ({ focused }) => <SearchIcon focused={focused} />,
-        }}
-      />
-      {/* 모임 */}
+      {/* 모임 — 돋보기(Search) 아이콘. 모임 탐색/검색 정서 강조. */}
       <Tabs.Screen
         name="gatherings"
         options={{
-          tabBarIcon: ({ focused }) => <GatheringsIcon focused={focused} hasUnread={hasUnreadGathering} />,
+          tabBarIcon: ({ focused }) => <SearchIcon focused={focused} hasUnread={hasUnreadGathering} />,
+        }}
+      />
+      {/* 홈(트레바리식 큐레이션) — 가운데, 집 모양 아이콘. */}
+      <Tabs.Screen
+        name="explore"
+        options={{
+          tabBarIcon: ({ focused }) => <HomeIcon focused={focused} />,
         }}
       />
       {/* 시음 후기 — 메시지 자리. 셀러 등록 시 작성한 tasting_note 가 모이는 피드 */}
@@ -138,8 +136,6 @@ export default function TabLayout() {
           tabBarIcon: ({ focused }) => <ReviewsIcon focused={focused} />,
         }}
       />
-      {/* 메시지 — 탭에서 제거됨, 프로필 메뉴에서 진입. 라우트 자체는 유지 (직접 push). */}
-      <Tabs.Screen name="messages" options={{ href: null }} />
       {/* 프로필 */}
       <Tabs.Screen
         name="profile"
@@ -147,7 +143,9 @@ export default function TabLayout() {
           tabBarIcon: ({ focused }) => <ProfileIcon focused={focused} />,
         }}
       />
-      {/* index: 호환용 라우트 (피드 제거 — 셀러로 redirect). 탭 미노출. */}
+      {/* 메시지 — 탭에서 제거됨, 프로필 메뉴에서 진입. 라우트 자체는 유지 (직접 push). */}
+      <Tabs.Screen name="messages" options={{ href: null }} />
+      {/* index: 호환용 라우트. 탭 미노출. */}
       <Tabs.Screen name="index" options={{ href: null }} />
       {/* create: 라벨 스캔이 cellar 헤더 + 버튼으로 이동 — 별도 탭 불필요. */}
       <Tabs.Screen name="create" options={{ href: null }} />

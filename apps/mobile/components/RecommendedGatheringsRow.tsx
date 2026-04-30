@@ -63,7 +63,7 @@ export function RecommendedGatheringsRow({ recs }: Props) {
               `${g.gathering_date ? formatDate(g.gathering_date) : '일정 미정'}` +
               `${g.location ? ` · ${g.location}` : ''}`
             }
-            onPress={() => router.push(`/gathering/${g.id}` as any)}
+            onPress={() => router.push(`/gathering/${g.id}?from=cellar` as any)}
           />
         ))}
       </ScrollView>

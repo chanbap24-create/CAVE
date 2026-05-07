@@ -14,27 +14,24 @@ const SNAP = getSnapInterval();
 
 interface Props {
   drinks: RecentDrink[];
-  onAddDrink?: () => void;
 }
 
 /**
- * 셀러의 "최근 마신 와인" 섹션. wine_drinks 이벤트 로그 기반.
- * 같은 와인 여러 번 마시면 각 이벤트마다 1행씩 노출.
+ * 셀러의 "최근 마신 와인" 섹션. tasting_note 가 작성된 컬렉션 desc.
+ * 카드 탭 → 와인 상세에서 별점·노트 편집.
  */
-export function RecentlyDrunkRow({ drinks, onAddDrink }: Props) {
+export function RecentlyDrunkRow({ drinks }: Props) {
   const router = useRouter();
   return (
     <View style={styles.wrap}>
-      <DiscoverSectionHeader
-        title="최근 마신 와인"
-        actionLabel={onAddDrink ? '+ 추가' : null}
-        onActionPress={onAddDrink}
-      />
+      <DiscoverSectionHeader title="최근 마신 와인" actionLabel={null} />
       {drinks.length === 0 ? (
-        <Pressable style={styles.empty} onPress={onAddDrink}>
+        <View style={styles.empty}>
           <Text style={styles.emptyTitle}>아직 기록이 없어요</Text>
-          <Text style={styles.emptySub}>셀러에서 와인을 길게 눌러 '마셨다 기록'을 추가하거나{'\n'}＋ 추가 버튼으로 시작 →</Text>
-        </Pressable>
+          <Text style={styles.emptySub}>
+            아래 셀러 목록의 와인을 탭해 별점·노트를 작성하면{'\n'}여기에 자동으로 올라와요.
+          </Text>
+        </View>
       ) : (
         <ScrollView
           horizontal showsHorizontalScrollIndicator={false}
@@ -44,7 +41,7 @@ export function RecentlyDrunkRow({ drinks, onAddDrink }: Props) {
           {drinks.map(d => (
             <Pressable
               key={d.id} style={styles.card}
-              onPress={() => d.collection_id ? router.push(`/wine/${d.collection_id}` as any) : null}
+              onPress={() => router.push(`/wine/${d.id}` as any)}
             >
               <View style={styles.imgWrap}>
                 {d.collection_photo_url || d.wine?.image_url ? (
@@ -58,9 +55,8 @@ export function RecentlyDrunkRow({ drinks, onAddDrink }: Props) {
                 )}
                 {d.rating ? (
                   <View style={styles.ratingBadge}>
-                    {Array.from({ length: d.rating }).map((_, i) => (
-                      <Text key={i} style={styles.starIcon}>★</Text>
-                    ))}
+                    <Text style={styles.starIcon}>★</Text>
+                    <Text style={styles.ratingText}>{d.rating}</Text>
                   </View>
                 ) : null}
               </View>
@@ -69,8 +65,8 @@ export function RecentlyDrunkRow({ drinks, onAddDrink }: Props) {
                   {d.wine?.name || '와인'}
                   {d.wine?.vintage_year ? ` ${d.wine.vintage_year}` : ''}
                 </Text>
-                <Text style={styles.when}>{timeAgo(d.drank_at)}에 마심</Text>
-                {d.note ? <Text style={styles.note} numberOfLines={2}>{d.note}</Text> : null}
+                <Text style={styles.when}>{timeAgo(d.tasting_note_updated_at)}</Text>
+                {d.tasting_note ? <Text style={styles.note} numberOfLines={2}>{d.tasting_note}</Text> : null}
               </View>
             </Pressable>
           ))}
@@ -97,6 +93,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 6, paddingVertical: 3, borderRadius: 4, gap: 1,
   },
   starIcon: { fontSize: 10, color: '#f5a623' },
+  ratingText: { fontSize: 10, fontWeight: '700', color: '#fff', marginLeft: 2 },
 
   body: { padding: 12 },
   wineName: { fontSize: 13, fontWeight: '600', color: '#222', lineHeight: 18 },

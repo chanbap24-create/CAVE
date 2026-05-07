@@ -10,6 +10,8 @@ export interface WineMemory {
   is_public: boolean;
   tasting_note: string | null;
   tasting_note_updated_at: string | null;
+  /** 별점 1~5. 노트와 같은 collections row 에 같이 저장. */
+  rating: number | null;
   created_at: string;
   wine: {
     id: number;
@@ -46,7 +48,7 @@ export function useWineMemory(collectionId: number | null) {
     const { data: row, error } = await supabase
       .from('collections')
       .select(`
-        id, user_id, photo_url, is_public, tasting_note, tasting_note_updated_at, created_at,
+        id, user_id, photo_url, is_public, tasting_note, tasting_note_updated_at, rating, created_at,
         wine:wines(id, name, name_ko, producer, category, region, country, vintage_year, image_url),
         owner:profiles!collections_user_id_fkey(username, display_name, avatar_url)
       `)
@@ -61,18 +63,25 @@ export function useWineMemory(collectionId: number | null) {
 
   const isOwner = !!user && !!data && user.id === data.user_id;
 
-  async function saveTastingNote(note: string): Promise<boolean> {
+  async function saveTastingNote(note: string, rating: number | null): Promise<boolean> {
     if (!isOwner || collectionId == null) return false;
+    const cleanNote = note.trim() || null;
     const { error } = await supabase
       .from('collections')
-      .update({ tasting_note: note.trim() || null })
+      .update({ tasting_note: cleanNote, rating })
       .eq('id', collectionId);
     if (error) {
       Alert.alert('저장 실패', error.message);
       return false;
     }
-    // Optimistically refresh to get the new updated_at without a second fetch.
-    setData(d => d ? { ...d, tasting_note: note.trim() || null, tasting_note_updated_at: new Date().toISOString() } : d);
+    // Optimistically refresh to avoid a round-trip; the touch trigger will
+    // bump tasting_note_updated_at server-side, mirrored here as `now()`.
+    setData(d => d ? {
+      ...d,
+      tasting_note: cleanNote,
+      rating,
+      tasting_note_updated_at: cleanNote !== d.tasting_note ? new Date().toISOString() : d.tasting_note_updated_at,
+    } : d);
     return true;
   }
 

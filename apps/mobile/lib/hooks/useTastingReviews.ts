@@ -28,9 +28,11 @@ export interface TastingReview {
 const FETCH_LIMIT = 30;
 
 /**
- * 시음 후기 피드 — 셀러에 등록하면서 본인이 작성한 tasting_note 가 있는 컬렉션만.
+ * 시음 후기 피드 — 본인이 별점·노트를 작성한 공개 컬렉션 최신순.
  *
- * 데이터: collections.tasting_note 가 not null + is_public=true 인 행 최신순.
+ * 데이터: collections.tasting_note 가 not null + is_public=true.
+ * 정렬: tasting_note_updated_at desc (노트 작성/수정 시점 기준,
+ * collections.created_at 보다 사용자의 "방금 마신" 의도에 가까움).
  *
  * v1: 전체 공개 후기 노출 (follow 적은 초기 사용자 콘텐츠 보장).
  * v2: follows 필터 + 좋아요/답글 + 무한 스크롤.
@@ -45,13 +47,13 @@ export function useTastingReviews() {
       const { data } = await supabase
         .from('collections')
         .select(`
-          id, tasting_note, rating, created_at, photo_url, user_id,
+          id, tasting_note, rating, created_at, tasting_note_updated_at, photo_url, user_id,
           wine:wines(id, name, producer, vintage_year, image_url),
           owner:profiles!collections_user_id_fkey(id, username, display_name, avatar_url, is_partner, partner_label)
         `)
         .not('tasting_note', 'is', null)
         .eq('is_public', true)
-        .order('created_at', { ascending: false })
+        .order('tasting_note_updated_at', { ascending: false, nullsFirst: false })
         .limit(FETCH_LIMIT);
 
       // tasting_note 가 빈 문자열이거나 공백만인 행 제외

@@ -4,6 +4,8 @@
 // Access check (cheapest path first):
 //   1. The user uploaded this playback_id (mux_uploads.user_id).
 //   2. OR the playback_id is on a posts row visible to the caller via RLS.
+//   3. OR the playback_id is on a collection_photos row visible to the caller
+//      via RLS (added 2026-05 — videos attached to /wine/[id] memory grid).
 //
 // Mux docs: https://docs.mux.com/guides/secure-video-playback
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
@@ -40,7 +42,17 @@ async function userCanAccess(
     .eq("video_playback_id", playbackId)
     .limit(1)
     .maybeSingle();
-  return !!postRes.data;
+  if (postRes.data) return true;
+
+  // Path 3: playback_id is on a collection_photos row the caller can read
+  // via RLS (owner OR collection.is_public).
+  const memoRes = await userClient(userJwt)
+    .from("collection_photos")
+    .select("id")
+    .eq("video_playback_id", playbackId)
+    .limit(1)
+    .maybeSingle();
+  return !!memoRes.data;
 }
 
 async function signPlaybackJwt(playbackId: string): Promise<string> {

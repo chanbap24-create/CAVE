@@ -24,7 +24,6 @@ import { CellarHeader } from '@/components/CellarHeader';
 import { NextGatheringCard } from '@/components/NextGatheringCard';
 import { RecommendedGatheringsRow } from '@/components/RecommendedGatheringsRow';
 import { RecentlyDrunkRow } from '@/components/RecentlyDrunkRow';
-import { LogDrinkSheet } from '@/components/LogDrinkSheet';
 import { useNotifications } from '@/lib/hooks/useNotifications';
 import { useUserGatherings } from '@/lib/hooks/useUserGatherings';
 import { useRecommendedGatherings } from '@/lib/hooks/useRecommendedGatherings';
@@ -73,8 +72,6 @@ export default function CellarScreen() {
   const { gatherings, loadGatherings } = useUserGatherings(user?.id);
   const { recs: recommendedGatherings, loadRecs } = useRecommendedGatherings(user?.id);
   const { drinks: recentDrinks, refresh: refreshDrinks } = useRecentDrinks();
-  // 마셨다 기록 시트 — 셀러 long-press 또는 RecentlyDrunkRow + 버튼에서 진입
-  const [logDrinkTarget, setLogDrinkTarget] = useState<{ id: number; name: string | null } | null>(null);
   // Batched social counts — one round-trip for all rows vs per-row hooks.
   const social = useCollectionSocial(collections.map(c => c.id));
 
@@ -119,12 +116,10 @@ export default function CellarScreen() {
   // destructive delete so users can attach/replace a bottle photo without
   // fearing the "Remove" muscle memory.
   function openRowActions(collectionId: number, hasPhoto: boolean) {
-    const target = collections.find(c => c.id === collectionId);
-    const wineName = target?.wine?.name || null;
     Alert.alert('와인 액션', undefined, [
       {
-        text: '마셨다 기록',
-        onPress: () => setLogDrinkTarget({ id: collectionId, name: wineName }),
+        text: '별점·노트 작성',
+        onPress: () => router.push(`/wine/${collectionId}`),
       },
       {
         text: hasPhoto ? '사진 변경' : '사진 추가',
@@ -197,14 +192,7 @@ export default function CellarScreen() {
 
         <RecommendedGatheringsRow recs={recommendedGatherings} />
 
-        <RecentlyDrunkRow
-          drinks={recentDrinks}
-          onAddDrink={() => {
-            // 시작점이 셀러에서 와인 long-press 라 별도 picker 없음.
-            // 빈 상태 안내로 사용자를 long-press 흐름으로 유도.
-            Alert.alert('마셨다 기록', '아래 셀러 목록에서 와인을 길게 눌러 추가하세요.');
-          }}
-        />
+        <RecentlyDrunkRow drinks={recentDrinks} />
 
         <View style={styles.tabRow}>
           {caveTabs.map(c => (
@@ -249,13 +237,6 @@ export default function CellarScreen() {
         onAdded={() => { loadCollections(); loadTaste(); checkAndAwardBadges(); }}
       />
 
-      <LogDrinkSheet
-        visible={!!logDrinkTarget}
-        collectionId={logDrinkTarget?.id ?? null}
-        wineName={logDrinkTarget?.name ?? null}
-        onClose={() => setLogDrinkTarget(null)}
-        onLogged={() => { refreshDrinks(); }}
-      />
     </View>
   );
 }

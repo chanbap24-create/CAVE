@@ -3,6 +3,7 @@ import { View, Text, Pressable, StyleSheet } from 'react-native';
 import { Image } from 'expo-image';
 import { useRouter } from 'expo-router';
 import { PartnerBadge } from '@/components/PartnerBadge';
+import { StarRating } from '@/components/StarRating';
 import { timeAgo } from '@/lib/utils/dateUtils';
 import type { TastingReview } from '@/lib/hooks/useTastingReviews';
 
@@ -78,15 +79,7 @@ export function TastingReviewsFeed({ reviews }: Props) {
 }
 
 function RatingStars({ rating }: { rating: number }) {
-  return (
-    <View style={styles.stars}>
-      {[1, 2, 3, 4, 5].map(i => (
-        <Text key={i} style={[styles.star, i <= rating ? styles.starOn : styles.starOff]}>
-          ★
-        </Text>
-      ))}
-    </View>
-  );
+  return <StarRating rating={rating} size={13} gap={1} />;
 }
 
 const styles = StyleSheet.create({
@@ -102,11 +95,6 @@ const styles = StyleSheet.create({
   nameRow: { flexDirection: 'row', alignItems: 'center', gap: 6, flexWrap: 'wrap' },
   author: { fontSize: 13, fontWeight: '700', color: '#222' },
   time: { fontSize: 11, color: '#999', marginTop: 2 },
-
-  stars: { flexDirection: 'row', gap: 1 },
-  star: { fontSize: 13 },
-  starOn: { color: '#f5a623' },
-  starOff: { color: '#e8e8e8' },
 
   wine: { fontSize: 12, color: '#7b2d4e', marginTop: 8, marginLeft: 46, fontWeight: '500' },
 

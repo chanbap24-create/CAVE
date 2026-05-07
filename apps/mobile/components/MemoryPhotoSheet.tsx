@@ -8,6 +8,7 @@ import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/lib/auth';
 import { useCollectionPhotoTags } from '@/lib/hooks/useCollectionPhotoTags';
 import type { CollectionPhoto } from '@/lib/hooks/useCollectionPhotos';
+import { VideoPlayer } from '@/components/VideoPlayer';
 
 interface Props {
   visible: boolean;
@@ -89,6 +90,22 @@ export function MemoryPhotoSheet({ visible, photo, canEdit, onClose }: Props) {
 
   if (!photo) return null;
 
+  // 비디오 시청 모드 — 풀스크린 플레이어 + 컨트롤. 태깅 UI 는 사진 전용이라 제외.
+  if (photo.video_playback_id) {
+    return (
+      <Modal visible={visible} animationType="fade" transparent onRequestClose={onClose}>
+        <View style={styles.root}>
+          <Pressable style={styles.closeBtn} onPress={onClose} hitSlop={8}>
+            <Text style={styles.closeText}>✕</Text>
+          </Pressable>
+          <View style={[styles.photoWrap, { width: photoSize, height: photoSize }]}>
+            <VideoPlayer playbackId={photo.video_playback_id} controls muted={false} loop />
+          </View>
+        </View>
+      </Modal>
+    );
+  }
+
   return (
     <Modal visible={visible} animationType="fade" transparent onRequestClose={onClose}>
       <View style={styles.root}>
@@ -99,7 +116,7 @@ export function MemoryPhotoSheet({ visible, photo, canEdit, onClose }: Props) {
         <View style={[styles.photoWrap, { width: photoSize, height: photoSize }]}>
           <Pressable style={StyleSheet.absoluteFill} onPress={handlePhotoTap}>
             <Image
-              source={photo.photo_url}
+              source={photo.photo_url ?? ''}
               style={[styles.photo, { width: photoSize, height: photoSize }]}
               contentFit="cover"
               cachePolicy="memory-disk"

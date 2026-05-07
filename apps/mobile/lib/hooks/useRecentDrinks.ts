@@ -3,12 +3,13 @@ import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/lib/auth';
 
 export interface RecentDrink {
+  /** collection id */
   id: number;
-  drank_at: string;
+  tasting_note: string;
   rating: number | null;
-  note: string | null;
-  collection_id: number | null;
-  wine_id: number | null;
+  /** 노트가 마지막으로 갱신된 시점 — touch_collection_tasting_note 트리거가 자동 관리 */
+  tasting_note_updated_at: string;
+  collection_photo_url: string | null;
   wine: {
     id: number;
     name: string;
@@ -16,15 +17,19 @@ export interface RecentDrink {
     vintage_year: number | null;
     image_url: string | null;
   } | null;
-  /** collection 이 살아있을 때만 채워짐 (delete set null 대응) */
-  collection_photo_url: string | null;
 }
 
 const FETCH_LIMIT = 30;
 
 /**
- * 본인이 마신 와인 이벤트 로그 (drank_at desc).
- * collection_id 가 있으면 collection의 photo_url + wine, 없으면 wine_id 직접 join.
+ * "최근 마신 와인" 피드 — 본인 셀러에서 tasting_note 가 작성된 컬렉션 최신순.
+ *
+ * 별도 wine_drinks 이벤트 로그 대신 collections.tasting_note + .rating +
+ * .tasting_note_updated_at 을 직접 사용한다. 노트를 작성/수정하는 순간
+ * 트리거가 timestamp 를 갱신해 자연스럽게 "최근" 으로 올라온다 (00040 트리거).
+ *
+ * 제거된 기능: 같은 와인을 여러 번 마신 이벤트별 카드. 한 컬렉션 = 한 노트
+ * = 한 카드 (덮어쓰기) 로 모델 단순화.
  */
 export function useRecentDrinks() {
   const { user } = useAuth();
@@ -36,26 +41,26 @@ export function useRecentDrinks() {
     setLoading(true);
     try {
       const { data } = await supabase
-        .from('wine_drinks')
+        .from('collections')
         .select(`
-          id, drank_at, rating, note, collection_id, wine_id,
-          collection:collections(photo_url, wine:wines(id, name, producer, vintage_year, image_url)),
-          direct_wine:wines!wine_drinks_wine_id_fkey(id, name, producer, vintage_year, image_url)
+          id, tasting_note, rating, tasting_note_updated_at, photo_url,
+          wine:wines(id, name, producer, vintage_year, image_url)
         `)
         .eq('user_id', user.id)
-        .order('drank_at', { ascending: false })
+        .not('tasting_note', 'is', null)
+        .order('tasting_note_updated_at', { ascending: false })
         .limit(FETCH_LIMIT);
 
-      const out: RecentDrink[] = ((data || []) as any[]).map(r => ({
-        id: r.id,
-        drank_at: r.drank_at,
-        rating: r.rating,
-        note: r.note,
-        collection_id: r.collection_id,
-        wine_id: r.wine_id,
-        wine: r.collection?.wine || r.direct_wine || null,
-        collection_photo_url: r.collection?.photo_url || null,
-      }));
+      const out: RecentDrink[] = ((data || []) as any[])
+        .filter(r => r.tasting_note && r.tasting_note.trim().length > 0)
+        .map(r => ({
+          id: r.id,
+          tasting_note: r.tasting_note,
+          rating: r.rating,
+          tasting_note_updated_at: r.tasting_note_updated_at,
+          collection_photo_url: r.photo_url ?? null,
+          wine: r.wine ?? null,
+        }));
       setDrinks(out);
     } finally {
       setLoading(false);

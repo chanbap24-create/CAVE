@@ -4,17 +4,22 @@ import {
   Dimensions, NativeScrollEvent, NativeSyntheticEvent,
 } from 'react-native';
 import { Image } from 'expo-image';
+import { VideoPlayer } from '@/components/VideoPlayer';
 
 export interface PhotoPagerSlide {
   id: number | string;
-  /** Primary photo. Falsy → placeholder block. */
+  /** Primary photo. Falsy → placeholder (or video, see videoPlaybackId). */
   uri: string | null;
+  /** Mux playback id — when set, render VideoPlayer instead of Image. */
+  videoPlaybackId?: string | null;
 }
 
 interface Props {
   slides: PhotoPagerSlide[];
   index: number;
   onIndexChange: (next: number) => void;
+  /** Long-press a slide — used for delete on memory slides. */
+  onSlideLongPress?: (slide: PhotoPagerSlide) => void;
 }
 
 /**
@@ -27,7 +32,7 @@ interface Props {
  * - Tap left/right half: prev/next without committing a drag
  * - Tap inside a single-slide pager: no-op (disabled when total <= 1)
  */
-export function PhotoPager({ slides, index, onIndexChange }: Props) {
+export function PhotoPager({ slides, index, onIndexChange, onSlideLongPress }: Props) {
   const ref = React.useRef<ScrollView>(null);
   const [pageWidth, setPageWidth] = React.useState(Dimensions.get('window').width);
   const total = slides.length;
@@ -64,8 +69,16 @@ export function PhotoPager({ slides, index, onIndexChange }: Props) {
               if (x < pageWidth / 2) onIndexChange(Math.max(0, index - 1));
               else onIndexChange(Math.min(total - 1, index + 1));
             }}
+            onLongPress={() => onSlideLongPress?.(s)}
           >
-            {s.uri ? (
+            {s.videoPlaybackId ? (
+              <View style={styles.photo}>
+                <VideoPlayer playbackId={s.videoPlaybackId} muted loop />
+                <View style={styles.videoBadge}>
+                  <Text style={styles.videoBadgeText}>▶</Text>
+                </View>
+              </View>
+            ) : s.uri ? (
               <Image source={s.uri} style={styles.photo} contentFit="cover" cachePolicy="memory-disk" />
             ) : (
               <View style={[styles.photo, styles.placeholder]} />
@@ -91,4 +104,11 @@ const styles = StyleSheet.create({
     paddingHorizontal: 10, paddingVertical: 4, borderRadius: 12,
   },
   pillText: { color: '#fff', fontSize: 11, fontWeight: '700' },
+  videoBadge: {
+    position: 'absolute', left: 12, top: 12,
+    width: 24, height: 24, borderRadius: 12,
+    backgroundColor: 'rgba(0,0,0,0.55)',
+    alignItems: 'center', justifyContent: 'center',
+  },
+  videoBadgeText: { color: '#fff', fontSize: 10 },
 });

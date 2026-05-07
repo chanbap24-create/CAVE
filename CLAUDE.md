@@ -38,6 +38,7 @@
   - 비디오 → Mux (업로드 URL → PUT → `mux-status` polling → playback_id)
 - **인증 토큰 저장**: `expo-secure-store` (폴백: AsyncStorage). `apps/mobile/lib/secureStorage.ts` 참조
 - **Edge Function 공용 유틸**: `supabase/functions/_shared/` (cors, auth, supabase 클라이언트, mux)
+- **Native modules**: `apps/mobile/modules/<name>/` (Expo Module 표준), JS wrapper 는 `apps/mobile/lib/native/<name>.ts`. 첫 사례: `subject-extractor` (모임 커버 자동 누끼 — iOS Vision foreground mask / Android ML Kit Subject Segmentation, 온디바이스). EAS dev build 1회 필요.
 
 ## Conventions
 - **경로 alias**: `@/` (tsconfig paths)

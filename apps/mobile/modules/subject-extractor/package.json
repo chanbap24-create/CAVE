@@ -1,0 +1,7 @@
+{
+  "name": "subject-extractor",
+  "version": "0.1.0",
+  "description": "On-device subject extraction (iOS VisionKit / Android ML Kit)",
+  "main": "src/index.ts",
+  "private": true
+}

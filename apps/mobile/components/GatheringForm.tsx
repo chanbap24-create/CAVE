@@ -11,7 +11,7 @@ import { GatheringLivePreview } from '@/components/GatheringLivePreview';
 import { GatheringCoverImageField } from '@/components/GatheringCoverImageField';
 import { useDrinkCategories } from '@/lib/hooks/useDrinkCategories';
 import { useIsPartner } from '@/lib/hooks/useIsPartner';
-import { DEFAULT_CARD_TEMPLATE } from '@/lib/constants/cardTemplates';
+import { CARD_TEMPLATES, DEFAULT_CARD_TEMPLATE } from '@/lib/constants/cardTemplates';
 import type { GatheringType } from '@/lib/types/gathering';
 import type { GatheringHostType } from '@/lib/hooks/useGatherings';
 
@@ -80,6 +80,10 @@ export function GatheringForm({ value, onChange, onSubmit, submitting, submitLab
     onChange({ ...value, [key]: v });
   }
 
+  // 누끼 토글 가용성을 결정하는 layout — cardTemplate 키에서 즉시 파생.
+  const cardLayout =
+    CARD_TEMPLATES.find(t => t.key === value.cardTemplate)?.layout ?? 'signature';
+
   return (
     <ScrollView style={styles.form} keyboardShouldPersistTaps="handled">
       {/* 라이브 프리뷰 — 입력값/템플릿이 바뀌면 즉시 반영 */}
@@ -115,6 +119,7 @@ export function GatheringForm({ value, onChange, onSubmit, submitting, submitLab
       <GatheringCoverImageField
         value={value.coverImageUri}
         onChange={uri => set('coverImageUri', uri)}
+        cardLayout={cardLayout}
       />
 
       <Text style={styles.label}>카드 디자인 *</Text>

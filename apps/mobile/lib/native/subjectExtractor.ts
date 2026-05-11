@@ -11,7 +11,9 @@
 
 import SubjectExtractor from '@/modules/subject-extractor/src';
 
-const TIMEOUT_MS = 5000;
+// Vision request 가 고해상도 이미지에선 5s 초과할 수 있어 여유 있게.
+// 실제로 너무 오래 걸리면 fallback (raw JPG) 로 가서 사용자 흐름은 안 막힘.
+const TIMEOUT_MS = 12000;
 const CACHE_MAX = 20;
 
 const cache = new Map<string, string>();
@@ -22,6 +24,7 @@ export function isSubjectExtractionSupported(): boolean {
   if (supportedCache !== null) return supportedCache;
   try {
     supportedCache = !!SubjectExtractor.isSupported();
+    if (__DEV__) console.log('[subjectExtractor] isSupported=', supportedCache);
   } catch (err) {
     if (__DEV__) console.log('[subjectExtractor] isSupported threw:', err);
     supportedCache = false;
@@ -39,13 +42,15 @@ export async function extractSubject(uri: string): Promise<string | null> {
   if (!isSubjectExtractionSupported()) return null;
 
   let timer: ReturnType<typeof setTimeout> | null = null;
+  let timedOut = false;
   try {
     const result = await Promise.race([
       SubjectExtractor.extractSubject(uri),
       new Promise<null>((resolve) => {
-        timer = setTimeout(() => resolve(null), TIMEOUT_MS);
+        timer = setTimeout(() => { timedOut = true; resolve(null); }, TIMEOUT_MS);
       }),
     ]);
+    if (__DEV__) console.log('[subjectExtractor] result=', result ? 'PNG' : (timedOut ? 'TIMEOUT' : 'null'));
     if (result) {
       cache.set(uri, result);
       if (cache.size > CACHE_MAX) {
@@ -55,7 +60,7 @@ export async function extractSubject(uri: string): Promise<string | null> {
     }
     return result;
   } catch (err) {
-    if (__DEV__) console.log('[subjectExtractor] extract failed:', err);
+    if (__DEV__) console.log('[subjectExtractor] extract threw:', err);
     return null;
   } finally {
     if (timer) clearTimeout(timer);

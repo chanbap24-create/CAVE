@@ -18,16 +18,26 @@ public class SubjectExtractorModule: Module {
       return false
     }
 
-    AsyncFunction("extractSubject") { (uri: String) -> String? in
-      guard #available(iOS 17.0, *) else { return nil }
-      guard let image = await Self.loadImage(from: uri),
-            let cgImage = image.cgImage else {
+    AsyncFunction("extractSubject") { (uri: String) async -> String? in
+      guard #available(iOS 17.0, *) else {
+        NSLog("[SubjectExtractor] iOS<17, returning nil")
+        return nil
+      }
+      guard let image = await Self.loadImage(from: uri) else {
+        NSLog("[SubjectExtractor] loadImage failed uri=%@", uri)
+        return nil
+      }
+      guard let cgImage = image.cgImage else {
+        NSLog("[SubjectExtractor] no cgImage")
         return nil
       }
       guard let cutout = Self.extractForegroundMaskedImage(from: cgImage) else {
+        NSLog("[SubjectExtractor] extractForegroundMaskedImage returned nil")
         return nil
       }
-      return Self.saveToCache(cutout)
+      let saved = Self.saveToCache(cutout)
+      NSLog("[SubjectExtractor] saved=%@", saved ?? "nil")
+      return saved
     }
   }
 
@@ -70,9 +80,18 @@ public class SubjectExtractorModule: Module {
     do {
       try handler.perform([request])
     } catch {
+      NSLog("[SubjectExtractor] handler.perform threw: %@", String(describing: error))
       return nil
     }
-    guard let result = request.results?.first else { return nil }
+    guard let result = request.results?.first else {
+      NSLog("[SubjectExtractor] no Vision results — 피사체 미검출")
+      return nil
+    }
+    // 인스턴스가 비어있으면 generateMaskedImage 호출 의미 없음.
+    guard !result.allInstances.isEmpty else {
+      NSLog("[SubjectExtractor] allInstances empty")
+      return nil
+    }
     do {
       let pixelBuffer = try result.generateMaskedImage(
         ofInstances: result.allInstances,
@@ -82,10 +101,12 @@ public class SubjectExtractorModule: Module {
       let ciImage = CIImage(cvPixelBuffer: pixelBuffer)
       let context = CIContext()
       guard let outputCGImage = context.createCGImage(ciImage, from: ciImage.extent) else {
+        NSLog("[SubjectExtractor] CIContext createCGImage returned nil")
         return nil
       }
       return UIImage(cgImage: outputCGImage)
     } catch {
+      NSLog("[SubjectExtractor] generateMaskedImage threw: %@", String(describing: error))
       return nil
     }
   }

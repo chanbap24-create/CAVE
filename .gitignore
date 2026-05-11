@@ -13,6 +13,7 @@ web-build/
 .DS_Store
 *.tsbuildinfo
 
-# Claude Code / bkit tooling state
-.claude/
+# Claude Code / bkit tooling state — 개인/세션 memory 만 ignore.
+# settings.json, hooks/, commands/ 는 팀 공유 (harness engineering).
+.claude/agent-memory/
 .bkit/

@@ -1,0 +1,60 @@
+{
+  "$schema": "https://json.schemastore.org/claude-code-settings.json",
+  "permissions": {
+    "allow": [
+      "Bash(cd apps/mobile && npx tsc --noEmit*)",
+      "Bash(cd /Users/hajin/i-cellar/apps/mobile && npx tsc --noEmit*)",
+      "Bash(npx supabase db query --linked*)",
+      "Bash(npx supabase migration*)",
+      "Bash(wc -l*)",
+      "Bash(ls*)",
+      "Bash(cat*)",
+      "Bash(grep*)",
+      "Bash(find*)",
+      "Bash(git status*)",
+      "Bash(git log*)",
+      "Bash(git diff*)",
+      "Bash(git show*)",
+      "Bash(jq*)",
+      "Read(./CLAUDE.md)",
+      "Read(./docs/**)",
+      "Read(./apps/mobile/**)",
+      "Read(./supabase/**)",
+      "Read(./.bkit/**)"
+    ],
+    "deny": [
+      "Read(./apps/mobile/.env*)",
+      "Read(./.env*)",
+      "Read(./**/secrets/**)",
+      "Bash(rm -rf*)",
+      "Bash(supabase db reset*)",
+      "Bash(git push --force*)",
+      "Bash(git reset --hard*)"
+    ]
+  },
+  "hooks": {
+    "PostToolUse": [
+      {
+        "matcher": "Write|Edit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "$CLAUDE_PROJECT_DIR/.claude/hooks/post-edit.sh",
+            "timeout": 20
+          }
+        ]
+      }
+    ],
+    "UserPromptSubmit": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "$CLAUDE_PROJECT_DIR/.claude/hooks/inject-context.sh",
+            "timeout": 5
+          }
+        ]
+      }
+    ]
+  }
+}

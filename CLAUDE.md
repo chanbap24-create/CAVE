@@ -69,8 +69,7 @@ supabase functions deploy <function-name> # Edge Function 배포
 ## Known Debt
 - `apps/mobile/lib/hooks/` 58개 훅이 manual `useState + useEffect` 패턴 — TanStack Query 도입 검토 중
 - Gathering 에스크로 스키마 미구현 (`posts.payment_status`, `gathering_members.confirmed` 컬럼 부재)
-- venues 테이블 RLS lockdown 완료 (00060), 정책 미정 — 흐름 잡힐 때 owner-write/public-read 추가
-- 마이그레이션 prefix 충돌 (00019_*, 00020_* ... 두 파일씩) → `supabase db push` 가 duplicate key 로 실패 → `npx supabase db query --linked --file` 우회 사용 중
+- venues / shops 테이블 RLS lockdown 완료 (00060), 정책 미정 — 흐름 잡힐 때 owner-write/public-read 추가
 
 ## 작업 시 참고
 - 새 기능 추가 전 `supabase/migrations/` 최신 번호 확인

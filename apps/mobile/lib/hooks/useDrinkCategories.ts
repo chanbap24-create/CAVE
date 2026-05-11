@@ -30,25 +30,28 @@ async function load(force = false): Promise<DrinkCategory[]> {
   if (cache && !force) return cache;
   if (pending && !force) return pending;
 
-  pending = supabase
-    .from('drink_categories')
-    .select('key, parent_key, label, label_ko, bg_color, text_color, sort_order')
-    .eq('is_active', true)
-    .order('sort_order')
-    .then(({ data, error }) => {
-      // If the table doesn't exist or the fetch fails, fall back to hardcoded list
-      // so the UI still shows selectable chips.
-      if (error || !data || data.length === 0) {
-        cache = FALLBACK_CATEGORIES;
-      } else {
-        cache = data;
-      }
-      pending = null;
-      listeners.forEach(l => l(cache!));
-      return cache;
-    });
+  // async IIFE 로 native Promise 보장 (supabase 의 PromiseLike 직접 할당하면
+  // pending 타입과 충돌). `cache` 는 IIFE 안에서 보장되므로 ! 안전.
+  const promise: Promise<DrinkCategory[]> = (async () => {
+    const { data, error } = await supabase
+      .from('drink_categories')
+      .select('key, parent_key, label, label_ko, bg_color, text_color, sort_order')
+      .eq('is_active', true)
+      .order('sort_order');
+    // If the table doesn't exist or the fetch fails, fall back to hardcoded list
+    // so the UI still shows selectable chips.
+    if (error || !data || data.length === 0) {
+      cache = FALLBACK_CATEGORIES;
+    } else {
+      cache = data;
+    }
+    pending = null;
+    listeners.forEach(l => l(cache!));
+    return cache!;
+  })();
 
-  return pending;
+  pending = promise;
+  return promise;
 }
 
 /**

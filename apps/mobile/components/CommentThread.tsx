@@ -2,6 +2,7 @@ import React from 'react';
 import { View, Text, Pressable, StyleSheet } from 'react-native';
 import { Image } from 'expo-image';
 import { timeAgo } from '@/lib/utils/dateUtils';
+import { useCommentLike } from '@/lib/hooks/useCommentLike';
 import type { Comment } from '@/lib/hooks/useCommentsTarget';
 
 interface Props {
@@ -108,8 +109,24 @@ function CommentRow({
           )}
         </View>
         <Text style={styles.body}>{c.body}</Text>
+        <LikeButtonRow commentId={c.id} initialCount={c.like_count ?? 0} />
       </View>
     </Pressable>
+  );
+}
+
+/** 공감 버튼 + 카운트. 본인 좋아요 여부는 useCommentLike 가 자체 fetch. */
+function LikeButtonRow({ commentId, initialCount }: { commentId: number; initialCount: number }) {
+  const { liked, count, toggle, busy } = useCommentLike(commentId, initialCount);
+  return (
+    <View style={styles.likeRow}>
+      <Pressable onPress={toggle} disabled={busy} hitSlop={6} style={styles.likeBtn}>
+        <Text style={[styles.likeIcon, liked && styles.likeIconOn]}>{liked ? '♥' : '♡'}</Text>
+        {count > 0 && (
+          <Text style={[styles.likeCount, liked && styles.likeCountOn]}>{count}</Text>
+        )}
+      </Pressable>
+    </View>
   );
 }
 
@@ -126,4 +143,11 @@ const styles = StyleSheet.create({
   time: { fontWeight: '400', color: '#999' },
   body: { fontSize: 14, color: '#222', marginTop: 3, lineHeight: 19 },
   replyBtn: { fontSize: 11, fontWeight: '600', color: '#7b2d4e' },
+
+  likeRow: { flexDirection: 'row', marginTop: 6 },
+  likeBtn: { flexDirection: 'row', alignItems: 'center', gap: 4 },
+  likeIcon: { fontSize: 14, color: '#999' },
+  likeIconOn: { color: '#ed4956' },
+  likeCount: { fontSize: 11, color: '#999', fontWeight: '600' },
+  likeCountOn: { color: '#ed4956' },
 });

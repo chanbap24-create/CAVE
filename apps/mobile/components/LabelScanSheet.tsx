@@ -5,6 +5,7 @@ import { useAuth } from '@/lib/auth';
 import { useMediaPicker } from '@/lib/hooks/useMediaPicker';
 import { useWineLabelScan } from '@/lib/hooks/useWineLabelScan';
 import { useAddToCave } from '@/lib/hooks/useAddToCave';
+import { maybeContributeWineImage } from '@/lib/utils/contributeWineImage';
 import { isAutoMatch } from '@/lib/hooks/useWineMatch';
 import { uploadImage } from '@/lib/utils/imageUpload';
 import { fromExtracted, type ReviewFormValue } from '@/components/LabelReviewForm';
@@ -72,6 +73,10 @@ export function LabelScanSheet({ visible, onClose, onAdded }: Props) {
       const photoUrl = await uploadScanPhoto();
       const ok = await cave.addExisting({ wineId: useMatchId, source: 'photo', photoUrl });
       if (!ok) return Alert.alert('Error', 'Could not add to cave');
+      // 공용 wines.image_url 첫 기여 — fire-and-forget, 실패해도 메인 흐름 OK
+      if (scan.result?.imageUri) {
+        void maybeContributeWineImage(useMatchId, scan.result.imageUri);
+      }
       if (share) await createSharePost(useMatchId, photoUrl, user.id, shareCaption);
       onAdded(); handleClose();
       return;
@@ -96,6 +101,10 @@ export function LabelScanSheet({ visible, onClose, onAdded }: Props) {
       photoUrl,
     });
     if (!result) return Alert.alert('Error', 'Could not save wine');
+    // 새로 만든 wine row → image_url 비어있으니 무조건 기여 시도
+    if (scan.result?.imageUri) {
+      void maybeContributeWineImage(result.id, scan.result.imageUri);
+    }
     if (share) await createSharePost(result.id, photoUrl, user.id, shareCaption);
     onAdded(); handleClose();
   }

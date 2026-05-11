@@ -163,7 +163,7 @@ export default function CellarScreen() {
 
       <ScrollView
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#7b2d4e" />}
-        contentContainerStyle={{ paddingBottom: 40 }}
+        contentContainerStyle={{ paddingBottom: 40, gap: 16 }}
       >
         {/* docs/icave_concept_updates.md §2 cellar 흡수 순서:
             ① 셀러 헤로  ② 다음 모임 알림  ③ 내 픽  ④ 친구 활동  ⑤ 추천 모임  ⑥ 내 와인  ⑦ 최근 모임 */}
@@ -247,7 +247,7 @@ const styles = StyleSheet.create({
   tabRow: {
     flexDirection: 'row',
     borderBottomWidth: 1, borderBottomColor: '#efefef',
-    paddingHorizontal: 16, marginTop: 6,
+    paddingHorizontal: 16, marginTop: 32,
   },
   tab: { paddingVertical: 10, paddingHorizontal: 14 },
   tabActive: { borderBottomWidth: 2, borderBottomColor: '#222' },

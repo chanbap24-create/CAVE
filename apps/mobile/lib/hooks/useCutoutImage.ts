@@ -29,13 +29,11 @@ export function useCutoutImage(originalUri: string | null, enabled: boolean): Us
   const [state, setState] = useState<CutoutState>({ kind: 'empty' });
 
   useEffect(() => {
-    console.log('[cutout] uri=', originalUri, 'supported=', isSubjectExtractionSupported());
     if (!originalUri) {
       setState({ kind: 'empty' });
       return;
     }
     if (!isSubjectExtractionSupported()) {
-      console.log('[cutout] -> unsupported (native missing or iOS<17)');
       setState({ kind: 'unsupported', original: originalUri });
       return;
     }
@@ -43,7 +41,6 @@ export function useCutoutImage(originalUri: string | null, enabled: boolean): Us
     setState({ kind: 'processing', original: originalUri });
     extractSubject(originalUri).then((cutout) => {
       if (cancelled) return;
-      console.log('[cutout] result=', cutout ? 'ready' : 'null');
       if (cutout) {
         setState({ kind: 'ready', original: originalUri, cutout });
       } else {

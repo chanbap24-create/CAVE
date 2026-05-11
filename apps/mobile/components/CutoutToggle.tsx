@@ -19,13 +19,7 @@ interface Props {
  *  - state.kind === 'unsupported' (device or this specific image)
  */
 export function CutoutToggle({ state, layoutAllows, enabled, onChange }: Props) {
-  // DEBUG: 항상 표시 — 어떤 state 인지 보이게. 진단 끝나면 원복.
-  if (state.kind === 'empty') {
-    return <Text style={styles.hint}>[debug] state=empty (사진 미선택)</Text>;
-  }
-  if (state.kind === 'unsupported') {
-    return <Text style={styles.hint}>[debug] state=unsupported (native 없음 또는 인식 실패)</Text>;
-  }
+  if (state.kind === 'empty' || state.kind === 'unsupported') return null;
 
   const processing = state.kind === 'processing';
   // When the layout is 'cover', cutout makes the background empty — disable

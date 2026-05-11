@@ -17,6 +17,8 @@ export interface Comment {
   body: string;
   created_at: string;
   parent_id?: number | null;
+  /** "공감" 좋아요 수 — collection_comments.like_count 트리거가 자동 유지 (00056). */
+  like_count?: number;
   profile?: { username: string | null; display_name: string | null; avatar_url: string | null };
   /** Flat-list hooks set this when the caller opts into a tree view. */
   replies?: Comment[];
@@ -43,7 +45,7 @@ export function useCommentsTarget(config: CommentsTableConfig, targetId: string 
     setLoading(true);
     const { data, count: total } = await supabase
       .from(config.table)
-      .select('id, user_id, body, created_at, parent_id, profile:profiles(username, display_name, avatar_url)', { count: 'exact' })
+      .select('id, user_id, body, created_at, parent_id, like_count, profile:profiles(username, display_name, avatar_url)', { count: 'exact' })
       .eq(config.targetColumn, targetId as any)
       .order('created_at', { ascending: true });
 

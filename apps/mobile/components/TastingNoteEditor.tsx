@@ -3,6 +3,11 @@ import { View, Text, TextInput, Pressable, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { timeAgo } from '@/lib/utils/dateUtils';
 import { StarRating } from '@/components/StarRating';
+import { TasteProfile } from '@/components/TasteProfile';
+import {
+  EMPTY_TASTE_PROFILE, isTasteProfileEmpty,
+  type TasteProfileValue,
+} from '@/lib/constants/tasteProfile';
 
 /** 별점 1개 타일의 너비 — locationX 기반 좌/우 절반 탭 분기 기준. */
 const STAR_TILE_W = 36;
@@ -10,10 +15,15 @@ const STAR_TILE_W = 36;
 interface Props {
   initialNote: string | null;
   initialRating: number | null;
+  initialProfile: TasteProfileValue;
   updatedAt: string | null;
   /** When false (non-owner viewer), render the note read-only. */
   editable: boolean;
-  onSave: (note: string, rating: number | null) => Promise<boolean>;
+  onSave: (
+    note: string,
+    rating: number | null,
+    profile: TasteProfileValue,
+  ) => Promise<boolean>;
 }
 
 /**
@@ -27,11 +37,12 @@ interface Props {
  * useRecentDrinks 가 그 timestamp 기준 desc 로 보여준다 ("최근 마신 와인").
  */
 export function TastingNoteEditor({
-  initialNote, initialRating, updatedAt, editable, onSave,
+  initialNote, initialRating, initialProfile, updatedAt, editable, onSave,
 }: Props) {
   const [editing, setEditing] = useState(false);
   const [draftNote, setDraftNote] = useState(initialNote ?? '');
   const [draftRating, setDraftRating] = useState<number | null>(initialRating);
+  const [draftProfile, setDraftProfile] = useState<TasteProfileValue>(initialProfile);
   const [saving, setSaving] = useState(false);
 
   // Keep drafts in sync when the parent reloads after save (or different wine).
@@ -39,12 +50,13 @@ export function TastingNoteEditor({
     if (!editing) {
       setDraftNote(initialNote ?? '');
       setDraftRating(initialRating);
+      setDraftProfile(initialProfile);
     }
-  }, [initialNote, initialRating, editing]);
+  }, [initialNote, initialRating, initialProfile, editing]);
 
   async function handleSave() {
     setSaving(true);
-    const ok = await onSave(draftNote, draftRating);
+    const ok = await onSave(draftNote, draftRating, draftProfile);
     setSaving(false);
     if (ok) setEditing(false);
   }
@@ -52,12 +64,14 @@ export function TastingNoteEditor({
   function handleCancel() {
     setDraftNote(initialNote ?? '');
     setDraftRating(initialRating);
+    setDraftProfile(initialProfile);
     setEditing(false);
   }
 
   const hasNote = !!initialNote?.trim();
   const hasRating = initialRating != null && initialRating > 0;
-  const hasContent = hasNote || hasRating;
+  const hasProfile = !isTasteProfileEmpty(initialProfile);
+  const hasContent = hasNote || hasRating || hasProfile;
 
   const openEditor = () => { if (editable) setEditing(true); };
 
@@ -75,6 +89,7 @@ export function TastingNoteEditor({
       {editing ? (
         <>
           <StarRow value={draftRating} onChange={setDraftRating} />
+          <TasteProfile value={draftProfile} onChange={setDraftProfile} />
           <TextInput
             style={styles.input}
             value={draftNote}
@@ -105,6 +120,7 @@ export function TastingNoteEditor({
               <StarRating rating={initialRating} size={20} gap={2} />
             </View>
           )}
+          {hasProfile && <TasteProfile value={initialProfile} />}
           {hasNote && <Text style={styles.body}>{initialNote}</Text>}
           {updatedAt ? (
             <Text style={styles.meta}>마지막 수정 · {timeAgo(updatedAt)}</Text>
@@ -114,7 +130,7 @@ export function TastingNoteEditor({
         <Pressable onPress={openEditor} disabled={!editable} style={styles.emptyBox}>
           <Text style={styles.empty}>
             {editable
-              ? '박스를 탭하여 별점·노트 작성 시작'
+              ? '박스를 탭하여 별점·맛 프로파일·노트 작성'
               : '아직 작성된 노트가 없어요.'}
           </Text>
         </Pressable>

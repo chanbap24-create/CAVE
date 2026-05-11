@@ -62,6 +62,18 @@ function ReviewsIcon({ focused }: { focused: boolean }) {
   );
 }
 
+function WineSearchIcon({ focused }: { focused: boolean }) {
+  // 돋보기 안에 와인 글라스 — 주류 검색 탭
+  return (
+    <Svg width={26} height={26} fill="none" stroke={focused ? '#222' : '#999'} strokeWidth={focused ? 2.2 : 1.8} viewBox="0 0 24 24">
+      <Circle cx={11} cy={11} r={8} />
+      <Path d="M9 8h4l-0.5 4.5a1.5 1.5 0 0 1-3 0z" />
+      <Line x1={11} y1={13} x2={11} y2={15} />
+      <Line x1={21} y1={21} x2={16.65} y2={16.65} />
+    </Svg>
+  );
+}
+
 function CaveIcon({ focused, hasUnread }: { focused: boolean; hasUnread: boolean }) {
   return (
     <View>
@@ -127,6 +139,13 @@ export default function TabLayout() {
         name="explore"
         options={{
           tabBarIcon: ({ focused }) => <HomeIcon focused={focused} />,
+        }}
+      />
+      {/* 주류 검색 — wines 카탈로그 검색 + 평균 평가 페이지 진입. */}
+      <Tabs.Screen
+        name="wines"
+        options={{
+          tabBarIcon: ({ focused }) => <WineSearchIcon focused={focused} />,
         }}
       />
       {/* 시음 후기 — 메시지 자리. 셀러 등록 시 작성한 tasting_note 가 모이는 피드 */}

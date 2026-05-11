@@ -243,6 +243,7 @@ export default function WineDetailScreen() {
           <TastingNoteEditor
             initialNote={data.tasting_note}
             initialRating={data.rating}
+            initialProfile={data.taste_profile}
             updatedAt={data.tasting_note_updated_at}
             editable={isOwner}
             onSave={saveTastingNote}

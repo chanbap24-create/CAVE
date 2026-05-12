@@ -1,10 +1,12 @@
-import React, { useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import {
   View, Text, TextInput, FlatList, ScrollView, Pressable, StyleSheet, ActivityIndicator, Dimensions,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { ScreenHeader } from '@/components/ScreenHeader';
 import { Image } from 'expo-image';
+import Svg, { Path, Circle, Line } from 'react-native-svg';
+import { colors, borderRadius, spacing } from '@/constants/theme';
 import { useWineSearch } from '@/lib/hooks/useWineSearch';
 import { useIsPartner } from '@/lib/hooks/useIsPartner';
 import { usePartnerWineMenu } from '@/lib/hooks/usePartnerWineMenu';
@@ -12,14 +14,20 @@ import { useAllPartnerSales, type PartnerSale } from '@/lib/hooks/useAllPartnerS
 import { PartnerMenuList } from '@/components/PartnerMenuList';
 import { AddPartnerWineSheet } from '@/components/AddPartnerWineSheet';
 
+/**
+ * 샵 (구 "검색" 탭).
+ * CAVE IA v2 — 까브드뱅 등 파트너 매장 + 영수증 인증 진입점.
+ *
+ * 구조 (위 → 아래):
+ *  1. 헤더 — "샵"
+ *  2. 영수증 인증 CTA 띠 — 진정성 점수 +가장 큰 신호
+ *  3. (파트너 한정) 본인 매장 탭 segmented
+ *  4. 파트너 매장 리스트 — partner 별로 그룹핑한 매장 카드
+ *  5. 검색 결과 / 판매 와인 (기존 로직 그대로)
+ */
 type Mode = 'browse' | 'menu';
 
-/**
- * 주류 검색 탭. 두 모드:
- *   - browse : 와인 카탈로그 검색 (모든 사용자)
- *   - menu   : 본인 판매 와인 관리 (파트너만 노출)
- */
-export default function WinesSearchScreen() {
+export default function ShopScreen() {
   const router = useRouter();
   const { isPartner } = useIsPartner();
   const [mode, setMode] = useState<Mode>('browse');
@@ -28,13 +36,13 @@ export default function WinesSearchScreen() {
     <View style={styles.container}>
       <ScreenHeader
         variant="centered"
-        title="검색"
-        right={isPartner && mode === 'menu' ? <AddPartnerMenuButton /> : undefined}
+        title="샵"
+        right={isPartner && mode === 'menu' ? <View /> : undefined}
       />
 
       {isPartner && (
         <View style={styles.segmentedWrap}>
-          <Segmented label="탐색" active={mode === 'browse'} onPress={() => setMode('browse')} />
+          <Segmented label="둘러보기" active={mode === 'browse'} onPress={() => setMode('browse')} />
           <Segmented label="내 메뉴" active={mode === 'menu'} onPress={() => setMode('menu')} />
         </View>
       )}
@@ -52,15 +60,98 @@ function Segmented({ label, active, onPress }: { label: string; active: boolean;
   );
 }
 
-/**
- * 브라우즈 모드.
- *  - 검색어 비어있음: 판매 중인 와인 리스트 (모든 파트너) 노출 — 마켓플레이스 톤
- *  - 검색어 입력: 와인 카탈로그 검색 결과 (wines 테이블 전체)
- */
+// ─────────────────────────────────────────────────────
+// 영수증 인증 CTA — 진정성 시스템의 가장 큰 신호
+// ─────────────────────────────────────────────────────
+function ReceiptCta({ onPress }: { onPress: () => void }) {
+  return (
+    <Pressable style={styles.receiptCta} onPress={onPress}>
+      <View style={styles.receiptIcon}>
+        <Svg width={22} height={22} fill="none" stroke="#fff" strokeWidth={2} viewBox="0 0 24 24" strokeLinecap="round" strokeLinejoin="round">
+          <Path d="M4 4v16l3-2 3 2 3-2 3 2 3-2 1 2V4l-1 2-3-2-3 2-3-2-3 2L4 4z" />
+          <Line x1={8} y1={9} x2={16} y2={9} />
+          <Line x1={8} y1={13} x2={14} y2={13} />
+        </Svg>
+      </View>
+      <View style={{ flex: 1 }}>
+        <Text style={styles.receiptKicker}>매장에서 마셨다면</Text>
+        <Text style={styles.receiptTitle}>영수증으로 셀러에 추가</Text>
+      </View>
+      <Text style={styles.receiptArrow}>›</Text>
+    </Pressable>
+  );
+}
+
+// ─────────────────────────────────────────────────────
+// 파트너 매장 카드 — partner 단위로 sales 그룹핑
+// ─────────────────────────────────────────────────────
+type PartnerStore = {
+  partnerId: string;
+  label: string;
+  saleCount: number;
+  cover: string | null;
+};
+
+function groupByPartner(sales: PartnerSale[]): PartnerStore[] {
+  const map = new Map<string, PartnerStore>();
+  for (const s of sales) {
+    const pid = s.partner?.id ?? '';
+    if (!pid) continue;
+    const label = s.partner?.partner_label || s.partner?.display_name || s.partner?.username || '파트너';
+    if (!map.has(pid)) {
+      map.set(pid, { partnerId: pid, label, saleCount: 0, cover: s.wine?.image_url ?? null });
+    }
+    const cur = map.get(pid)!;
+    cur.saleCount += 1;
+    if (!cur.cover && s.wine?.image_url) cur.cover = s.wine.image_url;
+  }
+  return [...map.values()];
+}
+
+function PartnerStoreRow({ stores, onTap }: { stores: PartnerStore[]; onTap: (id: string) => void }) {
+  if (stores.length === 0) return null;
+  return (
+    <View>
+      <View style={styles.sectionHeader}>
+        <Text style={styles.sectionTitle}>파트너 매장</Text>
+        <Text style={styles.sectionMeta}>{stores.length}곳</Text>
+      </View>
+      <ScrollView
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        contentContainerStyle={styles.storeScroll}
+      >
+        {stores.map(s => (
+          <Pressable key={s.partnerId} style={styles.storeCard} onPress={() => onTap(s.partnerId)}>
+            {s.cover ? (
+              <Image source={s.cover} style={styles.storeCover} contentFit="cover" cachePolicy="memory-disk" />
+            ) : (
+              <View style={[styles.storeCover, styles.storeCoverPlaceholder]} />
+            )}
+            <View style={styles.storeBody}>
+              <Text style={styles.storeName} numberOfLines={1}>{s.label}</Text>
+              <View style={styles.storeMetaRow}>
+                <Text style={styles.storeMeta}>판매 {s.saleCount}종</Text>
+                <View style={styles.verifiedPill}>
+                  <Text style={styles.verifiedPillText}>영수증 인증</Text>
+                </View>
+              </View>
+            </View>
+          </Pressable>
+        ))}
+      </ScrollView>
+    </View>
+  );
+}
+
+// ─────────────────────────────────────────────────────
+// Browse mode — 영수증 CTA + 파트너 매장 + 검색/판매 리스트
+// ─────────────────────────────────────────────────────
 function BrowseMode({ router }: { router: ReturnType<typeof useRouter> }) {
   const { results, loading: searchLoading, searchWines, clearResults } = useWineSearch();
   const { sales, loading: salesLoading } = useAllPartnerSales();
   const [query, setQuery] = useState('');
+  const stores = useMemo(() => groupByPartner(sales), [sales]);
 
   const isSearching = query.trim().length >= 2;
 
@@ -70,40 +161,57 @@ function BrowseMode({ router }: { router: ReturnType<typeof useRouter> }) {
     else searchWines(text.trim(), 30);
   }
 
-  return (
-    <>
-      <View style={styles.searchWrap}>
-        <TextInput
-          style={styles.input}
-          value={query}
-          onChangeText={handleChange}
-          placeholder="와인 이름 / 생산자 / 지역 검색"
-          placeholderTextColor="#bbb"
-          autoCapitalize="none"
-          autoCorrect={false}
-          returnKeyType="search"
-        />
-        {query.length > 0 && (
-          <Pressable onPress={() => { setQuery(''); clearResults(); }} hitSlop={8}>
-            <Text style={styles.clear}>✕</Text>
-          </Pressable>
-        )}
-      </View>
-
-      {isSearching ? (
+  // 검색 중일 때는 결과만 단독 노출 (산만함 방지)
+  if (isSearching) {
+    return (
+      <>
+        <SearchBar value={query} onChange={handleChange} onClear={() => { setQuery(''); clearResults(); }} />
         <SearchResultList
           results={results}
           loading={searchLoading}
           onTap={(id) => router.push(`/catalog/${id}` as any)}
         />
-      ) : (
-        <SalesList
-          sales={sales}
-          loading={salesLoading}
-          onTap={(wineId) => router.push(`/catalog/${wineId}` as any)}
-        />
+      </>
+    );
+  }
+
+  return (
+    <ScrollView contentContainerStyle={{ paddingBottom: 32 }}>
+      <ReceiptCta onPress={() => router.push('/(tabs)/cellar' as any)} />
+      <SearchBar value={query} onChange={handleChange} onClear={() => { setQuery(''); clearResults(); }} />
+      <PartnerStoreRow stores={stores} onTap={(pid) => router.push(`/user/${pid}` as any)} />
+      <SalesList
+        sales={sales}
+        loading={salesLoading}
+        onTap={(wineId) => router.push(`/catalog/${wineId}` as any)}
+      />
+    </ScrollView>
+  );
+}
+
+function SearchBar({ value, onChange, onClear }: { value: string; onChange: (t: string) => void; onClear: () => void }) {
+  return (
+    <View style={styles.searchWrap}>
+      <Svg width={16} height={16} fill="none" stroke={colors.textMuted} strokeWidth={2} viewBox="0 0 24 24">
+        <Circle cx={11} cy={11} r={8} />
+        <Line x1={21} y1={21} x2={16.65} y2={16.65} />
+      </Svg>
+      <TextInput
+        style={styles.input}
+        value={value}
+        onChangeText={onChange}
+        placeholder="와인 이름 / 생산자 / 지역 검색"
+        placeholderTextColor={colors.textLight}
+        autoCapitalize="none"
+        autoCorrect={false}
+        returnKeyType="search"
+      />
+      {value.length > 0 && (
+        <Pressable onPress={onClear} hitSlop={8}>
+          <Text style={styles.clear}>✕</Text>
+        </Pressable>
       )}
-    </>
+    </View>
   );
 }
 
@@ -114,7 +222,7 @@ function SearchResultList({
   loading: boolean;
   onTap: (id: number) => void;
 }) {
-  if (loading) return <ActivityIndicator color="#7b2d4e" style={{ marginTop: 24 }} />;
+  if (loading) return <ActivityIndicator color={colors.primary} style={{ marginTop: 24 }} />;
   if (results.length === 0) {
     return (
       <Text style={styles.empty}>
@@ -145,7 +253,6 @@ function SearchResultList({
   );
 }
 
-// 한 줄에 2.5장 보이는 카드 폭 — 좌측 패딩 + (카드 + gap) × 2 + 0.5 카드.
 const SALES_PADDING = 16;
 const SALES_GAP = 10;
 const SALES_CARD_W = Math.floor(
@@ -160,7 +267,7 @@ function SalesList({
   onTap: (wineId: number) => void;
 }) {
   if (loading && sales.length === 0) {
-    return <ActivityIndicator color="#7b2d4e" style={{ marginTop: 24 }} />;
+    return <ActivityIndicator color={colors.primary} style={{ marginTop: 24 }} />;
   }
   if (sales.length === 0) {
     return (
@@ -174,7 +281,10 @@ function SalesList({
   }
   return (
     <View>
-      <Text style={styles.salesHeading}>판매 중인 와인 ({sales.length})</Text>
+      <View style={styles.sectionHeader}>
+        <Text style={styles.sectionTitle}>지금 판매 중</Text>
+        <Text style={styles.sectionMeta}>{sales.length}병</Text>
+      </View>
       <ScrollView
         horizontal
         showsHorizontalScrollIndicator={false}
@@ -214,18 +324,7 @@ function SalesList({
   );
 }
 
-// 헤더 우상단 + 버튼은 Mode 안에서 sheet visibility 를 제어해야 해서
-// 부모(WinesSearchScreen) 가 button + sheet 를 알아야 함. 단순화를 위해
-// PartnerMenuMode 가 자체적으로 sheet 관리하고, 헤더 + 는 별도 prop drill 없이
-// 파트너 메뉴 모드 내부 trigger 로 흡수.
-function AddPartnerMenuButton() {
-  // 실제 + 동작은 PartnerMenuMode 내부 sheet 가 처리. 헤더 버튼은 그냥 visual placeholder
-  // 으로 두고 trigger 는 PartnerMenuMode 내부로 위임 (중복 trigger 방지).
-  // 다만 header right 자리는 시각적으로 "+" 가 보이는 게 중요해서 일단 비워둠.
-  return <View />;
-}
-
-/** 파트너 메뉴 모드 — 본인 판매 와인 + 등록 시트. */
+/** 파트너 메뉴 모드 — 본인 판매 와인 + 등록 시트. (변경 없음) */
 function PartnerMenuMode() {
   const { items, loading, refresh, add, update, remove } = usePartnerWineMenu();
   const [sheetOpen, setSheetOpen] = useState(false);
@@ -236,16 +335,13 @@ function PartnerMenuMode() {
         <Text style={styles.menuCount}>
           판매 와인 {items.length}개
         </Text>
-        <Pressable
-          style={styles.addBtn}
-          onPress={() => setSheetOpen(true)}
-        >
+        <Pressable style={styles.addBtn} onPress={() => setSheetOpen(true)}>
           <Text style={styles.addBtnText}>＋ 와인 등록</Text>
         </Pressable>
       </View>
 
       {loading && items.length === 0 ? (
-        <ActivityIndicator color="#7b2d4e" style={{ marginTop: 24 }} />
+        <ActivityIndicator color={colors.primary} style={{ marginTop: 24 }} />
       ) : (
         <FlatList
           data={items}
@@ -274,78 +370,123 @@ function PartnerMenuMode() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#fff' },
+  container: { flex: 1, backgroundColor: colors.background },
 
+  // segmented
   segmentedWrap: {
     flexDirection: 'row', gap: 4,
-    paddingHorizontal: 16, paddingVertical: 10,
-    borderBottomWidth: 1, borderBottomColor: '#f5f5f5',
+    paddingHorizontal: spacing.md, paddingVertical: spacing.sm + 2,
+    borderBottomWidth: 1, borderBottomColor: colors.border,
   },
   segment: {
-    flex: 1, paddingVertical: 8, borderRadius: 8,
-    backgroundColor: '#fafafa', alignItems: 'center',
+    flex: 1, paddingVertical: 8, borderRadius: borderRadius.sm + 2,
+    backgroundColor: colors.surface, alignItems: 'center',
   },
-  segmentActive: { backgroundColor: '#7b2d4e' },
-  segmentText: { fontSize: 13, fontWeight: '600', color: '#999' },
+  segmentActive: { backgroundColor: colors.primary },
+  segmentText: { fontSize: 13, fontWeight: '600', color: colors.textMuted },
   segmentTextActive: { color: '#fff' },
 
+  // 영수증 CTA
+  receiptCta: {
+    flexDirection: 'row', alignItems: 'center', gap: 12,
+    marginHorizontal: spacing.md, marginTop: spacing.md,
+    padding: 14,
+    backgroundColor: colors.cellar800,
+    borderRadius: borderRadius.lg,
+  },
+  receiptIcon: {
+    width: 40, height: 40, borderRadius: 12,
+    backgroundColor: 'rgba(255,255,255,0.08)',
+    alignItems: 'center', justifyContent: 'center',
+  },
+  receiptKicker: { fontSize: 11, color: 'rgba(255,255,255,0.6)' },
+  receiptTitle: { fontSize: 15, fontWeight: '700', color: '#fff', marginTop: 2 },
+  receiptArrow: { fontSize: 22, color: '#fff', opacity: 0.6, marginLeft: 4 },
+
+  // search bar
   searchWrap: {
     flexDirection: 'row', alignItems: 'center', gap: 8,
-    paddingHorizontal: 16, paddingVertical: 10,
-    borderBottomWidth: 1, borderBottomColor: '#f5f5f5',
+    marginHorizontal: spacing.md, marginTop: spacing.md, marginBottom: spacing.sm,
+    paddingHorizontal: 12,
+    backgroundColor: colors.g200,
+    borderRadius: borderRadius.md,
   },
   input: {
-    flex: 1, borderWidth: 1, borderColor: '#eee', borderRadius: 10,
-    paddingHorizontal: 12, paddingVertical: 10, fontSize: 14,
-    backgroundColor: '#fafafa',
+    flex: 1, paddingVertical: 11, fontSize: 14, color: colors.text,
   },
-  clear: { fontSize: 14, color: '#999', paddingHorizontal: 6 },
+  clear: { fontSize: 14, color: colors.textMuted, paddingHorizontal: 6 },
 
-  empty: { fontSize: 13, color: '#999', textAlign: 'center', marginTop: 32, paddingHorizontal: 24, lineHeight: 19 },
+  // section
+  sectionHeader: {
+    flexDirection: 'row', justifyContent: 'space-between', alignItems: 'baseline',
+    paddingHorizontal: 20, paddingTop: 18, paddingBottom: 10,
+  },
+  sectionTitle: { fontSize: 16, fontWeight: '700', color: colors.text, letterSpacing: -0.2 },
+  sectionMeta: { fontSize: 12, color: colors.textMuted, fontWeight: '500' },
+
+  // partner stores
+  storeScroll: { paddingLeft: 16, paddingRight: 8, paddingBottom: 4 },
+  storeCard: {
+    width: 200, marginRight: 10,
+    borderRadius: borderRadius.lg,
+    backgroundColor: '#fff',
+    borderWidth: 1, borderColor: colors.border,
+    overflow: 'hidden',
+  },
+  storeCover: { width: '100%', height: 96, backgroundColor: colors.g300 },
+  storeCoverPlaceholder: { backgroundColor: '#3d1925' },
+  storeBody: { padding: 12 },
+  storeName: { fontSize: 14, fontWeight: '700', color: colors.text, letterSpacing: -0.2 },
+  storeMetaRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: 8 },
+  storeMeta: { fontSize: 11, color: colors.textMuted },
+  verifiedPill: {
+    backgroundColor: colors.successLight,
+    paddingHorizontal: 8, paddingVertical: 3, borderRadius: 9999,
+  },
+  verifiedPillText: { fontSize: 10, fontWeight: '700', color: colors.success },
+
+  // search results
+  empty: { fontSize: 13, color: colors.textMuted, textAlign: 'center', marginTop: 32, paddingHorizontal: 24, lineHeight: 19 },
   hintWrap: { paddingHorizontal: 24, paddingVertical: 32, alignItems: 'center' },
-  hintTitle: { fontSize: 16, fontWeight: '700', color: '#444', marginBottom: 6 },
-  hint: { fontSize: 13, color: '#999', textAlign: 'center', lineHeight: 19 },
+  hintTitle: { fontSize: 16, fontWeight: '700', color: colors.text, marginBottom: 6 },
+  hint: { fontSize: 13, color: colors.textMuted, textAlign: 'center', lineHeight: 19 },
 
   row: {
     flexDirection: 'row', alignItems: 'center',
     paddingHorizontal: 20, paddingVertical: 12,
-    borderBottomWidth: 1, borderBottomColor: '#f5f5f5',
+    borderBottomWidth: 1, borderBottomColor: colors.border,
   },
-  rowName: { fontSize: 14, fontWeight: '600', color: '#222' },
-  rowNameKo: { fontSize: 12, color: '#666', marginTop: 2 },
-  rowMeta: { fontSize: 11, color: '#999', marginTop: 4 },
-  rowChevron: { fontSize: 18, color: '#ccc', marginLeft: 8 },
+  rowName: { fontSize: 14, fontWeight: '600', color: colors.text },
+  rowNameKo: { fontSize: 12, color: colors.textSecondary, marginTop: 2 },
+  rowMeta: { fontSize: 11, color: colors.textMuted, marginTop: 4 },
+  rowChevron: { fontSize: 18, color: colors.g400, marginLeft: 8 },
 
-  // 판매 중인 와인 — 카드 가로 스크롤 (2.5 visible)
-  salesHeading: {
-    fontSize: 12, fontWeight: '700', color: '#999',
-    textTransform: 'uppercase', letterSpacing: 0.5,
-    paddingHorizontal: 20, paddingTop: 16, paddingBottom: 10,
-  },
+  // sales (지금 판매 중)
   salesScroll: { paddingLeft: SALES_PADDING, paddingRight: SALES_PADDING / 2 },
   saleCard: {
     marginRight: SALES_GAP,
     backgroundColor: '#fff',
-    borderRadius: 10,
-    borderWidth: 1, borderColor: '#eee',
+    borderRadius: borderRadius.md - 2,
+    borderWidth: 1, borderColor: colors.border,
     overflow: 'hidden',
   },
-  saleCardImg: { backgroundColor: '#f0eaec' },
+  saleCardImg: { backgroundColor: colors.wine50 },
   saleCardImgPlaceholder: {},
   saleCardBody: { padding: 10, gap: 4 },
-  saleCardName: { fontSize: 13, fontWeight: '600', color: '#222', lineHeight: 17 },
-  salePartner: { fontSize: 11, color: '#7b2d4e', fontWeight: '500' },
-  salePrice: { fontSize: 14, fontWeight: '700', color: '#7b2d4e', marginTop: 2 },
+  saleCardName: { fontSize: 13, fontWeight: '600', color: colors.text, lineHeight: 17 },
+  salePartner: { fontSize: 11, color: colors.primary, fontWeight: '500' },
+  salePrice: { fontSize: 14, fontWeight: '700', color: colors.primary, marginTop: 2 },
 
+  // partner menu mode
   menuHeader: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
     paddingHorizontal: 20, paddingVertical: 12,
-    borderBottomWidth: 1, borderBottomColor: '#f5f5f5',
+    borderBottomWidth: 1, borderBottomColor: colors.border,
   },
-  menuCount: { fontSize: 13, fontWeight: '600', color: '#666' },
+  menuCount: { fontSize: 13, fontWeight: '600', color: colors.textSecondary },
   addBtn: {
-    paddingHorizontal: 14, paddingVertical: 8, borderRadius: 8,
-    backgroundColor: '#7b2d4e',
+    paddingHorizontal: 14, paddingVertical: 8, borderRadius: borderRadius.sm + 2,
+    backgroundColor: colors.primary,
   },
   addBtnText: { color: '#fff', fontSize: 13, fontWeight: '700' },
 });

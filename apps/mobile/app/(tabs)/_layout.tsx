@@ -5,79 +5,28 @@ import { colors } from '@/constants/theme';
 import { useUnreadDM } from '@/lib/hooks/useUnreadDM';
 import { useUnreadGathering } from '@/lib/hooks/useUnreadGathering';
 import { useUnreadCellarSocial } from '@/lib/hooks/useUnreadCellarSocial';
-import Svg, { Path, Circle, Line, Rect, Polyline } from 'react-native-svg';
+import Svg, { Path, Circle, Line, Rect } from 'react-native-svg';
 
-function HomeIcon({ focused }: { focused: boolean }) {
-  // 집(지붕+벽) — explore 탭이 "홈" 으로 자리매김 (2026-04-30 방향성 변경)
-  return (
-    <Svg width={26} height={26} fill="none" stroke={focused ? '#222' : '#999'} strokeWidth={focused ? 2.2 : 1.8} viewBox="0 0 24 24">
-      <Path d="M3 9.5L12 3l9 6.5V20a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" />
-      <Path d="M9 22V12h6v10" />
-    </Svg>
-  );
-}
+/**
+ * CAVE 5-tab IA v2 ─ 셀러 / 모임 / + / 샵 / 프로필
+ *
+ * • cellar    — 홈 역할까지 흡수한 첫 진입점
+ * • gatherings — 시즌 클럽 · 시음회 · 유저모임 (상단 탭으로 큐레이션 강도 전환)
+ * • create    — 라벨 스캔 (가운데 floating, wine 컬러 강조)
+ * • wines     — "샵" 으로 재해석. 파트너 매장 + 영수증 인증 진입점
+ * • profile   — 진정성 점수 + 활동 + 쿠폰·포인트·제휴혜택 통합
+ *
+ * 숨김 라우트 — explore / reviews / messages / index 는 직접 push 로만 진입.
+ */
 
-function SearchIcon({ focused, hasUnread = false }: { focused: boolean; hasUnread?: boolean }) {
-  return (
-    <View>
-      <Svg width={26} height={26} fill="none" stroke={focused ? '#222' : '#999'} strokeWidth={focused ? 2.2 : 1.8} viewBox="0 0 24 24">
-        <Circle cx={11} cy={11} r={8} />
-        <Line x1={21} y1={21} x2={16.65} y2={16.65} />
-      </Svg>
-      {hasUnread && <View style={styles.unreadDot} />}
-    </View>
-  );
-}
+// ── icon helpers ─────────────────────────────────────
+const ICON_ACTIVE = colors.text;       // '#2a3038'
+const ICON_INACTIVE = colors.textMuted; // '#868b94'
 
-function CreateIcon({ focused }: { focused: boolean }) {
-  return (
-    <Svg width={26} height={26} fill="none" stroke={focused ? '#222' : '#999'} strokeWidth={focused ? 2.2 : 1.8} viewBox="0 0 24 24">
-      <Rect x={3} y={3} width={18} height={18} rx={3} />
-      <Line x1={12} y1={8} x2={12} y2={16} />
-      <Line x1={8} y1={12} x2={16} y2={12} />
-    </Svg>
-  );
-}
-
-function MessageIcon({ focused, hasUnread }: { focused: boolean; hasUnread: boolean }) {
+function CellarIcon({ focused, hasUnread }: { focused: boolean; hasUnread: boolean }) {
   return (
     <View>
-      <Svg width={26} height={26} fill="none" stroke={focused ? '#222' : '#999'} strokeWidth={focused ? 2.2 : 1.8} viewBox="0 0 24 24">
-        <Path d="M22 2L11 13" />
-        <Path d="M22 2L15 22L11 13L2 9L22 2Z" />
-      </Svg>
-      {hasUnread && <View style={styles.unreadDot} />}
-    </View>
-  );
-}
-
-function ReviewsIcon({ focused }: { focused: boolean }) {
-  // 시음 노트 아이콘 — 와인 글라스 + 별 (펜 노트 아이콘 대체)
-  return (
-    <Svg width={26} height={26} fill="none" stroke={focused ? '#222' : '#999'} strokeWidth={focused ? 2.2 : 1.8} viewBox="0 0 24 24">
-      <Path d="M8 2h8l-1 9a4 4 0 0 1-3 4 4 4 0 0 1-3-4z" />
-      <Line x1={12} y1={15} x2={12} y2={22} />
-      <Line x1={8} y1={22} x2={16} y2={22} />
-    </Svg>
-  );
-}
-
-function WineSearchIcon({ focused }: { focused: boolean }) {
-  // 돋보기 안에 와인 글라스 — 주류 검색 탭
-  return (
-    <Svg width={26} height={26} fill="none" stroke={focused ? '#222' : '#999'} strokeWidth={focused ? 2.2 : 1.8} viewBox="0 0 24 24">
-      <Circle cx={11} cy={11} r={8} />
-      <Path d="M9 8h4l-0.5 4.5a1.5 1.5 0 0 1-3 0z" />
-      <Line x1={11} y1={13} x2={11} y2={15} />
-      <Line x1={21} y1={21} x2={16.65} y2={16.65} />
-    </Svg>
-  );
-}
-
-function CaveIcon({ focused, hasUnread }: { focused: boolean; hasUnread: boolean }) {
-  return (
-    <View>
-      <Svg width={26} height={26} fill="none" stroke={focused ? '#222' : '#999'} strokeWidth={focused ? 2.2 : 1.8} viewBox="0 0 24 24">
+      <Svg width={26} height={26} fill="none" stroke={focused ? ICON_ACTIVE : ICON_INACTIVE} strokeWidth={focused ? 2.2 : 1.8} viewBox="0 0 24 24">
         <Path d="M3 22V12a9 9 0 0 1 18 0v10" />
         <Path d="M7 22v-6a5 5 0 0 1 10 0v6" />
         <Line x1={2} y1={22} x2={22} y2={22} />
@@ -87,9 +36,49 @@ function CaveIcon({ focused, hasUnread }: { focused: boolean; hasUnread: boolean
   );
 }
 
+function GatheringIcon({ focused, hasUnread }: { focused: boolean; hasUnread: boolean }) {
+  // 시즌 클럽 모임 — 두 사람 + 잔
+  return (
+    <View>
+      <Svg width={26} height={26} fill="none" stroke={focused ? ICON_ACTIVE : ICON_INACTIVE} strokeWidth={focused ? 2.2 : 1.8} viewBox="0 0 24 24" strokeLinecap="round" strokeLinejoin="round">
+        <Path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" />
+        <Circle cx={9} cy={7} r={4} />
+        <Path d="M22 21v-2a4 4 0 0 0-3-3.87" />
+        <Path d="M16 3.13a4 4 0 0 1 0 7.75" />
+      </Svg>
+      {hasUnread && <View style={styles.unreadDot} />}
+    </View>
+  );
+}
+
+function ScanFab({ focused }: { focused: boolean }) {
+  // 라벨 스캔 — 중앙 floating, wine 강조
+  return (
+    <View style={styles.fab}>
+      <Svg width={24} height={24} fill="none" stroke="#fff" strokeWidth={2.2} viewBox="0 0 24 24" strokeLinecap="round" strokeLinejoin="round">
+        <Path d="M3 7V5a2 2 0 0 1 2-2h2" />
+        <Path d="M17 3h2a2 2 0 0 1 2 2v2" />
+        <Path d="M21 17v2a2 2 0 0 1-2 2h-2" />
+        <Path d="M7 21H5a2 2 0 0 1-2-2v-2" />
+        <Line x1={7} y1={12} x2={17} y2={12} />
+      </Svg>
+    </View>
+  );
+}
+
+function ShopIcon({ focused }: { focused: boolean }) {
+  // 샵 — 까브드뱅 등 파트너 매장 + 영수증 인증
+  return (
+    <Svg width={26} height={26} fill="none" stroke={focused ? ICON_ACTIVE : ICON_INACTIVE} strokeWidth={focused ? 2.2 : 1.8} viewBox="0 0 24 24" strokeLinecap="round" strokeLinejoin="round">
+      <Path d="M4 8h16l-1.4 12.2A2 2 0 0 1 16.6 22H7.4a2 2 0 0 1-2-1.8L4 8z" />
+      <Path d="M8 8V6a4 4 0 0 1 8 0v2" />
+    </Svg>
+  );
+}
+
 function ProfileIcon({ focused }: { focused: boolean }) {
   return (
-    <Svg width={26} height={26} fill="none" stroke={focused ? '#222' : '#999'} strokeWidth={focused ? 2.2 : 1.8} viewBox="0 0 24 24">
+    <Svg width={26} height={26} fill="none" stroke={focused ? ICON_ACTIVE : ICON_INACTIVE} strokeWidth={focused ? 2.2 : 1.8} viewBox="0 0 24 24" strokeLinecap="round" strokeLinejoin="round">
       <Path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
       <Circle cx={12} cy={7} r={4} />
     </Svg>
@@ -111,63 +100,62 @@ export default function TabLayout() {
 
   return (
     <Tabs
-      // 홈(explore) 가 첫 진입점 (2026-04-30 방향성 변경 — explore 가 "홈" 으로 자리매김).
-      // 로그인 후 / 콜드 부트시 가운데 홈 탭으로 시작.
-      initialRouteName="explore"
+      initialRouteName="cellar"
       screenOptions={{
         headerShown: false,
         tabBarStyle: styles.tabBar,
-        tabBarShowLabel: false,
+        tabBarShowLabel: true,
+        tabBarLabelStyle: styles.tabLabel,
+        tabBarActiveTintColor: ICON_ACTIVE,
+        tabBarInactiveTintColor: ICON_INACTIVE,
       }}
     >
-      {/* 셀러 — 첫번째 탭 */}
+      {/* 1 셀러 */}
       <Tabs.Screen
         name="cellar"
         options={{
-          tabBarIcon: ({ focused }) => <CaveIcon focused={focused} hasUnread={hasUnreadCellar} />,
+          title: '셀러',
+          tabBarIcon: ({ focused }) => <CellarIcon focused={focused} hasUnread={hasUnreadCellar} />,
         }}
       />
-      {/* 모임 — 돋보기(Search) 아이콘. 모임 탐색/검색 정서 강조. */}
+      {/* 2 모임 */}
       <Tabs.Screen
         name="gatherings"
         options={{
-          tabBarIcon: ({ focused }) => <SearchIcon focused={focused} hasUnread={hasUnreadGathering} />,
+          title: '모임',
+          tabBarIcon: ({ focused }) => <GatheringIcon focused={focused} hasUnread={hasUnreadGathering} />,
         }}
       />
-      {/* 홈(트레바리식 큐레이션) — 가운데, 집 모양 아이콘. */}
+      {/* 3 + 라벨 스캔 (가운데 floating) */}
       <Tabs.Screen
-        name="explore"
+        name="create"
         options={{
-          tabBarIcon: ({ focused }) => <HomeIcon focused={focused} />,
+          title: '',
+          tabBarIcon: ({ focused }) => <ScanFab focused={focused} />,
         }}
       />
-      {/* 주류 검색 — wines 카탈로그 검색 + 평균 평가 페이지 진입. */}
+      {/* 4 샵 — wines 라우트를 "샵" 으로 재해석 */}
       <Tabs.Screen
         name="wines"
         options={{
-          tabBarIcon: ({ focused }) => <WineSearchIcon focused={focused} />,
+          title: '샵',
+          tabBarIcon: ({ focused }) => <ShopIcon focused={focused} />,
         }}
       />
-      {/* 시음 후기 — 메시지 자리. 셀러 등록 시 작성한 tasting_note 가 모이는 피드 */}
-      <Tabs.Screen
-        name="reviews"
-        options={{
-          tabBarIcon: ({ focused }) => <ReviewsIcon focused={focused} />,
-        }}
-      />
-      {/* 프로필 */}
+      {/* 5 프로필 */}
       <Tabs.Screen
         name="profile"
         options={{
+          title: '프로필',
           tabBarIcon: ({ focused }) => <ProfileIcon focused={focused} />,
         }}
       />
-      {/* 메시지 — 탭에서 제거됨, 프로필 메뉴에서 진입. 라우트 자체는 유지 (직접 push). */}
+
+      {/* 숨김 라우트 — 직접 push 로만 진입 */}
+      <Tabs.Screen name="explore" options={{ href: null }} />
+      <Tabs.Screen name="reviews" options={{ href: null }} />
       <Tabs.Screen name="messages" options={{ href: null }} />
-      {/* index: 호환용 라우트. 탭 미노출. */}
       <Tabs.Screen name="index" options={{ href: null }} />
-      {/* create: 라벨 스캔이 cellar 헤더 + 버튼으로 이동 — 별도 탭 불필요. */}
-      <Tabs.Screen name="create" options={{ href: null }} />
     </Tabs>
   );
 }
@@ -175,10 +163,16 @@ export default function TabLayout() {
 const styles = StyleSheet.create({
   tabBar: {
     backgroundColor: '#ffffff',
-    borderTopColor: '#efefef',
+    borderTopColor: colors.border,
     borderTopWidth: 1,
-    height: 85,
+    height: 88,
     paddingTop: 8,
+    paddingBottom: 8,
+  },
+  tabLabel: {
+    fontSize: 10,
+    fontWeight: '600',
+    marginTop: 2,
   },
   unreadDot: {
     position: 'absolute',
@@ -187,6 +181,20 @@ const styles = StyleSheet.create({
     width: 8,
     height: 8,
     borderRadius: 4,
-    backgroundColor: '#ed4956',
+    backgroundColor: colors.error,
+  },
+  fab: {
+    width: 52,
+    height: 52,
+    borderRadius: 26,
+    backgroundColor: colors.primary, // wine 700
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginTop: -18,
+    shadowColor: colors.primary,
+    shadowOpacity: 0.35,
+    shadowRadius: 12,
+    shadowOffset: { width: 0, height: 6 },
+    elevation: 8,
   },
 });

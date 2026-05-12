@@ -1,14 +1,8 @@
-// Expo config entry. This file takes precedence over app.json when present
-// and lets us run build-time assertions against environment variables.
-//
-// Why: VISION_MODE='direct' puts EXPO_PUBLIC_ANTHROPIC_API_KEY into the app
-// bundle (extractable from an ipa/apk). That's acceptable for local dev but
-// must never ship to TestFlight / App Store / Play Store. We fail the build
-// loudly when an EAS production profile is detected with the key present.
+// Expo config — CAVE v2 with Pretendard 9-weight + Noto Serif KR font loading.
 import type { ExpoConfig, ConfigContext } from 'expo/config';
 
 export default ({ config }: ConfigContext): ExpoConfig => {
-  const profile = process.env.EAS_BUILD_PROFILE; // set by EAS Build
+  const profile = process.env.EAS_BUILD_PROFILE;
   const hasDirectKey = !!process.env.EXPO_PUBLIC_ANTHROPIC_API_KEY;
 
   if (profile === 'production' && hasDirectKey) {
@@ -22,6 +16,25 @@ export default ({ config }: ConfigContext): ExpoConfig => {
 
   return {
     ...(config as ExpoConfig),
-    // Keep the rest of the config from app.json.
+    plugins: [
+      ...(((config as ExpoConfig).plugins) ?? []),
+      [
+        'expo-font',
+        {
+          fonts: [
+            './assets/fonts/Pretendard-Thin.otf',
+            './assets/fonts/Pretendard-ExtraLight.otf',
+            './assets/fonts/Pretendard-Light.otf',
+            './assets/fonts/Pretendard-Regular.otf',
+            './assets/fonts/Pretendard-Medium.otf',
+            './assets/fonts/Pretendard-SemiBold.otf',
+            './assets/fonts/Pretendard-Bold.otf',
+            './assets/fonts/Pretendard-ExtraBold.otf',
+            './assets/fonts/Pretendard-Black.otf',
+            './assets/fonts/NotoSerifKR-Black.otf',
+          ],
+        },
+      ],
+    ],
   };
 };

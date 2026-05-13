@@ -111,22 +111,17 @@ export default function TabLayout() {
 
   return (
     <Tabs
-      // 홈(explore) 가 첫 진입점 (2026-04-30 방향성 변경 — explore 가 "홈" 으로 자리매김).
-      // 로그인 후 / 콜드 부트시 가운데 홈 탭으로 시작.
-      initialRouteName="explore"
+      // profile 이 첫 진입점 (2026-05-13 통합 — 셀러 컨텐츠가 profile 로 흡수됨).
+      // 로그인 후 / 콜드 부트시 profile (활동 탭 default) 으로 시작.
+      initialRouteName="profile"
       screenOptions={{
         headerShown: false,
         tabBarStyle: styles.tabBar,
         tabBarShowLabel: false,
       }}
     >
-      {/* 셀러 — 첫번째 탭 */}
-      <Tabs.Screen
-        name="cellar"
-        options={{
-          tabBarIcon: ({ focused }) => <CaveIcon focused={focused} hasUnread={hasUnreadCellar} />,
-        }}
-      />
+      {/* 셀러 — profile 로 통합 (2026-05-13). 라우트는 deep-link 호환 위해 유지. */}
+      <Tabs.Screen name="cellar" options={{ href: null }} />
       {/* 모임 — 돋보기(Search) 아이콘. 모임 탐색/검색 정서 강조. */}
       <Tabs.Screen
         name="gatherings"

@@ -37,9 +37,10 @@ export function ProfileHeader({ profile, fallbackChar }: Props) {
         ) : null}
       </View>
       <View style={styles.profileStats}>
-        <Stat num={profile?.post_count ?? 0} label="Posts" />
-        <Stat num={profile?.follower_count ?? 0} label="Followers" />
-        <Stat num={profile?.following_count ?? 0} label="Following" />
+        {/* 병수가 i-cellar 의 진짜 콘텐츠 단위 (post 는 deprecated). 강조 첫 stat. */}
+        <Stat num={cc} label="병" />
+        <Stat num={profile?.follower_count ?? 0} label="팔로워" />
+        <Stat num={profile?.following_count ?? 0} label="팔로잉" />
       </View>
     </View>
   );

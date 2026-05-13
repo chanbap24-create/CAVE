@@ -1,161 +1,102 @@
 import React, { useCallback, useEffect, useState } from 'react';
-import { View, Text, StyleSheet, Pressable, Alert, ScrollView, RefreshControl } from 'react-native';
-import { useFocusEffect, useLocalSearchParams, useRouter } from 'expo-router';
+import { View, Text, StyleSheet, Pressable, ScrollView, RefreshControl, ActivityIndicator } from 'react-native';
+import { useFocusEffect, useLocalSearchParams } from 'expo-router';
 import { useAuth } from '@/lib/auth';
 import { supabase } from '@/lib/supabase';
 import { useTasteProfile } from '@/lib/hooks/useTasteProfile';
-import { useMyPicks } from '@/lib/hooks/useMyPicks';
 import { useBadgeChecker } from '@/lib/hooks/useBadgeChecker';
-import { useCollectionPhoto } from '@/lib/hooks/useCollectionPhoto';
-import { useCollectionSocial } from '@/lib/hooks/useCollectionSocial';
-import { MyPicksSection } from '@/components/MyPicksSection';
-import { CaveHero } from '@/components/CaveHero';
-import { FriendsActivityRow } from '@/components/FriendsActivityRow';
-// NOTE: AddToCaveSheet (DB search) and AddToCaveMenu (chooser) are hidden
-// for now — all wine registration flows through LabelScanSheet. The files
-// stay in the repo so we can restore a manual-search fallback later if
-// the Vision quota becomes a blocker.
-// import { AddToCaveSheet } from '@/components/AddToCaveSheet';
-// import { AddToCaveMenu } from '@/components/AddToCaveMenu';
-import { LabelScanSheet } from '@/components/LabelScanSheet';
-import { CellarList } from '@/components/CellarList';
-import { CollectionDetailSheet } from '@/components/CollectionDetailSheet';
-import { CellarHeader } from '@/components/CellarHeader';
-import { NextGatheringCard } from '@/components/NextGatheringCard';
-import { RecommendedGatheringsRow } from '@/components/RecommendedGatheringsRow';
-import { RecentlyDrunkRow } from '@/components/RecentlyDrunkRow';
 import { useNotifications } from '@/lib/hooks/useNotifications';
 import { useUserGatherings } from '@/lib/hooks/useUserGatherings';
 import { useRecommendedGatherings } from '@/lib/hooks/useRecommendedGatherings';
 import { useRecentDrinks } from '@/lib/hooks/useRecentDrinks';
+import { useFeaturedCaves } from '@/lib/hooks/useFeaturedCaves';
+import { CellarHeader } from '@/components/CellarHeader';
+import { CaveHero } from '@/components/CaveHero';
+import { NextGatheringCard } from '@/components/NextGatheringCard';
+import { FriendsActivityRow } from '@/components/FriendsActivityRow';
+import { RecommendedGatheringsRow } from '@/components/RecommendedGatheringsRow';
+import { RecentlyDrunkRow } from '@/components/RecentlyDrunkRow';
+import { FeaturedCaveCard } from '@/components/FeaturedCaveCard';
+import { LabelScanSheet } from '@/components/LabelScanSheet';
+import { CollectionDetailSheet } from '@/components/CollectionDetailSheet';
 import type { CellarActivityItem } from '@/lib/hooks/useCellarActivity';
-import { CATEGORY_DB_MAP } from '@/lib/constants/drinkCategories';
 
-const caveTabs = ['전체', '와인', '양주', '전통주', '기타'];
-const catDbMap = CATEGORY_DB_MAP;
+type Tab = 'activity' | 'discover';
 
-function packEntry(c: any): CellarActivityItem {
-  return {
-    id: c.id,
-    photo_url: c.photo_url ?? null,
-    created_at: c.created_at,
-    user_id: c.user_id,
-    source: c.source ?? null,
-    wine: c.wine ? {
-      id: c.wine.id,
-      name: c.wine.name,
-      producer: c.wine.producer ?? null,
-      category: c.wine.category,
-      region: c.wine.region ?? null,
-      country: c.wine.country ?? null,
-      vintage_year: c.wine.vintage_year ?? null,
-      image_url: c.wine.image_url ?? null,
-    } : null,
-    owner: null,
-  };
-}
-
+/**
+ * Cellar = "활동/발견 홈". 본인 와인 그리드는 프로필 탭으로 이동됨.
+ *
+ * 위쪽 persistent: CellarHeader + CaveHero + NextGatheringCard
+ * Segmented tabs:
+ *   - 활동: 친구 활동 스토리 + 최근 마신 와인
+ *   - 발견: 추천 모임 + Featured Caves (다른 사용자 셀러)
+ */
 export default function CellarScreen() {
   const { user } = useAuth();
-  const router = useRouter();
   const params = useLocalSearchParams<{ openCollection?: string }>();
-  const [collections, setCollections] = useState<any[]>([]);
-  const [activeCat, setActiveCat] = useState('전체');
+  const [tab, setTab] = useState<Tab>('activity');
   const [refreshing, setRefreshing] = useState(false);
   const [showScan, setShowScan] = useState(false);
   const [detailEntries, setDetailEntries] = useState<CellarActivityItem[]>([]);
+  const [collectionCount, setCollectionCount] = useState(0);
+  const [purchaseCount, setPurchaseCount] = useState(0);
+
   const { taste, loadTaste } = useTasteProfile(user?.id);
-  const { picks, loadPicks, addPick, removePick } = useMyPicks();
   const { checkAndAwardBadges } = useBadgeChecker();
-  const { changePhoto } = useCollectionPhoto();
   const { unreadCount, loadUnreadCount } = useNotifications();
   const { gatherings, loadGatherings } = useUserGatherings(user?.id);
   const { recs: recommendedGatherings, loadRecs } = useRecommendedGatherings(user?.id);
   const { drinks: recentDrinks, refresh: refreshDrinks } = useRecentDrinks();
-  // Batched social counts — one round-trip for all rows vs per-row hooks.
-  const social = useCollectionSocial(collections.map(c => c.id));
+  const { caves: featuredCaves, loading: cavesLoading, refresh: refreshCaves } = useFeaturedCaves();
+
+  // 본인 collections count + 구매 source count — CaveHero 통계용 (그리드는 profile)
+  const loadCounts = useCallback(async () => {
+    if (!user?.id) return;
+    const { count: total } = await supabase
+      .from('collections').select('id', { count: 'exact', head: true }).eq('user_id', user.id);
+    const { count: purchases } = await supabase
+      .from('collections').select('id', { count: 'exact', head: true }).eq('user_id', user.id).eq('source', 'shop_purchase');
+    setCollectionCount(total ?? 0);
+    setPurchaseCount(purchases ?? 0);
+  }, [user?.id]);
 
   useFocusEffect(
     useCallback(() => {
-      if (user) {
-        loadCollections(); loadTaste(); loadPicks();
-        loadUnreadCount(); loadGatherings(); loadRecs(); refreshDrinks();
-      }
-    }, [user])
+      if (!user) return;
+      loadTaste();
+      loadCounts();
+      loadGatherings();
+      loadRecs();
+      loadUnreadCount();
+      refreshDrinks();
+      refreshCaves();
+      checkAndAwardBadges();
+    }, [user, loadTaste, loadCounts, loadGatherings, loadRecs, loadUnreadCount, refreshDrinks, refreshCaves, checkAndAwardBadges]),
   );
 
-  // Deep link from notifications: `/(tabs)/cellar?openCollection=123` pops
-  // the detail sheet for that wine. Wait until collections are loaded so
-  // we can include the joined wine data, then clear the query param so
-  // subsequent tab visits don't re-open the sheet.
+  // openCollection deep-link → CollectionDetailSheet 열기
   useEffect(() => {
-    const id = params.openCollection ? Number(params.openCollection) : null;
-    if (!id) return;
-    const row = collections.find(c => c.id === id);
-    if (!row) return;
-    setDetailEntries([packEntry(row)]);
-    router.setParams({ openCollection: undefined });
-  }, [params.openCollection, collections, router]);
+    if (!params.openCollection || !user?.id) return;
+    const id = parseInt(params.openCollection, 10);
+    if (Number.isNaN(id)) return;
+    (async () => {
+      const { data } = await supabase
+        .from('collections')
+        .select('id, photo_url, created_at, user_id, source, wine:wines(*)')
+        .eq('id', id)
+        .maybeSingle();
+      if (data) setDetailEntries([data as unknown as CellarActivityItem]);
+    })();
+  }, [params.openCollection, user?.id]);
 
-  async function loadCollections() {
-    if (!user) return;
-    const { data } = await supabase
-      .from('collections')
-      .select('*, wine:wines(*)')
-      .eq('user_id', user.id)
-      .order('created_at', { ascending: false });
-    if (data) setCollections(data);
-  }
-
-  async function removeCave(collectionId: number) {
-    await supabase.from('collections').delete().eq('id', collectionId);
-    setCollections(prev => prev.filter(c => c.id !== collectionId));
-  }
-
-  // Long-press surfaces the row actions. Separates photo management from
-  // destructive delete so users can attach/replace a bottle photo without
-  // fearing the "Remove" muscle memory.
-  function openRowActions(collectionId: number, hasPhoto: boolean) {
-    Alert.alert('와인 액션', undefined, [
-      {
-        text: '별점·노트 작성',
-        onPress: () => router.push(`/wine/${collectionId}`),
-      },
-      {
-        text: hasPhoto ? '사진 변경' : '사진 추가',
-        onPress: async () => {
-          const ok = await changePhoto(collectionId);
-          if (ok) loadCollections();
-        },
-      },
-      {
-        text: '셀러에서 제거',
-        style: 'destructive',
-        onPress: () => {
-          Alert.alert('제거', '이 와인을 셀러에서 제거할까요?', [
-            { text: '취소', style: 'cancel' },
-            { text: '제거', style: 'destructive', onPress: () => removeCave(collectionId) },
-          ]);
-        },
-      },
-      { text: '취소', style: 'cancel' },
-    ]);
-  }
-
-  const onRefresh = async () => {
+  async function onRefresh() {
     setRefreshing(true);
-    await loadCollections();
+    await Promise.all([
+      loadCounts(), loadGatherings(), loadRecs(),
+      refreshDrinks(), refreshCaves(), loadUnreadCount(),
+    ]);
     setRefreshing(false);
-  };
-
-  const filtered = activeCat === '전체'
-    ? collections
-    : collections.filter(c => c.wine?.category === catDbMap[activeCat]);
-
-  // 셀러 탭 홈은 셀러 리스트의 첫 N개만 노출. 나머지는 /cellar/all 전용 화면에서.
-  const HOME_LIST_LIMIT = 10;
-  const visibleList = filtered.slice(0, HOME_LIST_LIMIT);
-  const hiddenCount = Math.max(0, filtered.length - HOME_LIST_LIMIT);
+  }
 
   return (
     <View style={styles.container}>
@@ -163,80 +104,90 @@ export default function CellarScreen() {
 
       <ScrollView
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#7b2d4e" />}
-        contentContainerStyle={{ paddingBottom: 40, gap: 16 }}
+        contentContainerStyle={{ paddingBottom: 40 }}
       >
-        {/* docs/icave_concept_updates.md §2 cellar 흡수 순서:
-            ① 셀러 헤로  ② 다음 모임 알림  ③ 내 픽  ④ 친구 활동  ⑤ 추천 모임  ⑥ 내 와인  ⑦ 최근 모임 */}
+        {/* Persistent top — 가장 자주 보고 싶은 정보 */}
         <CaveHero
-          bottles={collections.length}
+          bottles={collectionCount}
           gatherings={gatherings.length}
-          purchases={collections.filter(c => c.source === 'shop_purchase').length}
+          purchases={purchaseCount}
           summary={[taste?.topCategory, taste?.topCountry, taste?.topRegion, taste?.topWineType]}
         />
-
         <NextGatheringCard gatherings={gatherings} />
 
-        {/* 친구 셀러 활동 — 인스타 스토리 톤. 친구가 와인 추가하면 그 친구의
-            아바타가 동그라미 링에 노출, 탭하면 최근 추가 와인을 swipe 로 확인.
-            기존의 "내 최근 셀러"(RecentlyAddedRow) + "Recent Additions"
-            (CellarActivityStrip) 두 비슷한 섹션을 이 한 행으로 통합. */}
-        <FriendsActivityRow />
+        {/* Tabs */}
+        <Tabs active={tab} onChange={setTab} />
 
-        <MyPicksSection
-          picks={picks}
-          editable
-          onAdd={addPick}
-          onRemove={removePick}
-          wines={collections}
-        />
+        {tab === 'activity' && (
+          <>
+            <FriendsActivityRow />
+            <RecentlyDrunkRow drinks={recentDrinks} />
+          </>
+        )}
 
-        <RecommendedGatheringsRow recs={recommendedGatherings} />
-
-        <RecentlyDrunkRow drinks={recentDrinks} />
-
-        <View style={styles.tabRow}>
-          {caveTabs.map(c => (
-            <Pressable key={c} style={[styles.tab, activeCat === c && styles.tabActive]} onPress={() => setActiveCat(c)}>
-              <Text style={[styles.tabText, activeCat === c && styles.tabTextActive]}>{c}</Text>
-            </Pressable>
-          ))}
-        </View>
-
-        <CellarList
-          collections={visibleList}
-          social={social}
-          onPressRow={(c) => router.push(`/wine/${c.id}`)}
-          onLongPressRow={openRowActions}
-        />
-
-        {hiddenCount > 0 && (
-          <Pressable
-            style={styles.seeAllRow}
-            onPress={() => router.push('/cellar/all' as any)}
-          >
-            <Text style={styles.seeAllText}>
-              전체 {filtered.length}병 보기
-            </Text>
-            <Text style={styles.seeAllArrow}>›</Text>
-          </Pressable>
+        {tab === 'discover' && (
+          <>
+            <RecommendedGatheringsRow recs={recommendedGatherings} />
+            <FeaturedCavesRow caves={featuredCaves} loading={cavesLoading} />
+          </>
         )}
       </ScrollView>
 
-      {/* Legacy sheet kept for the deep-link-from-notifications path
-          (?openCollection=<id>). Row taps now navigate to /wine/[id]. */}
+      <LabelScanSheet
+        visible={showScan}
+        onClose={() => setShowScan(false)}
+        onAdded={() => { loadCounts(); loadTaste(); checkAndAwardBadges(); }}
+      />
+
       <CollectionDetailSheet
         visible={detailEntries.length > 0}
         entries={detailEntries}
         onClose={() => setDetailEntries([])}
         hideOwner
       />
+    </View>
+  );
+}
 
-      <LabelScanSheet
-        visible={showScan}
-        onClose={() => setShowScan(false)}
-        onAdded={() => { loadCollections(); loadTaste(); checkAndAwardBadges(); }}
-      />
+// ─── Tabs ─────────────────────────────────────────────────────────
+function Tabs({ active, onChange }: { active: Tab; onChange: (t: Tab) => void }) {
+  const items: { key: Tab; label: string }[] = [
+    { key: 'activity', label: '활동' },
+    { key: 'discover', label: '발견' },
+  ];
+  return (
+    <View style={styles.tabsRow}>
+      {items.map(it => (
+        <Pressable
+          key={it.key}
+          style={[styles.tabBtn, active === it.key && styles.tabBtnActive]}
+          onPress={() => onChange(it.key)}
+        >
+          <Text style={[styles.tabText, active === it.key && styles.tabTextActive]}>{it.label}</Text>
+        </Pressable>
+      ))}
+    </View>
+  );
+}
 
+// ─── Featured caves (가로 스크롤 카드) ─────────────────────────────
+function FeaturedCavesRow({ caves, loading }: { caves: any[]; loading: boolean }) {
+  if (loading && caves.length === 0) {
+    return <ActivityIndicator color="#7b2d4e" style={{ marginTop: 24 }} />;
+  }
+  if (caves.length === 0) {
+    return (
+      <View style={styles.empty}>
+        <Text style={styles.emptyText}>지금 보여줄 셀러가 없어요</Text>
+      </View>
+    );
+  }
+  return (
+    <View style={styles.featuredWrap}>
+      <Text style={styles.sectionTitle}>친구의 셀러</Text>
+      <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.featuredScroll}>
+        {caves.map(c => <FeaturedCaveCard key={c.user_id} cave={c} />)}
+      </ScrollView>
     </View>
   );
 }
@@ -244,22 +195,26 @@ export default function CellarScreen() {
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#fff' },
 
-  tabRow: {
+  tabsRow: {
     flexDirection: 'row',
     borderBottomWidth: 1, borderBottomColor: '#efefef',
-    paddingHorizontal: 16, marginTop: 32,
+    marginTop: 8,
   },
-  tab: { paddingVertical: 10, paddingHorizontal: 14 },
-  tabActive: { borderBottomWidth: 2, borderBottomColor: '#222' },
-  tabText: { fontSize: 13, fontWeight: '500', color: '#bbb' },
-  tabTextActive: { color: '#222', fontWeight: '600' },
+  tabBtn: {
+    flex: 1, paddingVertical: 12, alignItems: 'center',
+    borderBottomWidth: 2, borderBottomColor: 'transparent',
+  },
+  tabBtnActive: { borderBottomColor: '#222' },
+  tabText: { fontSize: 13, color: '#999', fontWeight: '500' },
+  tabTextActive: { color: '#222', fontWeight: '700' },
 
-  // "전체 N병 보기" — 셀러 리스트 끝에 한 줄로. 큰 CTA 가 아닌 가벼운 링크.
-  seeAllRow: {
-    flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
-    paddingVertical: 18, paddingHorizontal: 20,
-    gap: 4,
+  empty: { paddingVertical: 60, alignItems: 'center' },
+  emptyText: { fontSize: 13, color: '#999' },
+
+  featuredWrap: { marginTop: 24 },
+  sectionTitle: {
+    fontSize: 13, fontWeight: '700', color: '#222',
+    paddingHorizontal: 20, marginBottom: 10,
   },
-  seeAllText: { fontSize: 13, color: '#7b2d4e', fontWeight: '600' },
-  seeAllArrow: { fontSize: 16, color: '#7b2d4e', fontWeight: '600', marginTop: -2 },
+  featuredScroll: { paddingHorizontal: 16, paddingRight: 8, gap: 12 },
 });

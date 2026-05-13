@@ -1,4 +1,4 @@
-import React, { useCallback, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { View, Text, ScrollView, StyleSheet, Pressable, Alert, RefreshControl, ActivityIndicator } from 'react-native';
 import { useFocusEffect, useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
@@ -17,7 +17,6 @@ import { useNotifications } from '@/lib/hooks/useNotifications';
 import { useBadgeChecker } from '@/lib/hooks/useBadgeChecker';
 import { ScreenHeader } from '@/components/ScreenHeader';
 import { ProfileHeader } from '@/components/ProfileHeader';
-import { CaveHero } from '@/components/CaveHero';
 import { NextGatheringCard } from '@/components/NextGatheringCard';
 import { FriendsActivityRow } from '@/components/FriendsActivityRow';
 import { RecommendedGatheringsRow } from '@/components/RecommendedGatheringsRow';
@@ -25,13 +24,10 @@ import { RecentlyDrunkRow } from '@/components/RecentlyDrunkRow';
 import { FeaturedCaveCard } from '@/components/FeaturedCaveCard';
 import { MyPicksSection } from '@/components/MyPicksSection';
 import { CellarGrid, type CellarGridItem } from '@/components/CellarGrid';
-import { BadgeList } from '@/components/BadgeList';
 import { LabelScanSheet } from '@/components/LabelScanSheet';
 import { EditProfileModal } from '@/components/EditProfileModal';
-import { EditPartnerProfileSheet } from '@/components/EditPartnerProfileSheet';
-import { CardTemplateDefaultSheet } from '@/components/CardTemplateDefaultSheet';
 
-type Tab = 'activity' | 'cellar' | 'gatherings' | 'reviews' | 'settings';
+type Tab = 'activity' | 'cellar' | 'gatherings' | 'reviews';
 
 /**
  * 프로필 = 통합 홈. 셀러 탭이 폐기되고 그 활동 컨텐츠가 여기로 흡수됨.
@@ -42,12 +38,13 @@ type Tab = 'activity' | 'cellar' | 'gatherings' | 'reviews' | 'settings';
  *   - CaveHero (병/모임/구매)
  *   - NextGatheringCard (다음 모임)
  *
- * Segmented tabs (5):
+ * Segmented tabs (4):
  *   활동 (default) — 친구 활동 + 최근 마신 + 추천 모임 + 친구 셀러 + 내 픽
  *   셀러 — 그리드
  *   모임 — 본인 참여 모임 list
  *   후기 — 본인 노트 작성한 와인 list
- *   설정 — 메시지/카드 디자인/파트너/배지/로그아웃
+ *
+ * 설정은 우상단 톱니 → /settings 페이지로 분리 (2026-05-13).
  */
 export default function ProfileScreen() {
   const router = useRouter();
@@ -55,12 +52,10 @@ export default function ProfileScreen() {
   const [tab, setTab] = useState<Tab>('activity');
   const [refreshing, setRefreshing] = useState(false);
   const [showEdit, setShowEdit] = useState(false);
-  const [showPartnerEdit, setShowPartnerEdit] = useState(false);
-  const [showCardTemplate, setShowCardTemplate] = useState(false);
   const [showScan, setShowScan] = useState(false);
 
   const { taste, loadTaste } = useTasteProfile(user?.id);
-  const { badges: userBadges, allBadges, loadBadges } = useUserBadges(user?.id);
+  const { loadBadges } = useUserBadges(user?.id);
   const { profile, save } = useProfile(user?.id, user?.email, [loadBadges, loadTaste]);
   const { picks, loadPicks, addPick, removePick } = useMyPicks();
   const { gatherings, loadGatherings } = useUserGatherings(user?.id);
@@ -101,16 +96,34 @@ export default function ProfileScreen() {
     setReviews((data ?? []).filter((r: any) => r.tasting_note?.trim().length > 0));
   }, [user?.id]);
 
-  const loadAll = useCallback(() => {
-    loadCollections(); loadReviews(); loadPicks(); loadGatherings(); loadRecs();
-    refreshDrinks(); refreshCaves(); loadUnreadCount(); checkAndAwardBadges();
-  }, [loadCollections, loadReviews, loadPicks, loadGatherings, loadRecs, refreshDrinks, refreshCaves, loadUnreadCount, checkAndAwardBadges]);
+  // Persistent (헤더/CaveHero/NextGathering 에 항상 필요): focus 마다 fresh
+  const loadCore = useCallback(() => {
+    loadCollections(); loadGatherings(); loadUnreadCount(); checkAndAwardBadges();
+  }, [loadCollections, loadGatherings, loadUnreadCount, checkAndAwardBadges]);
 
-  useFocusEffect(useCallback(() => { loadAll(); }, [loadAll]));
+  // 탭별 데이터 — 해당 탭 처음 열릴 때만 한 번 로드 (focus 마다 재실행 X).
+  // 새로고침은 pull-to-refresh 로만.
+  const loadedTabsRef = useRef<Set<Tab>>(new Set());
+  const loadActivityData = useCallback(() => {
+    loadPicks(); refreshDrinks(); refreshCaves(); loadRecs();
+  }, [loadPicks, refreshDrinks, refreshCaves, loadRecs]);
+
+  useFocusEffect(useCallback(() => { loadCore(); }, [loadCore]));
+
+  useEffect(() => {
+    if (loadedTabsRef.current.has(tab)) return;
+    if (tab === 'activity') loadActivityData();
+    else if (tab === 'reviews') loadReviews();
+    loadedTabsRef.current.add(tab);
+  }, [tab, loadActivityData, loadReviews]);
 
   async function onRefresh() {
     setRefreshing(true);
-    loadAll();
+    loadedTabsRef.current.clear();
+    loadCore();
+    if (tab === 'activity') loadActivityData();
+    else if (tab === 'reviews') loadReviews();
+    loadedTabsRef.current.add(tab);
     setTimeout(() => setRefreshing(false), 600);
   }
 
@@ -129,13 +142,18 @@ export default function ProfileScreen() {
         variant="centered"
         title={profile?.username ? `@${profile.username}` : (profile?.display_name || 'Profile')}
         right={
-          <View style={{ flexDirection: 'row', gap: 12, alignItems: 'center' }}>
+          <View style={{ flexDirection: 'row', gap: 14, alignItems: 'center' }}>
             <Pressable onPress={() => setShowScan(true)} hitSlop={8}>
               <Ionicons name="scan-outline" size={22} color="#222" />
             </Pressable>
-            <Pressable onPress={() => setTab('settings')} hitSlop={8}>
+            {/* 메시지 — DM 진입점 (인스타 패턴). 설정과 분리. */}
+            <Pressable onPress={() => router.push('/(tabs)/messages' as any)} hitSlop={8}>
+              <Ionicons name="paper-plane-outline" size={20} color="#222" />
+              {hasUnread && <View style={styles.headerDot} />}
+            </Pressable>
+            <Pressable onPress={() => router.push('/settings' as any)} hitSlop={8}>
               <Ionicons name="settings-outline" size={20} color="#222" />
-              {(hasUnread || unreadCount > 0) && <View style={styles.headerDot} />}
+              {unreadCount > 0 && <View style={styles.headerDot} />}
             </Pressable>
           </View>
         }
@@ -145,8 +163,16 @@ export default function ProfileScreen() {
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#7b2d4e" />}
         contentContainerStyle={{ paddingBottom: 40 }}
       >
-        <ProfileHeader profile={profile} fallbackChar={fallbackChar} />
-        {profile?.bio ? <Text style={styles.bio}>{profile.bio}</Text> : null}
+        <ProfileHeader
+          profile={profile}
+          fallbackChar={fallbackChar}
+          gatherings={gatherings.length}
+          purchases={purchaseCount}
+        />
+        <BioRow
+          bio={profile?.bio}
+          tasteParts={[taste?.topCategory, taste?.topCountry, taste?.topRegion, taste?.topWineType]}
+        />
 
         <View style={styles.actionRow}>
           <Pressable style={styles.actionBtn} onPress={() => setShowEdit(true)}>
@@ -157,16 +183,10 @@ export default function ProfileScreen() {
           </Pressable>
         </View>
 
-        {/* persistent home blocks — 활동 탭 외에서도 늘 보임 */}
-        <CaveHero
-          bottles={collectionCount}
-          gatherings={gatherings.length}
-          purchases={purchaseCount}
-          summary={[taste?.topCategory, taste?.topCountry, taste?.topRegion, taste?.topWineType]}
-        />
+        {/* 다음 모임 — 평면 카드 (CaveHero 제거됨, stats 는 ProfileHeader 흡수) */}
         <NextGatheringCard gatherings={gatherings} />
 
-        <Tabs active={tab} onChange={setTab} unread={hasUnread || unreadCount > 0} />
+        <Tabs active={tab} onChange={setTab} />
 
         {tab === 'activity' && (
           <>
@@ -188,24 +208,18 @@ export default function ProfileScreen() {
         {tab === 'gatherings' && <GatheringsList gatherings={gatherings} onTap={(id) => router.push(`/gathering/${id}`)} />}
 
         {tab === 'reviews' && <ReviewsList reviews={reviews} onTap={(id) => router.push(`/wine/${id}` as any)} />}
-
-        {tab === 'settings' && (
-          <SettingsList
-            isPartner={!!profile?.is_partner}
-            badges={{ earned: userBadges.length, total: allBadges.length, allBadges, userBadges }}
-            unreadDM={hasUnread}
-            onMessages={() => router.push('/(tabs)/messages' as any)}
-            onCardTemplate={() => setShowCardTemplate(true)}
-            onPartnerEdit={() => setShowPartnerEdit(true)}
-            onSignOut={confirmSignOut}
-          />
-        )}
       </ScrollView>
 
       <LabelScanSheet
         visible={showScan}
         onClose={() => setShowScan(false)}
-        onAdded={() => { loadCollections(); loadTaste(); checkAndAwardBadges(); }}
+        onAdded={() => {
+          loadCollections(); loadTaste(); checkAndAwardBadges();
+          // 새 와인 추가 시 activity 탭의 최근 마신/내 픽 재조회 필요.
+          loadedTabsRef.current.delete('activity');
+          loadedTabsRef.current.delete('reviews');
+          if (tab === 'activity') loadActivityData();
+        }}
       />
       <EditProfileModal
         visible={showEdit}
@@ -213,28 +227,30 @@ export default function ProfileScreen() {
         onClose={() => setShowEdit(false)}
         onSave={save}
       />
-      <EditPartnerProfileSheet
-        visible={showPartnerEdit}
-        profile={profile}
-        onClose={() => setShowPartnerEdit(false)}
-        onSaved={() => setShowPartnerEdit(false)}
-      />
-      <CardTemplateDefaultSheet
-        visible={showCardTemplate}
-        onClose={() => setShowCardTemplate(false)}
-      />
     </View>
   );
 }
 
+// ─── Bio + taste — 같은 줄에 inline (bio 굵게 / taste 작은 italic) ─
+function BioRow({ bio, tasteParts }: { bio?: string | null; tasteParts: (string | null | undefined)[] }) {
+  const taste = tasteParts.filter(Boolean).join(' · ');
+  if (!bio && !taste) return null;
+  return (
+    <Text style={styles.bioRow} numberOfLines={2}>
+      {bio ? <Text style={styles.bio}>{bio}</Text> : null}
+      {bio && taste ? <Text style={styles.bioGap}>            </Text> : null}
+      {taste ? <Text style={styles.tasteInline}>{taste}</Text> : null}
+    </Text>
+  );
+}
+
 // ─── Tabs ─────────────────────────────────────────────────────────
-function Tabs({ active, onChange, unread }: { active: Tab; onChange: (t: Tab) => void; unread: boolean }) {
+function Tabs({ active, onChange }: { active: Tab; onChange: (t: Tab) => void }) {
   const items: { key: Tab; label: string }[] = [
     { key: 'activity',   label: '활동' },
     { key: 'cellar',     label: '셀러' },
     { key: 'gatherings', label: '모임' },
     { key: 'reviews',    label: '후기' },
-    { key: 'settings',   label: '설정' },
   ];
   return (
     <View style={styles.tabsRow}>
@@ -245,7 +261,6 @@ function Tabs({ active, onChange, unread }: { active: Tab; onChange: (t: Tab) =>
           onPress={() => onChange(it.key)}
         >
           <Text style={[styles.tabText, active === it.key && styles.tabTextActive]}>{it.label}</Text>
-          {it.key === 'settings' && unread && <View style={styles.tabDot} />}
         </Pressable>
       ))}
     </View>
@@ -378,67 +393,14 @@ function ReviewsList({ reviews, onTap }: { reviews: any[]; onTap: (id: number) =
   );
 }
 
-// ─── Settings ──────────────────────────────────────────────────
-function SettingsList({
-  isPartner, badges, unreadDM, onMessages, onCardTemplate, onPartnerEdit, onSignOut,
-}: {
-  isPartner: boolean;
-  badges: { earned: number; total: number; allBadges: any[]; userBadges: any[] };
-  unreadDM: boolean;
-  onMessages: () => void;
-  onCardTemplate: () => void;
-  onPartnerEdit: () => void;
-  onSignOut: () => void;
-}) {
-  return (
-    <View>
-      <Pressable style={styles.menuRow} onPress={onMessages}>
-        <View style={styles.menuLeft}>
-          <Ionicons name="chatbubble-outline" size={20} color="#222" />
-          <Text style={styles.menuLabel}>메시지</Text>
-          {unreadDM && <View style={styles.menuDot} />}
-        </View>
-        <Ionicons name="chevron-forward" size={18} color="#bbb" />
-      </Pressable>
-
-      <Pressable style={styles.menuRow} onPress={onCardTemplate}>
-        <View style={styles.menuLeft}>
-          <Ionicons name="color-palette-outline" size={20} color="#222" />
-          <Text style={styles.menuLabel}>내 카드 디자인</Text>
-        </View>
-        <Ionicons name="chevron-forward" size={18} color="#bbb" />
-      </Pressable>
-
-      {isPartner ? (
-        <Pressable style={styles.menuRow} onPress={onPartnerEdit}>
-          <View style={styles.menuLeft}>
-            <Ionicons name="ribbon-outline" size={20} color="#7b2d4e" />
-            <Text style={[styles.menuLabel, { color: '#7b2d4e' }]}>파트너 소개 편집</Text>
-          </View>
-          <Ionicons name="chevron-forward" size={18} color="#bbb" />
-        </Pressable>
-      ) : null}
-
-      <View style={styles.badgeSection}>
-        <Text style={styles.sectionTitle}>배지 ({badges.earned}/{badges.total})</Text>
-        <BadgeList
-          allBadges={badges.allBadges}
-          earnedIds={new Set(badges.userBadges.map((b: any) => b.badge_id))}
-        />
-      </View>
-
-      <Pressable style={styles.signOutBtn} onPress={onSignOut}>
-        <Text style={styles.signOutText}>로그아웃</Text>
-      </Pressable>
-    </View>
-  );
-}
-
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#fff' },
   headerDot: { position: 'absolute', top: -2, right: -4, width: 8, height: 8, borderRadius: 4, backgroundColor: '#ed4956' },
 
-  bio: { fontSize: 13, color: '#444', paddingHorizontal: 20, marginTop: 4, lineHeight: 19 },
+  bioRow: { paddingHorizontal: 20, marginTop: 8, lineHeight: 19 },
+  bio: { fontSize: 13, color: '#444' },
+  bioGap: { fontSize: 13, color: '#fff' },
+  tasteInline: { fontSize: 12, color: '#888', fontStyle: 'italic' },
   actionRow: { flexDirection: 'row', gap: 8, paddingHorizontal: 20, paddingTop: 12, paddingBottom: 14 },
   actionBtn: { flex: 1, paddingVertical: 8, borderRadius: 8, backgroundColor: '#f5f5f5', alignItems: 'center' },
   actionBtnText: { fontSize: 13, fontWeight: '600', color: '#222' },
@@ -448,7 +410,6 @@ const styles = StyleSheet.create({
   tabBtnActive: { borderBottomColor: '#222' },
   tabText: { fontSize: 12, color: '#999', fontWeight: '500' },
   tabTextActive: { color: '#222', fontWeight: '700' },
-  tabDot: { position: 'absolute', top: 8, right: 12, width: 6, height: 6, borderRadius: 3, backgroundColor: '#ed4956' },
 
   empty: { paddingVertical: 60, alignItems: 'center' },
   emptyEmoji: { fontSize: 36, marginBottom: 12, opacity: 0.5 },
@@ -460,24 +421,7 @@ const styles = StyleSheet.create({
   listMain: { fontSize: 14, fontWeight: '600', color: '#222' },
   listSub: { fontSize: 12, color: '#666', marginTop: 4, lineHeight: 17 },
 
-  menuRow: {
-    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
-    paddingHorizontal: 20, paddingVertical: 14,
-    borderBottomWidth: 1, borderBottomColor: '#f5f5f5',
-  },
-  menuLeft: { flexDirection: 'row', alignItems: 'center', gap: 12 },
-  menuLabel: { fontSize: 14, color: '#222' },
-  menuDot: { width: 8, height: 8, borderRadius: 4, backgroundColor: '#ed4956', marginLeft: 4 },
-
-  badgeSection: { paddingHorizontal: 20, paddingVertical: 16 },
   sectionTitle: { fontSize: 13, fontWeight: '700', color: '#222', marginBottom: 10, paddingHorizontal: 0 },
-
-  signOutBtn: {
-    marginHorizontal: 20, marginTop: 24, marginBottom: 12,
-    paddingVertical: 12, borderRadius: 8,
-    alignItems: 'center', borderWidth: 1, borderColor: '#eee',
-  },
-  signOutText: { fontSize: 13, color: '#999' },
 
   featuredWrap: { marginTop: 24 },
   featuredScroll: { paddingHorizontal: 16, paddingRight: 8, gap: 12 },

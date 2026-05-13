@@ -8,9 +8,19 @@ import type { Profile } from '@/lib/hooks/useProfile';
 interface Props {
   profile: Profile | null;
   fallbackChar: string;
+  /** 참여한 모임 수 (CaveHero 흡수) */
+  gatherings?: number;
+  /** shop_purchase 로 등록된 와인 수 (CaveHero 흡수) */
+  purchases?: number;
 }
 
-export function ProfileHeader({ profile, fallbackChar }: Props) {
+/**
+ * 프로필 상단 — 아바타 + 5개 stat (병/모임/구매/팔로워/팔로잉) 한 줄.
+ *
+ * 2026-05-13: CaveHero 의 stats 를 흡수하여 중복 (109병 두 번 노출) 제거.
+ * 폰트는 시스템 (PlayfairDisplay 와 결을 분리) — 일관된 깔끔한 톤.
+ */
+export function ProfileHeader({ profile, fallbackChar, gatherings = 0, purchases = 0 }: Props) {
   const cc = profile?.collection_count ?? 0;
   const topBadge = getTopBadge(cc);
 
@@ -37,10 +47,18 @@ export function ProfileHeader({ profile, fallbackChar }: Props) {
         ) : null}
       </View>
       <View style={styles.profileStats}>
-        {/* 병수가 i-cellar 의 진짜 콘텐츠 단위 (post 는 deprecated). 강조 첫 stat. */}
-        <Stat num={cc} label="병" />
-        <Stat num={profile?.follower_count ?? 0} label="팔로워" />
-        <Stat num={profile?.following_count ?? 0} label="팔로잉" />
+        {/* primary — 셀러 활동 지표 */}
+        <View style={styles.statsRow}>
+          <Stat num={cc} label="병" />
+          <Stat num={gatherings} label="모임" />
+          <Stat num={purchases} label="구매" />
+        </View>
+        {/* secondary — 소셜 지표 (셀러 앱 본질이 아니라 강등) */}
+        <Text style={styles.socialLine}>
+          팔로워 <Text style={styles.socialNum}>{profile?.follower_count ?? 0}</Text>
+          {'  ·  '}
+          팔로잉 <Text style={styles.socialNum}>{profile?.following_count ?? 0}</Text>
+        </Text>
       </View>
     </View>
   );
@@ -57,13 +75,19 @@ function Stat({ num, label }: { num: number; label: string }) {
 
 const styles = StyleSheet.create({
   profileTop: {
-    flexDirection: 'row', alignItems: 'flex-start',
-    paddingHorizontal: 20, paddingTop: 16, paddingBottom: 8, gap: 20,
+    flexDirection: 'row', alignItems: 'center',
+    paddingHorizontal: 16, paddingTop: 16, paddingBottom: 8, gap: 12,
   },
   avatarBadge: { paddingHorizontal: 8, paddingVertical: 2, borderRadius: 8, marginTop: 4 },
   avatarBadgeText: { fontSize: 10, fontWeight: '600' },
-  profileStats: { flex: 1, flexDirection: 'row', justifyContent: 'center', gap: 20 },
-  stat: { alignItems: 'center' },
+  // primary stat (병/모임/구매) + secondary 텍스트 (팔로워/팔로잉)
+  profileStats: { flex: 1, justifyContent: 'center', gap: 10 },
+  statsRow: { flexDirection: 'row', justifyContent: 'space-around' },
+  stat: { alignItems: 'center', flex: 1 },
   statNum: { fontSize: 17, fontWeight: '700', color: '#222' },
   statLabel: { fontSize: 11, color: '#999', marginTop: 2 },
+  socialLine: {
+    fontSize: 11, color: '#999', textAlign: 'center',
+  },
+  socialNum: { color: '#222', fontWeight: '600' },
 });

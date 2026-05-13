@@ -5,22 +5,42 @@ import { colors } from '@/constants/theme';
 import { useUnreadDM } from '@/lib/hooks/useUnreadDM';
 import { useUnreadGathering } from '@/lib/hooks/useUnreadGathering';
 import { useUnreadCellarSocial } from '@/lib/hooks/useUnreadCellarSocial';
-import Svg, { Path, Circle, Line, Rect, Polyline } from 'react-native-svg';
+import Svg, { Path, Circle, Line, Polyline } from 'react-native-svg';
+
+// ───── 공통 spec ─────
+const ICON = 26;
+const stroke = (focused: boolean) => focused ? '#222' : '#999';
+const strokeW = (focused: boolean) => focused ? 2.2 : 1.8;
 
 function HomeIcon({ focused }: { focused: boolean }) {
-  // 집(지붕+벽) — explore 탭이 "홈" 으로 자리매김 (2026-04-30 방향성 변경)
+  // 집(지붕+벽) — explore 가 가운데 "홈" 자리.
   return (
-    <Svg width={26} height={26} fill="none" stroke={focused ? '#222' : '#999'} strokeWidth={focused ? 2.2 : 1.8} viewBox="0 0 24 24">
+    <Svg width={ICON} height={ICON} fill="none" stroke={stroke(focused)} strokeWidth={strokeW(focused)} viewBox="0 0 24 24">
       <Path d="M3 9.5L12 3l9 6.5V20a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" />
       <Path d="M9 22V12h6v10" />
     </Svg>
   );
 }
 
-function SearchIcon({ focused, hasUnread = false }: { focused: boolean; hasUnread?: boolean }) {
+function CatalogIcon({ focused }: { focused: boolean }) {
+  // 펼친 책 — 주류 카탈로그 정체성 ("와인 백과/도감" 정서).
+  return (
+    <Svg width={ICON} height={ICON} fill="none" stroke={stroke(focused)} strokeWidth={strokeW(focused)} viewBox="0 0 24 24" strokeLinejoin="round" strokeLinecap="round">
+      {/* 책등 (가운데 세로선) */}
+      <Line x1={12} y1={5} x2={12} y2={20} />
+      {/* 왼쪽 페이지 */}
+      <Path d="M12 5C10 4 7 3.5 4 4v15c3-.5 6 0 8 1" />
+      {/* 오른쪽 페이지 */}
+      <Path d="M12 5c2-1 5-1.5 8-1v15c-3-.5-6 0-8 1" />
+    </Svg>
+  );
+}
+
+function SearchIcon({ focused, hasUnread }: { focused: boolean; hasUnread: boolean }) {
+  // 돋보기 — 모임 탐색/검색 정서.
   return (
     <View>
-      <Svg width={26} height={26} fill="none" stroke={focused ? '#222' : '#999'} strokeWidth={focused ? 2.2 : 1.8} viewBox="0 0 24 24">
+      <Svg width={ICON} height={ICON} fill="none" stroke={stroke(focused)} strokeWidth={strokeW(focused)} viewBox="0 0 24 24" strokeLinejoin="round" strokeLinecap="round">
         <Circle cx={11} cy={11} r={8} />
         <Line x1={21} y1={21} x2={16.65} y2={16.65} />
       </Svg>
@@ -29,67 +49,21 @@ function SearchIcon({ focused, hasUnread = false }: { focused: boolean; hasUnrea
   );
 }
 
-function CreateIcon({ focused }: { focused: boolean }) {
-  return (
-    <Svg width={26} height={26} fill="none" stroke={focused ? '#222' : '#999'} strokeWidth={focused ? 2.2 : 1.8} viewBox="0 0 24 24">
-      <Rect x={3} y={3} width={18} height={18} rx={3} />
-      <Line x1={12} y1={8} x2={12} y2={16} />
-      <Line x1={8} y1={12} x2={16} y2={12} />
-    </Svg>
-  );
-}
-
-function MessageIcon({ focused, hasUnread }: { focused: boolean; hasUnread: boolean }) {
-  return (
-    <View>
-      <Svg width={26} height={26} fill="none" stroke={focused ? '#222' : '#999'} strokeWidth={focused ? 2.2 : 1.8} viewBox="0 0 24 24">
-        <Path d="M22 2L11 13" />
-        <Path d="M22 2L15 22L11 13L2 9L22 2Z" />
-      </Svg>
-      {hasUnread && <View style={styles.unreadDot} />}
-    </View>
-  );
-}
-
 function ReviewsIcon({ focused }: { focused: boolean }) {
-  // 시음 노트 아이콘 — 와인 글라스 + 별 (펜 노트 아이콘 대체)
+  // 연필 — 시음 후기 (적는 행위가 곧 본질).
   return (
-    <Svg width={26} height={26} fill="none" stroke={focused ? '#222' : '#999'} strokeWidth={focused ? 2.2 : 1.8} viewBox="0 0 24 24">
-      <Path d="M8 2h8l-1 9a4 4 0 0 1-3 4 4 4 0 0 1-3-4z" />
-      <Line x1={12} y1={15} x2={12} y2={22} />
-      <Line x1={8} y1={22} x2={16} y2={22} />
+    <Svg width={ICON} height={ICON} fill="none" stroke={stroke(focused)} strokeWidth={strokeW(focused)} viewBox="0 0 24 24" strokeLinejoin="round" strokeLinecap="round">
+      {/* 연필 몸통 */}
+      <Path d="M16 3l5 5L8 21H3v-5z" />
+      {/* 지우개 / 촉 분리선 */}
+      <Line x1={14} y1={5} x2={19} y2={10} />
     </Svg>
-  );
-}
-
-function WineSearchIcon({ focused }: { focused: boolean }) {
-  // 돋보기 안에 와인 글라스 — 주류 검색 탭
-  return (
-    <Svg width={26} height={26} fill="none" stroke={focused ? '#222' : '#999'} strokeWidth={focused ? 2.2 : 1.8} viewBox="0 0 24 24">
-      <Circle cx={11} cy={11} r={8} />
-      <Path d="M9 8h4l-0.5 4.5a1.5 1.5 0 0 1-3 0z" />
-      <Line x1={11} y1={13} x2={11} y2={15} />
-      <Line x1={21} y1={21} x2={16.65} y2={16.65} />
-    </Svg>
-  );
-}
-
-function CaveIcon({ focused, hasUnread }: { focused: boolean; hasUnread: boolean }) {
-  return (
-    <View>
-      <Svg width={26} height={26} fill="none" stroke={focused ? '#222' : '#999'} strokeWidth={focused ? 2.2 : 1.8} viewBox="0 0 24 24">
-        <Path d="M3 22V12a9 9 0 0 1 18 0v10" />
-        <Path d="M7 22v-6a5 5 0 0 1 10 0v6" />
-        <Line x1={2} y1={22} x2={22} y2={22} />
-      </Svg>
-      {hasUnread && <View style={styles.unreadDot} />}
-    </View>
   );
 }
 
 function ProfileIcon({ focused }: { focused: boolean }) {
   return (
-    <Svg width={26} height={26} fill="none" stroke={focused ? '#222' : '#999'} strokeWidth={focused ? 2.2 : 1.8} viewBox="0 0 24 24">
+    <Svg width={ICON} height={ICON} fill="none" stroke={stroke(focused)} strokeWidth={strokeW(focused)} viewBox="0 0 24 24">
       <Path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
       <Circle cx={12} cy={7} r={4} />
     </Svg>
@@ -112,7 +86,6 @@ export default function TabLayout() {
   return (
     <Tabs
       // profile 이 첫 진입점 (2026-05-13 통합 — 셀러 컨텐츠가 profile 로 흡수됨).
-      // 로그인 후 / 콜드 부트시 profile (활동 탭 default) 으로 시작.
       initialRouteName="profile"
       screenOptions={{
         headerShown: false,
@@ -122,42 +95,46 @@ export default function TabLayout() {
     >
       {/* 셀러 — profile 로 통합 (2026-05-13). 라우트는 deep-link 호환 위해 유지. */}
       <Tabs.Screen name="cellar" options={{ href: null }} />
-      {/* 모임 — 돋보기(Search) 아이콘. 모임 탐색/검색 정서 강조. */}
+
+      {/*
+        탭 순서 (2026-05-13 재배치):
+          1 (왼쪽)   wines       — 와인 병
+          2          gatherings  — cheers
+          3 (중앙)   explore     — 홈
+          4          reviews     — 별+잔
+          5 (오른쪽) profile     — 사람
+      */}
+      <Tabs.Screen
+        name="wines"
+        options={{
+          tabBarIcon: ({ focused }) => <CatalogIcon focused={focused} />,
+        }}
+      />
       <Tabs.Screen
         name="gatherings"
         options={{
           tabBarIcon: ({ focused }) => <SearchIcon focused={focused} hasUnread={hasUnreadGathering} />,
         }}
       />
-      {/* 홈(트레바리식 큐레이션) — 가운데, 집 모양 아이콘. */}
       <Tabs.Screen
         name="explore"
         options={{
           tabBarIcon: ({ focused }) => <HomeIcon focused={focused} />,
         }}
       />
-      {/* 주류 검색 — wines 카탈로그 검색 + 평균 평가 페이지 진입. */}
-      <Tabs.Screen
-        name="wines"
-        options={{
-          tabBarIcon: ({ focused }) => <WineSearchIcon focused={focused} />,
-        }}
-      />
-      {/* 시음 후기 — 메시지 자리. 셀러 등록 시 작성한 tasting_note 가 모이는 피드 */}
       <Tabs.Screen
         name="reviews"
         options={{
           tabBarIcon: ({ focused }) => <ReviewsIcon focused={focused} />,
         }}
       />
-      {/* 프로필 */}
       <Tabs.Screen
         name="profile"
         options={{
           tabBarIcon: ({ focused }) => <ProfileIcon focused={focused} />,
         }}
       />
-      {/* 메시지 — 탭에서 제거됨, 프로필 메뉴에서 진입. 라우트 자체는 유지 (직접 push). */}
+      {/* 메시지 — 탭에서 제거됨, 프로필 헤더 종이비행기 아이콘에서 진입. */}
       <Tabs.Screen name="messages" options={{ href: null }} />
       {/* index: 호환용 라우트. 탭 미노출. */}
       <Tabs.Screen name="index" options={{ href: null }} />

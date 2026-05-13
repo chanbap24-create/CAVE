@@ -156,7 +156,8 @@ export default function GatheringDetailScreen() {
             fallbackPath="/(tabs)/gatherings"
             onPress={
               from === 'home' ? () => router.replace('/(tabs)/explore' as any) :
-              from === 'cellar' ? () => router.replace('/(tabs)/cellar' as any) :
+              // cellar 는 legacy 별칭 — 2026-05-13 셀러 탭이 profile 로 흡수됨.
+              (from === 'profile' || from === 'cellar') ? () => router.replace('/(tabs)/profile' as any) :
               undefined
             }
           />

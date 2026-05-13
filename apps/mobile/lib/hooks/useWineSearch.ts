@@ -20,15 +20,12 @@ export function useWineSearch() {
     if (query.length < 2) { setResults([]); return; }
     setLoading(true);
 
+    // search_wines RPC: search_vector + tsquery prefix.
+    // 119,609 행 ilike 풀스캔 (610ms~2.6s) → GIN 인덱스 (40ms 이하).
     const q = sanitizeSearch(query);
-    const { data } = await supabase
-      .from('wines')
-      .select('id, name, name_ko, category, country, region, alcohol_pct')
-      .or(`name.ilike.%${q}%,name_ko.ilike.%${q}%,producer.ilike.%${q}%`)
-      .order('name')
-      .limit(limit);
+    const { data } = await supabase.rpc('search_wines', { q, lim: limit });
 
-    if (data) setResults(data);
+    if (data) setResults(data as WineSearchResult[]);
     setLoading(false);
   }
 

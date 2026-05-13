@@ -41,11 +41,8 @@ export async function findWineMatch(extracted: ExtractedWineInfo): Promise<WineM
   const q = sanitizeSearch(extracted.name);
   if (q.length < 2) return { kind: 'new' };
 
-  const { data } = await supabase
-    .from('wines')
-    .select('id, name, name_ko, producer, region, country, vintage_year, alcohol_pct, category, image_url')
-    .or(`name.ilike.%${q}%,name_ko.ilike.%${q}%,producer.ilike.%${q}%`)
-    .limit(10);
+  // search_wines RPC: search_vector + tsquery prefix (ilike 풀스캔 회피).
+  const { data } = await supabase.rpc('search_wines', { q, lim: 10 });
 
   if (!data || data.length === 0) return { kind: 'new' };
 

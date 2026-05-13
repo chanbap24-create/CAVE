@@ -21,11 +21,8 @@ export function useWineTagSearch() {
       return;
     }
     const q = sanitizeSearch(query);
-    const { data } = await supabase
-      .from('wines')
-      .select('id, name, name_ko, category')
-      .or(`name.ilike.%${q}%,name_ko.ilike.%${q}%`)
-      .limit(5);
+    // search_wines RPC 사용 — wines.ilike 풀스캔 회피.
+    const { data } = await supabase.rpc('search_wines', { q, lim: 5 });
     if (data) setTagResults(data as WineTag[]);
   }
 

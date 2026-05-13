@@ -1,6 +1,6 @@
 import React from 'react';
 import { View, Text, Pressable, StyleSheet } from 'react-native';
-import { Image } from 'expo-image';
+import { CardImage } from '@/components/CardImage';
 import { useRouter } from 'expo-router';
 import { PartnerBadge } from '@/components/PartnerBadge';
 import { StarRating } from '@/components/StarRating';
@@ -34,7 +34,7 @@ export function TastingReviewsFeed({ reviews }: Props) {
         >
           <View style={styles.headerRow}>
             {r.owner?.avatar_url ? (
-              <Image source={r.owner.avatar_url} style={styles.avatar} contentFit="cover" cachePolicy="memory-disk" />
+              <CardImage source={r.owner.avatar_url} style={styles.avatar} />
             ) : (
               <View style={[styles.avatar, styles.avatarPlaceholder]}>
                 <Text style={styles.avatarChar}>
@@ -64,11 +64,9 @@ export function TastingReviewsFeed({ reviews }: Props) {
           <View style={styles.body}>
             <Text style={styles.note} numberOfLines={6}>{r.tasting_note}</Text>
             {r.photo_url || r.wine?.image_url ? (
-              <Image
+              <CardImage
                 source={r.photo_url || r.wine?.image_url}
                 style={styles.thumb}
-                contentFit="cover"
-                cachePolicy="memory-disk"
               />
             ) : null}
           </View>

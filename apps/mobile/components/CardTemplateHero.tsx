@@ -1,6 +1,6 @@
 import React from 'react';
 import { View, Text, StyleSheet, type ViewStyle, type TextStyle, type ImageStyle } from 'react-native';
-import { Image } from 'expo-image';
+import { CardImage } from '@/components/CardImage';
 import Svg, { Path, Line } from 'react-native-svg';
 import type { CardTemplate, CardLayoutVariant } from '@/lib/constants/cardTemplates';
 
@@ -57,7 +57,7 @@ export function CardTemplateHero({
       {/* cover variant 풀-블리드 배경 — 컬러 톤은 살짝만(0.30), 텍스트 영역엔 별도 짙은 스크림 */}
       {hasImage && layout === 'cover' && (
         <>
-          <Image source={imageUrl!} style={styles.coverBg} contentFit="cover" cachePolicy="memory-disk" />
+          <CardImage source={imageUrl!} style={styles.coverBg} />
           <View style={[styles.coverTint, { backgroundColor: template.bg, opacity: 0.30 }]} />
           <View style={styles.coverScrim} />
         </>
@@ -65,11 +65,9 @@ export function CardTemplateHero({
 
       {/* magazine variant 우측 풀-밴드 이미지 */}
       {hasImage && layout === 'magazine' && (
-        <Image
+        <CardImage
           source={imageUrl!}
           style={[styles.magazineBand, { width: size * 0.42 }]}
-          contentFit="cover"
-          cachePolicy="memory-disk"
         />
       )}
 
@@ -84,11 +82,9 @@ export function CardTemplateHero({
 
       {/* signature 우상단 코너 액자 이미지 */}
       {hasImage && layout === 'signature' && (
-        <Image
+        <CardImage
           source={imageUrl!}
           style={styles.signatureFrame}
-          contentFit="cover"
-          cachePolicy="memory-disk"
         />
       )}
 

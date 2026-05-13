@@ -1,6 +1,6 @@
 import React, { useRef } from 'react';
 import { View, Text, Pressable, StyleSheet, Animated } from 'react-native';
-import { Image } from 'expo-image';
+import { CardImage } from '@/components/CardImage';
 import { getDiscoverCardWidth, CARD_GAP } from '@/lib/utils/discoverCardWidth';
 import { CardTemplateHero } from '@/components/CardTemplateHero';
 import { getCardTemplate } from '@/lib/constants/cardTemplates';
@@ -96,7 +96,7 @@ export function GatheringPreviewCard({
           ) : <View />}
           <View style={styles.hostRow}>
             {avatarUrl ? (
-              <Image source={avatarUrl} style={styles.avatar} contentFit="cover" cachePolicy="memory-disk" />
+              <CardImage source={avatarUrl} style={styles.avatar} />
             ) : (
               <View style={[styles.avatar, styles.avatarPlaceholder]}>
                 <Text style={styles.avatarChar}>{(avatarFallback || '?').toUpperCase()}</Text>

@@ -1,6 +1,6 @@
 import React from 'react';
 import { View, Text, ScrollView, Pressable, StyleSheet } from 'react-native';
-import { Image } from 'expo-image';
+import { CardImage } from '@/components/CardImage';
 import { useRouter } from 'expo-router';
 import { DiscoverSectionHeader } from '@/components/DiscoverSectionHeader';
 import {
@@ -45,10 +45,9 @@ export function RecentlyDrunkRow({ drinks }: Props) {
             >
               <View style={styles.imgWrap}>
                 {d.collection_photo_url || d.wine?.image_url ? (
-                  <Image
+                  <CardImage
                     source={d.collection_photo_url || d.wine?.image_url || ''}
                     style={styles.img}
-                    contentFit="cover" cachePolicy="memory-disk"
                   />
                 ) : (
                   <View style={[styles.img, styles.imgPlaceholder]} />

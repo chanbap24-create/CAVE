@@ -27,12 +27,8 @@ export function AddToCaveSheet({ visible, onClose, onAdded, existingIds }: Props
     setSearch(query);
     if (query.length < 2) { setResults([]); return; }
     const q = sanitizeSearch(query);
-    const { data } = await supabase
-      .from('wines')
-      .select('*')
-      .or(`name.ilike.%${q}%,name_ko.ilike.%${q}%,producer.ilike.%${q}%`)
-      .order('name')
-      .limit(20);
+    // search_wines RPC: search_vector + tsquery (ilike 풀스캔 회피).
+    const { data } = await supabase.rpc('search_wines', { q, lim: 20 });
     if (data) setResults(data);
   }
 

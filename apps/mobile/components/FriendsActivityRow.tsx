@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { View, Text, ScrollView, Pressable, StyleSheet } from 'react-native';
-import { Image } from 'expo-image';
+import { CardImage } from '@/components/CardImage';
 import { useAuth } from '@/lib/auth';
 import { useCellarActivity, type CellarActivityGroup } from '@/lib/hooks/useCellarActivity';
 import { CollectionDetailSheet } from '@/components/CollectionDetailSheet';
@@ -49,11 +49,9 @@ export function FriendsActivityRow() {
             <View style={styles.ring}>
               <View style={styles.innerWhite}>
                 {g.owner?.avatar_url ? (
-                  <Image
+                  <CardImage
                     source={g.owner.avatar_url}
                     style={styles.avatar}
-                    contentFit="cover"
-                    cachePolicy="memory-disk"
                   />
                 ) : (
                   <View style={[styles.avatar, styles.avatarPlaceholder]}>

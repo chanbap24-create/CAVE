@@ -44,11 +44,8 @@ export function PhotoTagEditor({ visible, onClose, postId, imageUrl, onTagAdded 
         .limit(5);
       if (data) setResults(data);
     } else {
-      const { data } = await supabase
-        .from('wines')
-        .select('id, name, name_ko')
-        .or(`name.ilike.%${q}%,name_ko.ilike.%${q}%`)
-        .limit(5);
+      // search_wines RPC: search_vector + tsquery (ilike 풀스캔 회피).
+      const { data } = await supabase.rpc('search_wines', { q, lim: 5 });
       if (data) setResults(data);
     }
   }

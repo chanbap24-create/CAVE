@@ -268,21 +268,94 @@ function FeaturedCavesRow({ caves, loading }: { caves: any[]; loading: boolean }
   );
 }
 
-// ─── Gatherings list ────────────────────────────────────────────
+// ─── Gatherings — D-day 카드 + 예정/지난 그룹핑 ─────────────────
 function GatheringsList({ gatherings, onTap }: { gatherings: any[]; onTap: (id: number) => void }) {
   if (gatherings.length === 0) {
-    return <View style={styles.empty}><Text style={styles.emptyText}>참여한 모임이 없어요</Text></View>;
+    return (
+      <View style={styles.empty}>
+        <Text style={styles.emptyEmoji}>🍷</Text>
+        <Text style={styles.emptyText}>참여한 모임이 없어요</Text>
+        <Text style={styles.emptySub}>모임 탭에서 둘러보거나 직접 호스팅해보세요</Text>
+      </View>
+    );
   }
+  const now = Date.now();
+  const upcoming = gatherings.filter(g => g.gathering_date && new Date(g.gathering_date).getTime() >= now)
+    .sort((a, b) => new Date(a.gathering_date).getTime() - new Date(b.gathering_date).getTime());
+  const past = gatherings.filter(g => !g.gathering_date || new Date(g.gathering_date).getTime() < now)
+    .sort((a, b) => {
+      const ta = a.gathering_date ? new Date(a.gathering_date).getTime() : 0;
+      const tb = b.gathering_date ? new Date(b.gathering_date).getTime() : 0;
+      return tb - ta;
+    });
+
   return (
-    <View style={styles.listWrap}>
-      {gatherings.map((g: any) => (
-        <Pressable key={g.id} style={styles.listRow} onPress={() => onTap(g.id)}>
-          <Text style={styles.listMain} numberOfLines={1}>{g.title}</Text>
-          {g.location && <Text style={styles.listSub}>{g.location}</Text>}
-        </Pressable>
-      ))}
+    <View style={styles.gatheringsWrap}>
+      {upcoming.length > 0 && (
+        <>
+          <Text style={styles.gatheringGroupHeader}>예정 ({upcoming.length})</Text>
+          {upcoming.map(g => <GatheringCard key={g.id} g={g} onTap={onTap} />)}
+        </>
+      )}
+      {past.length > 0 && (
+        <>
+          <Text style={[styles.gatheringGroupHeader, { marginTop: 24 }]}>지난 모임 ({past.length})</Text>
+          {past.map(g => <GatheringCard key={g.id} g={g} onTap={onTap} past />)}
+        </>
+      )}
     </View>
   );
+}
+
+function GatheringCard({ g, onTap, past }: { g: any; onTap: (id: number) => void; past?: boolean }) {
+  const dday = formatDday(g.gathering_date);
+  const dateLabel = g.gathering_date ? formatGatheringDate(g.gathering_date) : '날짜 미정';
+  const isHost = g.role === 'host';
+  return (
+    <Pressable
+      style={[styles.gatheringCard, past && styles.gatheringCardPast]}
+      onPress={() => onTap(g.id)}
+    >
+      <View style={[styles.dayBadge, past && styles.dayBadgePast]}>
+        <Text style={[styles.dayMain, past && styles.dayMainPast]}>{past ? '완료' : dday.label}</Text>
+        {!past && dday.sub && <Text style={styles.daySub}>{dday.sub}</Text>}
+      </View>
+      <View style={styles.gatheringBody}>
+        <Text style={styles.gatheringTitle} numberOfLines={1}>{g.title}</Text>
+        <Text style={styles.gatheringMeta} numberOfLines={1}>
+          {dateLabel}
+          {g.location ? `  ·  📍 ${g.location}` : ''}
+        </Text>
+        <View style={styles.gatheringChips}>
+          <View style={[styles.chip, isHost ? styles.chipHost : styles.chipMember]}>
+            <Text style={[styles.chipText, isHost ? styles.chipTextHost : styles.chipTextMember]}>
+              {isHost ? '호스트' : '참여'}
+            </Text>
+          </View>
+          {g.status === 'closed' && (
+            <View style={[styles.chip, styles.chipClosed]}>
+              <Text style={[styles.chipText, styles.chipTextClosed]}>마감</Text>
+            </View>
+          )}
+        </View>
+      </View>
+    </Pressable>
+  );
+}
+
+function formatDday(iso: string | null): { label: string; sub?: string } {
+  if (!iso) return { label: '미정' };
+  const target = new Date(iso);
+  const now = new Date();
+  const diffDays = Math.ceil((target.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
+  if (diffDays === 0) return { label: 'D-Day', sub: '오늘' };
+  if (diffDays > 0) return { label: `D-${diffDays}` };
+  return { label: `+${Math.abs(diffDays)}` };
+}
+
+function formatGatheringDate(iso: string): string {
+  const d = new Date(iso);
+  return `${d.getMonth() + 1}월 ${d.getDate()}일 (${'일월화수목금토'[d.getDay()]})`;
 }
 
 // ─── Reviews list ───────────────────────────────────────────────
@@ -378,7 +451,9 @@ const styles = StyleSheet.create({
   tabDot: { position: 'absolute', top: 8, right: 12, width: 6, height: 6, borderRadius: 3, backgroundColor: '#ed4956' },
 
   empty: { paddingVertical: 60, alignItems: 'center' },
-  emptyText: { fontSize: 13, color: '#999' },
+  emptyEmoji: { fontSize: 36, marginBottom: 12, opacity: 0.5 },
+  emptyText: { fontSize: 14, color: '#666', fontWeight: '600' },
+  emptySub: { fontSize: 12, color: '#999', marginTop: 4 },
 
   listWrap: { paddingVertical: 8 },
   listRow: { paddingHorizontal: 20, paddingVertical: 10, borderBottomWidth: 1, borderBottomColor: '#f5f5f5' },
@@ -406,4 +481,44 @@ const styles = StyleSheet.create({
 
   featuredWrap: { marginTop: 24 },
   featuredScroll: { paddingHorizontal: 16, paddingRight: 8, gap: 12 },
+
+  // 모임 — D-day 카드
+  gatheringsWrap: { paddingHorizontal: 16, paddingTop: 16 },
+  gatheringGroupHeader: {
+    fontSize: 12, fontWeight: '700', color: '#999',
+    textTransform: 'uppercase', letterSpacing: 0.6,
+    marginBottom: 8,
+  },
+  gatheringCard: {
+    flexDirection: 'row',
+    backgroundColor: '#fff',
+    borderRadius: 12,
+    borderWidth: 1, borderColor: '#eee',
+    marginBottom: 10,
+    overflow: 'hidden',
+  },
+  gatheringCardPast: { opacity: 0.7 },
+  dayBadge: {
+    width: 64,
+    backgroundColor: '#7b2d4e',
+    alignItems: 'center', justifyContent: 'center',
+    paddingVertical: 14,
+  },
+  dayBadgePast: { backgroundColor: '#e0e0e0' },
+  dayMain: { fontSize: 16, fontWeight: '800', color: '#fff', letterSpacing: -0.4 },
+  dayMainPast: { color: '#999', fontSize: 12 },
+  daySub: { fontSize: 10, color: 'rgba(255,255,255,0.85)', marginTop: 2 },
+
+  gatheringBody: { flex: 1, padding: 12, gap: 4 },
+  gatheringTitle: { fontSize: 15, fontWeight: '700', color: '#222' },
+  gatheringMeta: { fontSize: 11, color: '#666' },
+  gatheringChips: { flexDirection: 'row', gap: 6, marginTop: 4 },
+  chip: { paddingHorizontal: 8, paddingVertical: 3, borderRadius: 6 },
+  chipHost: { backgroundColor: '#fef0f3' },
+  chipMember: { backgroundColor: '#f0f0f0' },
+  chipClosed: { backgroundColor: '#f5f5f5' },
+  chipText: { fontSize: 10, fontWeight: '700' },
+  chipTextHost: { color: '#7b2d4e' },
+  chipTextMember: { color: '#666' },
+  chipTextClosed: { color: '#999' },
 });

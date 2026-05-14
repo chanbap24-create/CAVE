@@ -1,7 +1,10 @@
 import React, { useMemo } from 'react';
-import { View, Text, Pressable, StyleSheet } from 'react-native';
+import { View, StyleSheet } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
+import { Card } from '@/components/Card';
+import { BodyBold, Caption, Eyebrow } from '@/components/Typography';
+import { colors, spacing } from '@/constants/theme';
 import type { UserGathering } from '@/lib/hooks/useUserGatherings';
 
 interface Props {
@@ -9,10 +12,10 @@ interface Props {
 }
 
 /**
- * "다음 모임" 알림 — 평면 카드 (white bg + light border).
+ * "다음 모임" 카드 — Card hero variant (cream 배경, 매거진 톤).
  *
- * 2026-05-13 단순화: 이전엔 좌측 colored block + tinted bg 였으나
- * 프로필 전반의 white 톤과 충돌. 동일한 카드 결로 통일.
+ * 2026-05-14: Card 시스템 + Typography 마이그레이션. Eyebrow ("NEXT") +
+ * 큰 제목 + meta 라인 + 우측 D-day. cream 배경 = 트레바리식 큐레이션 정서.
  */
 export function NextGatheringCard({ gatherings }: Props) {
   const router = useRouter();
@@ -20,10 +23,14 @@ export function NextGatheringCard({ gatherings }: Props) {
 
   if (!next) {
     return (
-      <Pressable style={styles.empty} onPress={() => router.push('/(tabs)/explore')}>
-        <Ionicons name="wine-outline" size={16} color="#999" />
-        <Text style={styles.emptyText}>다음 모임이 없어요. 둘러보기 →</Text>
-      </Pressable>
+      <View style={styles.emptyWrap}>
+        <Card variant="row" onPress={() => router.push('/(tabs)/explore')}>
+          <View style={styles.emptyRow}>
+            <Ionicons name="wine-outline" size={16} color={colors.textMuted} />
+            <Caption tone="muted" style={{ flex: 1 }}>다음 모임이 없어요. 둘러보기 →</Caption>
+          </View>
+        </Card>
+      </View>
     );
   }
 
@@ -32,22 +39,19 @@ export function NextGatheringCard({ gatherings }: Props) {
     next.gathering_date ? formatDate(next.gathering_date) : null,
     next.location ? `📍 ${next.location}` : null,
     next.role === 'host' ? '내가 호스팅' : '참여 예정',
-  ].filter(Boolean).join(' · ');
+  ].filter(Boolean).join('  ·  ');
 
   return (
-    <Pressable
-      style={styles.card}
-      onPress={() => router.push(`/gathering/${next.id}?from=profile` as any)}
-    >
-      <View style={styles.body}>
-        <View style={styles.titleRow}>
-          <Text style={styles.title} numberOfLines={1}>{next.title}</Text>
-          <Text style={styles.dday}>{dday}</Text>
+    <View style={styles.heroWrap}>
+      <Card variant="hero" onPress={() => router.push(`/gathering/${next.id}?from=profile` as any)}>
+        <View style={styles.eyebrowRow}>
+          <Eyebrow tone="warmMuted">Next Gathering</Eyebrow>
+          <Caption tone="primary" style={styles.dday}>{dday}</Caption>
         </View>
-        <Text style={styles.meta} numberOfLines={1}>{meta}</Text>
-      </View>
-      <Ionicons name="chevron-forward" size={18} color="#bbb" />
-    </Pressable>
+        <BodyBold tone="warm" style={styles.title} numberOfLines={1}>{next.title}</BodyBold>
+        <Caption tone="warmMuted" numberOfLines={1}>{meta}</Caption>
+      </Card>
+    </View>
   );
 }
 
@@ -76,25 +80,10 @@ function formatDate(iso: string): string {
 }
 
 const styles = StyleSheet.create({
-  card: {
-    flexDirection: 'row', alignItems: 'center',
-    backgroundColor: '#fff',
-    marginHorizontal: 16, marginTop: 12, marginBottom: 8,
-    borderRadius: 10, paddingVertical: 12, paddingHorizontal: 14,
-    borderWidth: 1, borderColor: '#eee',
-  },
-  body: { flex: 1 },
-  titleRow: { flexDirection: 'row', alignItems: 'baseline', justifyContent: 'space-between', gap: 8 },
-  title: { fontSize: 14, fontWeight: '700', color: '#222', flex: 1 },
-  dday: { fontSize: 12, fontWeight: '700', color: '#7b2d4e' },
-  meta: { fontSize: 11, color: '#888', marginTop: 4 },
-
-  empty: {
-    flexDirection: 'row', alignItems: 'center', gap: 8,
-    backgroundColor: '#fff',
-    marginHorizontal: 16, marginTop: 12, marginBottom: 8,
-    borderRadius: 10, paddingVertical: 12, paddingHorizontal: 14,
-    borderWidth: 1, borderColor: '#eee',
-  },
-  emptyText: { fontSize: 12, color: '#888', flex: 1 },
+  heroWrap: { paddingHorizontal: spacing.md, marginTop: spacing.base },
+  emptyWrap: { paddingHorizontal: spacing.md, marginTop: spacing.base },
+  eyebrowRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
+  dday: { fontSize: 13, fontWeight: '700' },
+  title: { fontSize: 16, marginTop: spacing.xs, marginBottom: 2 },
+  emptyRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
 });

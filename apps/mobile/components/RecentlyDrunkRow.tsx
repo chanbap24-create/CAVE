@@ -41,7 +41,7 @@ export function RecentlyDrunkRow({ drinks }: Props) {
           {drinks.map(d => (
             <Pressable
               key={d.id} style={styles.card}
-              onPress={() => router.push(`/wine/${d.id}` as any)}
+              onPress={() => router.push(`/wine/${d.id}?from=profile` as any)}
             >
               <View style={styles.imgWrap}>
                 {d.collection_photo_url || d.wine?.image_url ? (

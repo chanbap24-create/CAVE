@@ -1,7 +1,11 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
-import { View, Text, ScrollView, StyleSheet, Pressable, Alert, RefreshControl, ActivityIndicator } from 'react-native';
+import { View, ScrollView, StyleSheet, Pressable, Alert, RefreshControl, ActivityIndicator } from 'react-native';
 import { useFocusEffect, useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
+import { Body, BodyBold, Caption, Eyebrow, Label, H1 } from '@/components/Typography';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { Card } from '@/components/Card';
+import { colors, spacing, borderRadius, fontSize, fontWeight } from '@/constants/theme';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/lib/auth';
 import { useProfile } from '@/lib/hooks/useProfile';
@@ -15,7 +19,6 @@ import { useFeaturedCaves } from '@/lib/hooks/useFeaturedCaves';
 import { useUnreadDM } from '@/lib/hooks/useUnreadDM';
 import { useNotifications } from '@/lib/hooks/useNotifications';
 import { useBadgeChecker } from '@/lib/hooks/useBadgeChecker';
-import { ScreenHeader } from '@/components/ScreenHeader';
 import { ProfileHeader } from '@/components/ProfileHeader';
 import { NextGatheringCard } from '@/components/NextGatheringCard';
 import { FriendsActivityRow } from '@/components/FriendsActivityRow';
@@ -48,6 +51,7 @@ type Tab = 'activity' | 'cellar' | 'gatherings' | 'reviews';
  */
 export default function ProfileScreen() {
   const router = useRouter();
+  const insets = useSafeAreaInsets();
   const { user, signOut } = useAuth();
   const [tab, setTab] = useState<Tab>('activity');
   const [refreshing, setRefreshing] = useState(false);
@@ -136,32 +140,37 @@ export default function ProfileScreen() {
     ]);
   }
 
+  const displayName = profile?.display_name || profile?.username || 'Profile';
+
   return (
     <View style={styles.container}>
-      <ScreenHeader
-        variant="centered"
-        title={profile?.username ? `@${profile.username}` : (profile?.display_name || 'Profile')}
-        right={
-          <View style={{ flexDirection: 'row', gap: 14, alignItems: 'center' }}>
+      {/* 매거진 표지 영역 — cream bg + Eyebrow + Display 타이틀. status bar 영역 인셋 적용. */}
+      <View style={[styles.coverWrap, { paddingTop: insets.top + spacing.sm }]}>
+        <View style={styles.coverHead}>
+          <Eyebrow tone="warmMuted">My Cellar</Eyebrow>
+          <View style={styles.coverActions}>
             <Pressable onPress={() => setShowScan(true)} hitSlop={8}>
-              <Ionicons name="scan-outline" size={22} color="#222" />
+              <Ionicons name="scan-outline" size={22} color={colors.textWarm} />
             </Pressable>
-            {/* 메시지 — DM 진입점 (인스타 패턴). 설정과 분리. */}
             <Pressable onPress={() => router.push('/(tabs)/messages' as any)} hitSlop={8}>
-              <Ionicons name="paper-plane-outline" size={20} color="#222" />
+              <Ionicons name="paper-plane-outline" size={20} color={colors.textWarm} />
               {hasUnread && <View style={styles.headerDot} />}
             </Pressable>
             <Pressable onPress={() => router.push('/settings' as any)} hitSlop={8}>
-              <Ionicons name="settings-outline" size={20} color="#222" />
+              <Ionicons name="settings-outline" size={20} color={colors.textWarm} />
               {unreadCount > 0 && <View style={styles.headerDot} />}
             </Pressable>
           </View>
-        }
-      />
+        </View>
+        <H1 tone="warm" style={styles.coverTitle}>{displayName}</H1>
+        {profile?.username && profile?.display_name ? (
+          <Caption tone="warmMuted">@{profile.username}</Caption>
+        ) : null}
+      </View>
 
       <ScrollView
-        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#7b2d4e" />}
-        contentContainerStyle={{ paddingBottom: 40 }}
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.primary} />}
+        contentContainerStyle={{ paddingBottom: spacing.xxl }}
       >
         <ProfileHeader
           profile={profile}
@@ -176,10 +185,10 @@ export default function ProfileScreen() {
 
         <View style={styles.actionRow}>
           <Pressable style={styles.actionBtn} onPress={() => setShowEdit(true)}>
-            <Text style={styles.actionBtnText}>프로필 편집</Text>
+            <Body style={styles.actionBtnText}>프로필 편집</Body>
           </Pressable>
           <Pressable style={styles.actionBtn} onPress={() => Alert.alert('준비중', '셀러 공유 링크 곧 지원')}>
-            <Text style={styles.actionBtnText}>셀러 공유</Text>
+            <Body style={styles.actionBtnText}>셀러 공유</Body>
           </Pressable>
         </View>
 
@@ -207,7 +216,7 @@ export default function ProfileScreen() {
 
         {tab === 'gatherings' && <GatheringsList gatherings={gatherings} onTap={(id) => router.push(`/gathering/${id}`)} />}
 
-        {tab === 'reviews' && <ReviewsList reviews={reviews} onTap={(id) => router.push(`/wine/${id}` as any)} />}
+        {tab === 'reviews' && <ReviewsList reviews={reviews} onTap={(id) => router.push(`/wine/${id}?from=profile` as any)} />}
       </ScrollView>
 
       <LabelScanSheet
@@ -231,16 +240,16 @@ export default function ProfileScreen() {
   );
 }
 
-// ─── Bio + taste — 같은 줄에 inline (bio 굵게 / taste 작은 italic) ─
+// ─── Bio + taste — 같은 줄에 inline (bio 본문 / taste 작은 italic) ─
 function BioRow({ bio, tasteParts }: { bio?: string | null; tasteParts: (string | null | undefined)[] }) {
   const taste = tasteParts.filter(Boolean).join(' · ');
   if (!bio && !taste) return null;
   return (
-    <Text style={styles.bioRow} numberOfLines={2}>
-      {bio ? <Text style={styles.bio}>{bio}</Text> : null}
-      {bio && taste ? <Text style={styles.bioGap}>            </Text> : null}
-      {taste ? <Text style={styles.tasteInline}>{taste}</Text> : null}
-    </Text>
+    <Body style={styles.bioRow} numberOfLines={2}>
+      {bio ? <Body>{bio}</Body> : null}
+      {bio && taste ? <Body style={styles.bioGap}>            </Body> : null}
+      {taste ? <Caption tone="muted" style={styles.tasteInline}>{taste}</Caption> : null}
+    </Body>
   );
 }
 
@@ -254,15 +263,20 @@ function Tabs({ active, onChange }: { active: Tab; onChange: (t: Tab) => void })
   ];
   return (
     <View style={styles.tabsRow}>
-      {items.map(it => (
-        <Pressable
-          key={it.key}
-          style={[styles.tabBtn, active === it.key && styles.tabBtnActive]}
-          onPress={() => onChange(it.key)}
-        >
-          <Text style={[styles.tabText, active === it.key && styles.tabTextActive]}>{it.label}</Text>
-        </Pressable>
-      ))}
+      {items.map(it => {
+        const isActive = active === it.key;
+        return (
+          <Pressable
+            key={it.key}
+            style={[styles.tabBtn, isActive && styles.tabBtnActive]}
+            onPress={() => onChange(it.key)}
+          >
+            <Label tone={isActive ? 'default' : 'muted'} style={isActive ? styles.tabTextActive : undefined}>
+              {it.label}
+            </Label>
+          </Pressable>
+        );
+      })}
     </View>
   );
 }
@@ -270,12 +284,12 @@ function Tabs({ active, onChange }: { active: Tab; onChange: (t: Tab) => void })
 // ─── 친구의 셀러 가로 스크롤 ─────────────────────────────────────
 function FeaturedCavesRow({ caves, loading }: { caves: any[]; loading: boolean }) {
   if (loading && caves.length === 0) {
-    return <ActivityIndicator color="#7b2d4e" style={{ marginTop: 24 }} />;
+    return <ActivityIndicator color={colors.primary} style={{ marginTop: spacing.lg }} />;
   }
   if (caves.length === 0) return null;
   return (
     <View style={styles.featuredWrap}>
-      <Text style={styles.sectionTitle}>친구의 셀러</Text>
+      <Eyebrow tone="muted" style={styles.featuredHeader}>친구의 셀러</Eyebrow>
       <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.featuredScroll}>
         {caves.map(c => <FeaturedCaveCard key={c.user_id} cave={c} />)}
       </ScrollView>
@@ -288,9 +302,9 @@ function GatheringsList({ gatherings, onTap }: { gatherings: any[]; onTap: (id: 
   if (gatherings.length === 0) {
     return (
       <View style={styles.empty}>
-        <Text style={styles.emptyEmoji}>🍷</Text>
-        <Text style={styles.emptyText}>참여한 모임이 없어요</Text>
-        <Text style={styles.emptySub}>모임 탭에서 둘러보거나 직접 호스팅해보세요</Text>
+        <Body style={styles.emptyEmoji}>🍷</Body>
+        <BodyBold tone="warm">참여한 모임이 없어요</BodyBold>
+        <Caption tone="muted">모임 탭에서 둘러보거나 직접 호스팅해보세요</Caption>
       </View>
     );
   }
@@ -308,13 +322,13 @@ function GatheringsList({ gatherings, onTap }: { gatherings: any[]; onTap: (id: 
     <View style={styles.gatheringsWrap}>
       {upcoming.length > 0 && (
         <>
-          <Text style={styles.gatheringGroupHeader}>예정 ({upcoming.length})</Text>
+          <Eyebrow tone="muted" style={styles.gatheringGroupHeader}>예정 ({upcoming.length})</Eyebrow>
           {upcoming.map(g => <GatheringCard key={g.id} g={g} onTap={onTap} />)}
         </>
       )}
       {past.length > 0 && (
         <>
-          <Text style={[styles.gatheringGroupHeader, { marginTop: 24 }]}>지난 모임 ({past.length})</Text>
+          <Eyebrow tone="muted" style={[styles.gatheringGroupHeader, { marginTop: spacing.lg }]}>지난 모임 ({past.length})</Eyebrow>
           {past.map(g => <GatheringCard key={g.id} g={g} onTap={onTap} past />)}
         </>
       )}
@@ -332,24 +346,26 @@ function GatheringCard({ g, onTap, past }: { g: any; onTap: (id: number) => void
       onPress={() => onTap(g.id)}
     >
       <View style={[styles.dayBadge, past && styles.dayBadgePast]}>
-        <Text style={[styles.dayMain, past && styles.dayMainPast]}>{past ? '완료' : dday.label}</Text>
-        {!past && dday.sub && <Text style={styles.daySub}>{dday.sub}</Text>}
+        <BodyBold tone={past ? 'muted' : 'inverse'} style={past ? styles.dayMainPast : styles.dayMain}>
+          {past ? '완료' : dday.label}
+        </BodyBold>
+        {!past && dday.sub && <Caption tone="inverse" style={styles.daySub}>{dday.sub}</Caption>}
       </View>
       <View style={styles.gatheringBody}>
-        <Text style={styles.gatheringTitle} numberOfLines={1}>{g.title}</Text>
-        <Text style={styles.gatheringMeta} numberOfLines={1}>
+        <BodyBold numberOfLines={1}>{g.title}</BodyBold>
+        <Caption tone="muted" numberOfLines={1}>
           {dateLabel}
           {g.location ? `  ·  📍 ${g.location}` : ''}
-        </Text>
+        </Caption>
         <View style={styles.gatheringChips}>
           <View style={[styles.chip, isHost ? styles.chipHost : styles.chipMember]}>
-            <Text style={[styles.chipText, isHost ? styles.chipTextHost : styles.chipTextMember]}>
+            <Caption style={isHost ? styles.chipTextHost : styles.chipTextMember}>
               {isHost ? '호스트' : '참여'}
-            </Text>
+            </Caption>
           </View>
           {g.status === 'closed' && (
             <View style={[styles.chip, styles.chipClosed]}>
-              <Text style={[styles.chipText, styles.chipTextClosed]}>마감</Text>
+              <Caption tone="muted">마감</Caption>
             </View>
           )}
         </View>
@@ -376,17 +392,17 @@ function formatGatheringDate(iso: string): string {
 // ─── Reviews list ───────────────────────────────────────────────
 function ReviewsList({ reviews, onTap }: { reviews: any[]; onTap: (id: number) => void }) {
   if (reviews.length === 0) {
-    return <View style={styles.empty}><Text style={styles.emptyText}>아직 작성한 시음 후기가 없어요</Text></View>;
+    return <View style={styles.empty}><BodyBold tone="warm">아직 작성한 시음 후기가 없어요</BodyBold></View>;
   }
   return (
     <View style={styles.listWrap}>
       {reviews.map((r: any) => (
         <Pressable key={r.id} style={styles.listRow} onPress={() => onTap(r.id)}>
-          <Text style={styles.listMain} numberOfLines={1}>
+          <BodyBold numberOfLines={1}>
             {r.wine?.name ?? '와인'}
-            {r.rating ? `  · ★ ${r.rating}` : ''}
-          </Text>
-          {r.tasting_note && <Text style={styles.listSub} numberOfLines={2}>{r.tasting_note}</Text>}
+            {r.rating ? `  ·  ★ ${r.rating}` : ''}
+          </BodyBold>
+          {r.tasting_note && <Caption tone="muted" style={styles.listSub} numberOfLines={2}>{r.tasting_note}</Caption>}
         </Pressable>
       ))}
     </View>
@@ -394,75 +410,103 @@ function ReviewsList({ reviews, onTap }: { reviews: any[]; onTap: (id: number) =
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#fff' },
-  headerDot: { position: 'absolute', top: -2, right: -4, width: 8, height: 8, borderRadius: 4, backgroundColor: '#ed4956' },
-
-  bioRow: { paddingHorizontal: 20, marginTop: 8, lineHeight: 19 },
-  bio: { fontSize: 13, color: '#444' },
-  bioGap: { fontSize: 13, color: '#fff' },
-  tasteInline: { fontSize: 12, color: '#888', fontStyle: 'italic' },
-  actionRow: { flexDirection: 'row', gap: 8, paddingHorizontal: 20, paddingTop: 12, paddingBottom: 14 },
-  actionBtn: { flex: 1, paddingVertical: 8, borderRadius: 8, backgroundColor: '#f5f5f5', alignItems: 'center' },
-  actionBtnText: { fontSize: 13, fontWeight: '600', color: '#222' },
-
-  tabsRow: { flexDirection: 'row', borderTopWidth: 1, borderTopColor: '#efefef', marginTop: 8 },
-  tabBtn: { flex: 1, paddingVertical: 12, alignItems: 'center', borderBottomWidth: 2, borderBottomColor: 'transparent' },
-  tabBtnActive: { borderBottomColor: '#222' },
-  tabText: { fontSize: 12, color: '#999', fontWeight: '500' },
-  tabTextActive: { color: '#222', fontWeight: '700' },
-
-  empty: { paddingVertical: 60, alignItems: 'center' },
-  emptyEmoji: { fontSize: 36, marginBottom: 12, opacity: 0.5 },
-  emptyText: { fontSize: 14, color: '#666', fontWeight: '600' },
-  emptySub: { fontSize: 12, color: '#999', marginTop: 4 },
-
-  listWrap: { paddingVertical: 8 },
-  listRow: { paddingHorizontal: 20, paddingVertical: 10, borderBottomWidth: 1, borderBottomColor: '#f5f5f5' },
-  listMain: { fontSize: 14, fontWeight: '600', color: '#222' },
-  listSub: { fontSize: 12, color: '#666', marginTop: 4, lineHeight: 17 },
-
-  sectionTitle: { fontSize: 13, fontWeight: '700', color: '#222', marginBottom: 10, paddingHorizontal: 0 },
-
-  featuredWrap: { marginTop: 24 },
-  featuredScroll: { paddingHorizontal: 16, paddingRight: 8, gap: 12 },
-
-  // 모임 — D-day 카드
-  gatheringsWrap: { paddingHorizontal: 16, paddingTop: 16 },
-  gatheringGroupHeader: {
-    fontSize: 12, fontWeight: '700', color: '#999',
-    textTransform: 'uppercase', letterSpacing: 0.6,
-    marginBottom: 8,
+  container: { flex: 1, backgroundColor: colors.background },
+  headerDot: {
+    position: 'absolute', top: -2, right: -4,
+    width: 8, height: 8, borderRadius: 4,
+    backgroundColor: colors.error,
   },
+
+  // ─── 매거진 표지 영역 ───
+  coverWrap: {
+    backgroundColor: colors.cream,
+    paddingHorizontal: spacing.md,
+    paddingBottom: spacing.md,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.borderStrong,
+  },
+  coverHead: {
+    flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
+    marginBottom: spacing.sm,
+  },
+  coverActions: { flexDirection: 'row', gap: 14, alignItems: 'center' },
+  coverTitle: {
+    fontSize: 28, lineHeight: 34, letterSpacing: -0.6,
+    marginBottom: 2,
+  },
+
+  // bio 행 — 한 줄에 bio + (큰 공백) + taste italic
+  bioRow: { paddingHorizontal: spacing.md, marginTop: spacing.sm, lineHeight: fontSize.body * 1.4 },
+  bioGap: { color: 'transparent' }, // 공백 시각화 안 됨 (gap 역할)
+  tasteInline: { fontStyle: 'italic' },
+
+  actionRow: {
+    flexDirection: 'row', gap: spacing.sm,
+    paddingHorizontal: spacing.md, paddingTop: spacing.base, paddingBottom: spacing.base,
+  },
+  actionBtn: {
+    flex: 1, paddingVertical: spacing.sm,
+    borderRadius: borderRadius.sm,
+    backgroundColor: colors.surfaceLight,
+    alignItems: 'center',
+  },
+  actionBtnText: { fontWeight: fontWeight.semibold as any },
+
+  tabsRow: {
+    flexDirection: 'row',
+    borderTopWidth: 1, borderTopColor: colors.border,
+    marginTop: spacing.sm,
+  },
+  tabBtn: {
+    flex: 1, paddingVertical: spacing.base, alignItems: 'center',
+    borderBottomWidth: 2, borderBottomColor: 'transparent',
+  },
+  tabBtnActive: { borderBottomColor: colors.text },
+  tabTextActive: { fontWeight: fontWeight.bold as any },
+
+  empty: { paddingVertical: spacing.xxl, alignItems: 'center', gap: spacing.sm },
+  emptyEmoji: { fontSize: 36, marginBottom: spacing.base, opacity: 0.5 },
+
+  listWrap: { paddingVertical: spacing.sm },
+  listRow: {
+    paddingHorizontal: spacing.md, paddingVertical: spacing.base,
+    borderBottomWidth: 1, borderBottomColor: colors.surfaceLight,
+  },
+  listSub: { marginTop: spacing.xs, lineHeight: 17 },
+
+  featuredWrap: { marginTop: spacing.lg },
+  featuredHeader: { paddingHorizontal: spacing.md, marginBottom: spacing.base },
+  featuredScroll: { paddingHorizontal: spacing.md, paddingRight: spacing.sm, gap: spacing.base },
+
+  // ─── 모임 D-day 카드 ───
+  gatheringsWrap: { paddingHorizontal: spacing.md, paddingTop: spacing.md },
+  gatheringGroupHeader: { marginBottom: spacing.sm },
   gatheringCard: {
     flexDirection: 'row',
-    backgroundColor: '#fff',
-    borderRadius: 12,
-    borderWidth: 1, borderColor: '#eee',
-    marginBottom: 10,
+    backgroundColor: colors.background,
+    borderRadius: borderRadius.md,
+    borderWidth: 1, borderColor: colors.border,
+    marginBottom: spacing.base,
     overflow: 'hidden',
   },
   gatheringCardPast: { opacity: 0.7 },
   dayBadge: {
     width: 64,
-    backgroundColor: '#7b2d4e',
+    backgroundColor: colors.primary,
     alignItems: 'center', justifyContent: 'center',
-    paddingVertical: 14,
+    paddingVertical: spacing.md,
   },
-  dayBadgePast: { backgroundColor: '#e0e0e0' },
-  dayMain: { fontSize: 16, fontWeight: '800', color: '#fff', letterSpacing: -0.4 },
-  dayMainPast: { color: '#999', fontSize: 12 },
-  daySub: { fontSize: 10, color: 'rgba(255,255,255,0.85)', marginTop: 2 },
+  dayBadgePast: { backgroundColor: colors.surfaceLight },
+  dayMain: { fontSize: 16, letterSpacing: -0.4 },
+  dayMainPast: { fontSize: 12 },
+  daySub: { color: 'rgba(255,255,255,0.85)', marginTop: 2 },
 
-  gatheringBody: { flex: 1, padding: 12, gap: 4 },
-  gatheringTitle: { fontSize: 15, fontWeight: '700', color: '#222' },
-  gatheringMeta: { fontSize: 11, color: '#666' },
-  gatheringChips: { flexDirection: 'row', gap: 6, marginTop: 4 },
-  chip: { paddingHorizontal: 8, paddingVertical: 3, borderRadius: 6 },
-  chipHost: { backgroundColor: '#fef0f3' },
-  chipMember: { backgroundColor: '#f0f0f0' },
-  chipClosed: { backgroundColor: '#f5f5f5' },
-  chipText: { fontSize: 10, fontWeight: '700' },
-  chipTextHost: { color: '#7b2d4e' },
-  chipTextMember: { color: '#666' },
-  chipTextClosed: { color: '#999' },
+  gatheringBody: { flex: 1, padding: spacing.base, gap: spacing.xs },
+  gatheringChips: { flexDirection: 'row', gap: 6, marginTop: spacing.xs },
+  chip: { paddingHorizontal: spacing.sm, paddingVertical: 3, borderRadius: borderRadius.xs },
+  chipHost: { backgroundColor: colors.primaryLight },
+  chipMember: { backgroundColor: colors.surfaceLight },
+  chipClosed: { backgroundColor: colors.surfaceLight },
+  chipTextHost: { color: colors.primary, fontWeight: fontWeight.bold as any },
+  chipTextMember: { color: colors.textSecondary, fontWeight: fontWeight.bold as any },
 });

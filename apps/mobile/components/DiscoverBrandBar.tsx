@@ -1,32 +1,31 @@
 import React from 'react';
-import { View, Text, StyleSheet } from 'react-native';
+import { View, StyleSheet } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { H1, Caption } from '@/components/Typography';
+import { colors, spacing } from '@/constants/theme';
 
 /**
- * Discover 탭 상단 슬림 브랜드 바 — 좌측 상단 "Cave" 로고만 노출.
- *
- * 카메라 노치/다이내믹 아일랜드와 캐러셀이 겹치지 않도록 safe-area top inset
- * 만큼 상단 패딩 확보. 별도 boder/bg 없이 ScrollView 의 첫 화면 일부로 자연스럽게.
+ * 홈 (explore) 표지 — 매거진 톤 (2026-05-14 redesign A).
+ * Eyebrow + 큰 sans bold 한글 + sub italic.
  */
 export function DiscoverBrandBar() {
   const insets = useSafeAreaInsets();
   return (
-    <View style={[styles.bar, { paddingTop: insets.top + 6 }]}>
-      <Text style={styles.logo}>Cave</Text>
+    <View style={[styles.bar, { paddingTop: insets.top + spacing.sm }]}>
+      <Caption tone="warmMuted" style={styles.eyebrow}>i CAVE · DISCOVER</Caption>
+      <H1 tone="warm" style={styles.title}>오늘의 한 잔</H1>
+      <Caption tone="warmMuted" style={styles.sub}>지금 사람들이 모여드는 자리</Caption>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
   bar: {
-    paddingHorizontal: 20,
-    paddingBottom: 6,
-    backgroundColor: '#fff',
+    paddingHorizontal: spacing.md,
+    paddingBottom: spacing.md,
+    backgroundColor: colors.cream,
   },
-  logo: {
-    fontSize: 22,
-    color: '#7b2d4e',
-    fontFamily: 'PlayfairDisplay_700Bold_Italic',
-    letterSpacing: -0.5,
-  },
+  eyebrow: { letterSpacing: 2, marginBottom: spacing.sm },
+  title: { fontSize: 30, lineHeight: 36, letterSpacing: -0.6, marginBottom: spacing.xs },
+  sub: { fontStyle: 'italic' },
 });

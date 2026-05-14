@@ -1,27 +1,31 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, ScrollView, StyleSheet, Pressable, Alert } from 'react-native';
+import { View, ScrollView, StyleSheet, Pressable, Alert } from 'react-native';
+import { useRouter } from 'expo-router';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
+import Svg, { Polyline } from 'react-native-svg';
 import { useAuth } from '@/lib/auth';
 import { useProfile } from '@/lib/hooks/useProfile';
 import { useUserBadges } from '@/lib/hooks/useUserBadges';
-import { ScreenHeader, BackButton } from '@/components/ScreenHeader';
 import { BadgeList } from '@/components/BadgeList';
 import { EditPartnerProfileSheet } from '@/components/EditPartnerProfileSheet';
 import { CardTemplateDefaultSheet } from '@/components/CardTemplateDefaultSheet';
+import { H1, Body, Caption, Eyebrow } from '@/components/Typography';
+import { colors, spacing, borderRadius } from '@/constants/theme';
 
 /**
- * 설정 페이지 — 2026-05-13 통합.
- * 이전 profile.tsx 의 segmented "설정" 탭과 우상단 톱니의 중복 진입점 정리.
- * 우상단 톱니 → 이 페이지 단일 진입.
+ * 설정 페이지 — 매거진 톤 redesign A.
+ * 표지 (Display 타이틀) + hairline divider 메뉴 + sepia 배지 섹션.
  */
 export default function SettingsScreen() {
+  const router = useRouter();
+  const insets = useSafeAreaInsets();
   const { user, signOut } = useAuth();
   const { profile } = useProfile(user?.id, user?.email);
   const { badges: userBadges, allBadges, loadBadges } = useUserBadges(user?.id);
   const [showCardTemplate, setShowCardTemplate] = useState(false);
   const [showPartnerEdit, setShowPartnerEdit] = useState(false);
 
-  // useUserBadges 는 자동 로드 안 함 — 마운트 시 명시적 호출.
   useEffect(() => { loadBadges(); }, [loadBadges]);
 
   function confirmSignOut() {
@@ -33,41 +37,54 @@ export default function SettingsScreen() {
 
   return (
     <View style={styles.container}>
-      <ScreenHeader
-        variant="centered"
-        title="설정"
-        left={<BackButton fallbackPath="/(tabs)/profile" />}
-      />
+      <ScrollView contentContainerStyle={{ paddingTop: insets.top + spacing.md, paddingBottom: spacing.xxl }}>
+        {/* 표지 — back 버튼 + 큰 serif italic 제목 */}
+        <View style={styles.cover}>
+          <Pressable
+            onPress={() => router.canGoBack() ? router.back() : router.replace('/(tabs)/profile' as any)}
+            hitSlop={8}
+            style={styles.backBtn}
+          >
+            <Svg width={22} height={22} fill="none" stroke={colors.textWarm} strokeWidth={1.8} viewBox="0 0 24 24">
+              <Polyline points="15 18 9 12 15 6" />
+            </Svg>
+          </Pressable>
+          <Eyebrow tone="warmMuted" style={styles.eyebrow}>ACCOUNT</Eyebrow>
+          <H1 tone="warm" style={styles.coverTitle}>설정</H1>
+        </View>
 
-      <ScrollView contentContainerStyle={{ paddingBottom: 40 }}>
-        <Pressable style={styles.menuRow} onPress={() => setShowCardTemplate(true)}>
-          <View style={styles.menuLeft}>
-            <Ionicons name="color-palette-outline" size={20} color="#222" />
-            <Text style={styles.menuLabel}>내 카드 디자인</Text>
-          </View>
-          <Ionicons name="chevron-forward" size={18} color="#bbb" />
-        </Pressable>
+        <View style={styles.divider} />
+
+        <MenuRow
+          icon="color-palette-outline"
+          label="내 카드 디자인"
+          onPress={() => setShowCardTemplate(true)}
+        />
 
         {profile?.is_partner ? (
-          <Pressable style={styles.menuRow} onPress={() => setShowPartnerEdit(true)}>
-            <View style={styles.menuLeft}>
-              <Ionicons name="ribbon-outline" size={20} color="#7b2d4e" />
-              <Text style={[styles.menuLabel, { color: '#7b2d4e' }]}>파트너 소개 편집</Text>
-            </View>
-            <Ionicons name="chevron-forward" size={18} color="#bbb" />
-          </Pressable>
+          <MenuRow
+            icon="ribbon-outline"
+            label="파트너 소개 편집"
+            tone="primary"
+            onPress={() => setShowPartnerEdit(true)}
+          />
         ) : null}
 
-        <View style={styles.badgeSection}>
-          <Text style={styles.sectionTitle}>배지 ({userBadges.length}/{allBadges.length})</Text>
+        {/* 배지 섹션 — eyebrow + 큰 serif 카운트 */}
+        <View style={styles.section}>
+          <Eyebrow tone="warmMuted" style={styles.sectionEyebrow}>
+            BADGES · {userBadges.length}/{allBadges.length}
+          </Eyebrow>
           <BadgeList
             allBadges={allBadges}
             earnedIds={new Set(userBadges.map((b: any) => b.badge_id))}
           />
         </View>
 
+        <View style={styles.divider} />
+
         <Pressable style={styles.signOutBtn} onPress={confirmSignOut}>
-          <Text style={styles.signOutText}>로그아웃</Text>
+          <Caption tone="warmMuted">로그아웃</Caption>
         </Pressable>
       </ScrollView>
 
@@ -85,21 +102,54 @@ export default function SettingsScreen() {
   );
 }
 
+function MenuRow({
+  icon, label, tone = 'default', onPress,
+}: {
+  icon: keyof typeof Ionicons.glyphMap;
+  label: string;
+  tone?: 'default' | 'primary';
+  onPress: () => void;
+}) {
+  const color = tone === 'primary' ? colors.primary : colors.textWarm;
+  return (
+    <Pressable style={styles.menuRow} onPress={onPress}>
+      <View style={styles.menuLeft}>
+        <Ionicons name={icon} size={20} color={color} />
+        <Body style={{ color }}>{label}</Body>
+      </View>
+      <Ionicons name="chevron-forward" size={18} color={colors.textLight} />
+    </Pressable>
+  );
+}
+
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#fff' },
+  container: { flex: 1, backgroundColor: colors.cream },
+
+  // ─── Cover ───
+  cover: { paddingHorizontal: spacing.md, paddingBottom: spacing.lg },
+  backBtn: { width: 32, height: 32, justifyContent: 'center', marginLeft: -spacing.xs, marginBottom: spacing.base },
+  eyebrow: { letterSpacing: 2, marginBottom: spacing.sm },
+  coverTitle: { fontSize: 30, lineHeight: 36, letterSpacing: -0.6 },
+
+  divider: {
+    height: 1, backgroundColor: colors.borderStrong,
+    marginHorizontal: spacing.md,
+  },
+
+  // ─── 메뉴 행 — 박스 X, hairline divider 만 ───
   menuRow: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
-    paddingHorizontal: 20, paddingVertical: 14,
-    borderBottomWidth: 1, borderBottomColor: '#f5f5f5',
+    paddingHorizontal: spacing.md, paddingVertical: spacing.md,
+    borderBottomWidth: 1, borderBottomColor: colors.borderStrong,
   },
-  menuLeft: { flexDirection: 'row', alignItems: 'center', gap: 12 },
-  menuLabel: { fontSize: 14, color: '#222' },
-  badgeSection: { paddingHorizontal: 20, paddingVertical: 16 },
-  sectionTitle: { fontSize: 13, fontWeight: '700', color: '#222', marginBottom: 10 },
+  menuLeft: { flexDirection: 'row', alignItems: 'center', gap: spacing.base },
+
+  // ─── 배지 섹션 ───
+  section: { paddingHorizontal: spacing.md, paddingVertical: spacing.lg },
+  sectionEyebrow: { letterSpacing: 1.5, marginBottom: spacing.base },
+
   signOutBtn: {
-    marginHorizontal: 20, marginTop: 24, marginBottom: 12,
-    paddingVertical: 12, borderRadius: 8,
-    alignItems: 'center', borderWidth: 1, borderColor: '#eee',
+    alignItems: 'center', marginTop: spacing.lg, marginBottom: spacing.base,
+    paddingVertical: spacing.base,
   },
-  signOutText: { fontSize: 13, color: '#999' },
 });

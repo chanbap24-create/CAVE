@@ -1,16 +1,18 @@
 import React, { useState } from 'react';
 import {
-  View, Text, TextInput, FlatList, ScrollView, Pressable, StyleSheet, ActivityIndicator, Dimensions,
+  View, TextInput, FlatList, ScrollView, Pressable, StyleSheet, ActivityIndicator, Dimensions,
 } from 'react-native';
 import { useRouter } from 'expo-router';
-import { ScreenHeader } from '@/components/ScreenHeader';
-import { Image } from 'expo-image';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { CardImage } from '@/components/CardImage';
 import { useWineSearch } from '@/lib/hooks/useWineSearch';
 import { useIsPartner } from '@/lib/hooks/useIsPartner';
 import { usePartnerWineMenu } from '@/lib/hooks/usePartnerWineMenu';
 import { useAllPartnerSales, type PartnerSale } from '@/lib/hooks/useAllPartnerSales';
 import { PartnerMenuList } from '@/components/PartnerMenuList';
 import { AddPartnerWineSheet } from '@/components/AddPartnerWineSheet';
+import { H1, BodyBold, Body, Caption, Eyebrow } from '@/components/Typography';
+import { colors, spacing, borderRadius, fontSize } from '@/constants/theme';
 
 type Mode = 'browse' | 'menu';
 
@@ -21,16 +23,17 @@ type Mode = 'browse' | 'menu';
  */
 export default function WinesSearchScreen() {
   const router = useRouter();
+  const insets = useSafeAreaInsets();
   const { isPartner } = useIsPartner();
   const [mode, setMode] = useState<Mode>('browse');
 
   return (
     <View style={styles.container}>
-      <ScreenHeader
-        variant="centered"
-        title="검색"
-        right={isPartner && mode === 'menu' ? <AddPartnerMenuButton /> : undefined}
-      />
+      <View style={[styles.cover, { paddingTop: insets.top + spacing.lg }]}>
+        <Caption tone="warmMuted" style={styles.coverEyebrow}>CATALOG</Caption>
+        <H1 tone="warm" style={styles.coverTitle}>주류 도감</H1>
+        <Caption tone="warmMuted" style={styles.coverSub}>찾고 싶은 와인을 직접 검색하세요</Caption>
+      </View>
 
       {isPartner && (
         <View style={styles.segmentedWrap}>
@@ -47,7 +50,7 @@ export default function WinesSearchScreen() {
 function Segmented({ label, active, onPress }: { label: string; active: boolean; onPress: () => void }) {
   return (
     <Pressable style={[styles.segment, active && styles.segmentActive]} onPress={onPress}>
-      <Text style={[styles.segmentText, active && styles.segmentTextActive]}>{label}</Text>
+      <Body style={[styles.segmentText, active && styles.segmentTextActive]}>{label}</Body>
     </Pressable>
   );
 }
@@ -78,14 +81,14 @@ function BrowseMode({ router }: { router: ReturnType<typeof useRouter> }) {
           value={query}
           onChangeText={handleChange}
           placeholder="와인 이름 / 생산자 / 지역 검색"
-          placeholderTextColor="#bbb"
+          placeholderTextColor={colors.textLight}
           autoCapitalize="none"
           autoCorrect={false}
           returnKeyType="search"
         />
         {query.length > 0 && (
           <Pressable onPress={() => { setQuery(''); clearResults(); }} hitSlop={8}>
-            <Text style={styles.clear}>✕</Text>
+            <Caption tone="muted" style={styles.clear}>✕</Caption>
           </Pressable>
         )}
       </View>
@@ -114,12 +117,12 @@ function SearchResultList({
   loading: boolean;
   onTap: (id: number) => void;
 }) {
-  if (loading) return <ActivityIndicator color="#7b2d4e" style={{ marginTop: 24 }} />;
+  if (loading) return <ActivityIndicator color={colors.primary} style={{ marginTop: spacing.lg }} />;
   if (results.length === 0) {
     return (
-      <Text style={styles.empty}>
+      <Caption tone="warmMuted" style={styles.empty}>
         검색 결과가 없어요. 라벨을 스캔하면 셀러에 등록되며 여기서도 찾을 수 있어요.
-      </Text>
+      </Caption>
     );
   }
   return (
@@ -130,15 +133,15 @@ function SearchResultList({
       renderItem={({ item }) => (
         <Pressable style={styles.row} onPress={() => onTap(item.id)}>
           <View style={{ flex: 1 }}>
-            <Text style={styles.rowName} numberOfLines={1}>{item.name}</Text>
+            <BodyBold tone="warm" numberOfLines={1}>{item.name}</BodyBold>
             {item.name_ko && (
-              <Text style={styles.rowNameKo} numberOfLines={1}>{item.name_ko}</Text>
+              <Caption tone="warmMuted" numberOfLines={1} style={{ marginTop: 2 }}>{item.name_ko}</Caption>
             )}
-            <Text style={styles.rowMeta}>
+            <Caption tone="muted" style={{ marginTop: spacing.xs }}>
               {[item.country, item.region].filter(Boolean).join(' · ') || '지역 정보 없음'}
-            </Text>
+            </Caption>
           </View>
-          <Text style={styles.rowChevron}>›</Text>
+          <Caption tone="muted" style={styles.rowChevron}>›</Caption>
         </Pressable>
       )}
     />
@@ -160,21 +163,21 @@ function SalesList({
   onTap: (wineId: number) => void;
 }) {
   if (loading && sales.length === 0) {
-    return <ActivityIndicator color="#7b2d4e" style={{ marginTop: 24 }} />;
+    return <ActivityIndicator color={colors.primary} style={{ marginTop: spacing.lg }} />;
   }
   if (sales.length === 0) {
     return (
       <View style={styles.hintWrap}>
-        <Text style={styles.hintTitle}>판매 중인 와인이 아직 없어요</Text>
-        <Text style={styles.hint}>
+        <BodyBold tone="warm">판매 중인 와인이 아직 없어요</BodyBold>
+        <Caption tone="warmMuted" style={styles.hint}>
           파트너가 메뉴를 등록하면 여기서 둘러볼 수 있어요. 검색바로 카탈로그를 찾아보세요.
-        </Text>
+        </Caption>
       </View>
     );
   }
   return (
     <View>
-      <Text style={styles.salesHeading}>판매 중인 와인 ({sales.length})</Text>
+      <Eyebrow tone="warmMuted" style={styles.salesHeading}>판매 중 · {sales.length}</Eyebrow>
       <ScrollView
         horizontal
         showsHorizontalScrollIndicator={false}
@@ -189,23 +192,21 @@ function SalesList({
             onPress={() => onTap(item.wine_id)}
           >
             {item.wine?.image_url ? (
-              <Image
+              <CardImage
                 source={item.wine.image_url}
                 style={[styles.saleCardImg, { width: SALES_CARD_W, height: SALES_CARD_W }]}
-                contentFit="cover"
-                cachePolicy="memory-disk"
               />
             ) : (
               <View style={[styles.saleCardImg, styles.saleCardImgPlaceholder, { width: SALES_CARD_W, height: SALES_CARD_W }]} />
             )}
             <View style={styles.saleCardBody}>
-              <Text style={styles.saleCardName} numberOfLines={2}>
+              <BodyBold tone="warm" numberOfLines={2} style={styles.saleCardName}>
                 {item.wine?.name ?? '와인'}
-              </Text>
-              <Text style={styles.salePartner} numberOfLines={1}>
+              </BodyBold>
+              <Caption tone="primary" numberOfLines={1}>
                 {item.partner?.partner_label || item.partner?.display_name || item.partner?.username || '파트너'}
-              </Text>
-              <Text style={styles.salePrice}>{item.price.toLocaleString('ko-KR')}원</Text>
+              </Caption>
+              <BodyBold tone="primary" style={styles.salePrice}>{item.price.toLocaleString('ko-KR')}원</BodyBold>
             </View>
           </Pressable>
         ))}
@@ -233,19 +234,19 @@ function PartnerMenuMode() {
   return (
     <View style={{ flex: 1 }}>
       <View style={styles.menuHeader}>
-        <Text style={styles.menuCount}>
+        <Body tone="warmMuted" style={styles.menuCount}>
           판매 와인 {items.length}개
-        </Text>
+        </Body>
         <Pressable
           style={styles.addBtn}
           onPress={() => setSheetOpen(true)}
         >
-          <Text style={styles.addBtnText}>＋ 와인 등록</Text>
+          <Caption tone="inverse" style={styles.addBtnText}>＋ 와인 등록</Caption>
         </Pressable>
       </View>
 
       {loading && items.length === 0 ? (
-        <ActivityIndicator color="#7b2d4e" style={{ marginTop: 24 }} />
+        <ActivityIndicator color={colors.primary} style={{ marginTop: spacing.lg }} />
       ) : (
         <FlatList
           data={items}
@@ -274,78 +275,87 @@ function PartnerMenuMode() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#fff' },
+  container: { flex: 1, backgroundColor: colors.cream },
+
+  // ─── 매거진 표지 ───
+  cover: {
+    paddingHorizontal: spacing.md,
+    paddingBottom: spacing.lg,
+  },
+  coverEyebrow: { letterSpacing: 2, marginBottom: spacing.sm },
+  coverTitle: { fontSize: 30, lineHeight: 36, letterSpacing: -0.6, marginBottom: spacing.xs },
+  coverSub: { fontStyle: 'italic' },
 
   segmentedWrap: {
-    flexDirection: 'row', gap: 4,
-    paddingHorizontal: 16, paddingVertical: 10,
-    borderBottomWidth: 1, borderBottomColor: '#f5f5f5',
+    flexDirection: 'row', gap: spacing.xs,
+    paddingHorizontal: spacing.md, paddingVertical: spacing.sm,
+    borderBottomWidth: 1, borderBottomColor: colors.borderStrong,
   },
   segment: {
-    flex: 1, paddingVertical: 8, borderRadius: 8,
-    backgroundColor: '#fafafa', alignItems: 'center',
+    flex: 1, paddingVertical: spacing.sm, borderRadius: borderRadius.sm,
+    backgroundColor: colors.background, alignItems: 'center',
+    borderWidth: 1, borderColor: colors.borderStrong,
   },
-  segmentActive: { backgroundColor: '#7b2d4e' },
-  segmentText: { fontSize: 13, fontWeight: '600', color: '#999' },
+  segmentActive: { backgroundColor: colors.primary, borderColor: colors.primary },
+  segmentText: { color: colors.textWarmMuted, fontWeight: '600' },
   segmentTextActive: { color: '#fff' },
 
   searchWrap: {
-    flexDirection: 'row', alignItems: 'center', gap: 8,
-    paddingHorizontal: 16, paddingVertical: 10,
-    borderBottomWidth: 1, borderBottomColor: '#f5f5f5',
+    flexDirection: 'row', alignItems: 'center', gap: spacing.sm,
+    paddingHorizontal: spacing.md, paddingVertical: spacing.sm,
+    borderBottomWidth: 1, borderBottomColor: colors.borderStrong,
+    backgroundColor: colors.cream,
   },
   input: {
-    flex: 1, borderWidth: 1, borderColor: '#eee', borderRadius: 10,
-    paddingHorizontal: 12, paddingVertical: 10, fontSize: 14,
-    backgroundColor: '#fafafa',
+    flex: 1, borderWidth: 1, borderColor: colors.borderStrong, borderRadius: borderRadius.md,
+    paddingHorizontal: spacing.base, paddingVertical: spacing.sm, fontSize: fontSize.body,
+    backgroundColor: colors.background,
+    color: colors.text,
   },
-  clear: { fontSize: 14, color: '#999', paddingHorizontal: 6 },
+  clear: { paddingHorizontal: spacing.xs },
 
-  empty: { fontSize: 13, color: '#999', textAlign: 'center', marginTop: 32, paddingHorizontal: 24, lineHeight: 19 },
-  hintWrap: { paddingHorizontal: 24, paddingVertical: 32, alignItems: 'center' },
-  hintTitle: { fontSize: 16, fontWeight: '700', color: '#444', marginBottom: 6 },
-  hint: { fontSize: 13, color: '#999', textAlign: 'center', lineHeight: 19 },
+  empty: {
+    textAlign: 'center', marginTop: spacing.xl,
+    paddingHorizontal: spacing.lg, lineHeight: 19,
+  },
+  hintWrap: { paddingHorizontal: spacing.lg, paddingVertical: spacing.xl, alignItems: 'center', gap: spacing.sm },
+  hint: { textAlign: 'center', lineHeight: 19 },
 
   row: {
     flexDirection: 'row', alignItems: 'center',
-    paddingHorizontal: 20, paddingVertical: 12,
-    borderBottomWidth: 1, borderBottomColor: '#f5f5f5',
+    paddingHorizontal: spacing.md, paddingVertical: spacing.base,
+    borderBottomWidth: 1, borderBottomColor: colors.borderStrong,
   },
-  rowName: { fontSize: 14, fontWeight: '600', color: '#222' },
-  rowNameKo: { fontSize: 12, color: '#666', marginTop: 2 },
-  rowMeta: { fontSize: 11, color: '#999', marginTop: 4 },
-  rowChevron: { fontSize: 18, color: '#ccc', marginLeft: 8 },
+  rowChevron: { fontSize: 18, marginLeft: spacing.sm },
 
-  // 판매 중인 와인 — 카드 가로 스크롤 (2.5 visible)
+  // 판매 중 — 가로 카드
   salesHeading: {
-    fontSize: 12, fontWeight: '700', color: '#999',
-    textTransform: 'uppercase', letterSpacing: 0.5,
-    paddingHorizontal: 20, paddingTop: 16, paddingBottom: 10,
+    paddingHorizontal: spacing.md, paddingTop: spacing.md, paddingBottom: spacing.sm,
+    letterSpacing: 1.5,
   },
   salesScroll: { paddingLeft: SALES_PADDING, paddingRight: SALES_PADDING / 2 },
   saleCard: {
     marginRight: SALES_GAP,
-    backgroundColor: '#fff',
-    borderRadius: 10,
-    borderWidth: 1, borderColor: '#eee',
+    backgroundColor: colors.background,
+    borderRadius: borderRadius.md,
+    borderWidth: 1, borderColor: colors.border,
     overflow: 'hidden',
   },
-  saleCardImg: { backgroundColor: '#f0eaec' },
+  saleCardImg: { backgroundColor: colors.creamDeep },
   saleCardImgPlaceholder: {},
-  saleCardBody: { padding: 10, gap: 4 },
-  saleCardName: { fontSize: 13, fontWeight: '600', color: '#222', lineHeight: 17 },
-  salePartner: { fontSize: 11, color: '#7b2d4e', fontWeight: '500' },
-  salePrice: { fontSize: 14, fontWeight: '700', color: '#7b2d4e', marginTop: 2 },
+  saleCardBody: { padding: spacing.sm, gap: spacing.xs },
+  saleCardName: { lineHeight: 18 },
+  salePrice: { marginTop: 2 },
 
   menuHeader: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
-    paddingHorizontal: 20, paddingVertical: 12,
-    borderBottomWidth: 1, borderBottomColor: '#f5f5f5',
+    paddingHorizontal: spacing.md, paddingVertical: spacing.base,
+    borderBottomWidth: 1, borderBottomColor: colors.borderStrong,
   },
-  menuCount: { fontSize: 13, fontWeight: '600', color: '#666' },
+  menuCount: {},
   addBtn: {
-    paddingHorizontal: 14, paddingVertical: 8, borderRadius: 8,
-    backgroundColor: '#7b2d4e',
+    paddingHorizontal: spacing.base, paddingVertical: spacing.sm, borderRadius: borderRadius.sm,
+    backgroundColor: colors.primary,
   },
-  addBtnText: { color: '#fff', fontSize: 13, fontWeight: '700' },
+  addBtnText: { fontWeight: '700' },
 });

@@ -14,6 +14,7 @@ import { DiscoverSectionHeader } from '@/components/DiscoverSectionHeader';
 import { DiscoverBrandBar } from '@/components/DiscoverBrandBar';
 import { HomeQuickActionsGrid } from '@/components/HomeQuickActionsGrid';
 import { HORIZONTAL_PADDING } from '@/lib/utils/discoverCardWidth';
+import { colors, spacing } from '@/constants/theme';
 
 const REFRESH_CACHE_MS = 30_000;
 
@@ -52,7 +53,7 @@ export default function ExploreScreen() {
   }, [loadFeatured, loadGatherings]);
 
   const refreshControl = (
-    <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#7b2d4e" />
+    <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.primary} />
   );
 
   return (
@@ -101,10 +102,10 @@ export default function ExploreScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#fff' },
+  container: { flex: 1, backgroundColor: colors.background },
 
-  cavesWrap: { marginTop: 48 },
-  trendingWrap: { marginTop: 48 },
+  cavesWrap: { marginTop: spacing.xxl },
+  trendingWrap: { marginTop: spacing.xxl },
   scrollRow: {
     paddingLeft: HORIZONTAL_PADDING, paddingRight: HORIZONTAL_PADDING / 2,
   },

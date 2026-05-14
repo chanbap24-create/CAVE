@@ -1,9 +1,11 @@
 import React from 'react';
-import { View, Text, Pressable, StyleSheet } from 'react-native';
+import { View, Pressable, StyleSheet } from 'react-native';
 import { CardImage } from '@/components/CardImage';
 import { useRouter } from 'expo-router';
 import { PartnerBadge } from '@/components/PartnerBadge';
 import { StarRating } from '@/components/StarRating';
+import { BodyBold, Body, BodyLg, Caption, H2 } from '@/components/Typography';
+import { colors, spacing, borderRadius, fontWeight } from '@/constants/theme';
 import { timeAgo } from '@/lib/utils/dateUtils';
 import type { TastingReview } from '@/lib/hooks/useTastingReviews';
 
@@ -11,58 +13,66 @@ interface Props {
   reviews: TastingReview[];
 }
 
-/** 시음 후기 피드 — 셀러 등록 시 작성한 tasting_note 한 건당 한 행. */
+const AVATAR = 32;
+
+/**
+ * 시음 후기 피드 — 매거진식 노트북 엔트리 (2026-05-14 redesign A).
+ *
+ * 카드/박스 X. 큰 serif italic 와인 이름 + body 노트 + hairline divider.
+ * 작성자/시간/별점은 상단 메타 한 줄로 절제.
+ */
 export function TastingReviewsFeed({ reviews }: Props) {
   const router = useRouter();
   if (reviews.length === 0) {
     return (
       <View style={styles.emptyWrap}>
-        <Text style={styles.emptyTitle}>아직 시음 후기가 없어요</Text>
-        <Text style={styles.emptyDesc}>
-          셀러에 와인을 추가하면서 시음 노트를 작성하면{'\n'}여기에 모입니다.
-        </Text>
+        <BodyLg tone="warm">아직 시음 후기가 없어요</BodyLg>
+        <Caption tone="warmMuted" style={styles.emptyDesc}>
+          셀러에 와인을 추가하면서{'\n'}시음 노트를 작성하면 여기에 모입니다.
+        </Caption>
       </View>
     );
   }
   return (
     <View>
-      {reviews.map(r => (
+      {reviews.map((r, idx) => (
         <Pressable
           key={r.id}
-          style={styles.row}
-          onPress={() => router.push(`/wine/${r.id}` as any)}
+          style={styles.entry}
+          onPress={() => router.push(`/wine/${r.id}?from=reviews` as any)}
         >
-          <View style={styles.headerRow}>
+          {/* 메타 — 작성자 / 시간 / 별점 한 줄 */}
+          <View style={styles.metaRow}>
             {r.owner?.avatar_url ? (
               <CardImage source={r.owner.avatar_url} style={styles.avatar} />
             ) : (
               <View style={[styles.avatar, styles.avatarPlaceholder]}>
-                <Text style={styles.avatarChar}>
+                <Caption tone="warmMuted" style={styles.avatarChar}>
                   {(r.owner?.display_name || r.owner?.username || '?')[0]?.toUpperCase()}
-                </Text>
+                </Caption>
               </View>
             )}
-            <View style={{ flex: 1 }}>
-              <View style={styles.nameRow}>
-                <Text style={styles.author} numberOfLines={1}>
-                  {r.owner?.display_name || r.owner?.username || '익명'}
-                </Text>
-                {r.owner?.is_partner ? <PartnerBadge label={r.owner.partner_label} size="sm" /> : null}
-              </View>
-              <Text style={styles.time}>{timeAgo(r.created_at)}</Text>
-            </View>
-            {r.rating ? <RatingStars rating={r.rating} /> : null}
+            <Caption tone="warm" style={styles.author} numberOfLines={1}>
+              {r.owner?.display_name || r.owner?.username || '익명'}
+              {r.owner?.username && r.owner?.display_name ? `  @${r.owner.username}` : ''}
+            </Caption>
+            {r.owner?.is_partner ? <PartnerBadge label={r.owner.partner_label} size="sm" /> : null}
+            <View style={{ flex: 1 }} />
+            {r.rating ? <StarRating rating={r.rating} size={12} gap={1} /> : null}
+            <Caption tone="warmMuted">{timeAgo(r.created_at)}</Caption>
           </View>
 
+          {/* 와인 이름 — sans bold 매거진 헤드라인 */}
           {r.wine ? (
-            <Text style={styles.wine} numberOfLines={1}>
-              🍷 {r.wine.name}
-              {r.wine.vintage_year ? ` ${r.wine.vintage_year}` : ''}
-            </Text>
+            <H2 tone="warm" style={styles.wine} numberOfLines={2}>
+              {r.wine.name}
+              {r.wine.vintage_year ? ` · ${r.wine.vintage_year}` : ''}
+            </H2>
           ) : null}
 
+          {/* 노트 본문 + 사진 */}
           <View style={styles.body}>
-            <Text style={styles.note} numberOfLines={6}>{r.tasting_note}</Text>
+            <Body tone="warm" style={styles.note} numberOfLines={5}>{r.tasting_note}</Body>
             {r.photo_url || r.wine?.image_url ? (
               <CardImage
                 source={r.photo_url || r.wine?.image_url}
@@ -70,40 +80,65 @@ export function TastingReviewsFeed({ reviews }: Props) {
               />
             ) : null}
           </View>
+
+          {/* hairline divider — 마지막 항목 제외 */}
+          {idx < reviews.length - 1 ? <View style={styles.divider} /> : null}
         </Pressable>
       ))}
     </View>
   );
 }
 
-function RatingStars({ rating }: { rating: number }) {
-  return <StarRating rating={rating} size={13} gap={1} />;
-}
-
 const styles = StyleSheet.create({
-  row: {
-    paddingHorizontal: 20, paddingVertical: 16,
-    borderBottomWidth: 1, borderBottomColor: '#f0f0f0',
+  // 한 엔트리 = 노트북 한 페이지의 entry 정서.
+  entry: {
+    paddingHorizontal: spacing.md,
+    paddingTop: spacing.lg,
+    paddingBottom: spacing.lg,
   },
-  headerRow: { flexDirection: 'row', alignItems: 'center', gap: 10 },
-  avatar: { width: 36, height: 36, borderRadius: 18 },
-  avatarPlaceholder: { backgroundColor: '#e0e0e0', alignItems: 'center', justifyContent: 'center' },
-  avatarChar: { fontSize: 13, fontWeight: '700', color: '#999' },
 
-  nameRow: { flexDirection: 'row', alignItems: 'center', gap: 6, flexWrap: 'wrap' },
-  author: { fontSize: 13, fontWeight: '700', color: '#222' },
-  time: { fontSize: 11, color: '#999', marginTop: 2 },
+  metaRow: {
+    flexDirection: 'row', alignItems: 'center', gap: spacing.sm,
+    marginBottom: spacing.base,
+  },
+  avatar: { width: AVATAR, height: AVATAR, borderRadius: AVATAR / 2 },
+  avatarPlaceholder: {
+    backgroundColor: colors.creamDeep,
+    alignItems: 'center', justifyContent: 'center',
+  },
+  avatarChar: { fontWeight: fontWeight.bold as any },
+  author: {},
 
-  wine: { fontSize: 12, color: '#7b2d4e', marginTop: 8, marginLeft: 46, fontWeight: '500' },
+  // 와인 이름 — sans bold (Korean editorial 톤)
+  wine: {
+    fontSize: 19,
+    lineHeight: 25,
+    letterSpacing: -0.3,
+    marginBottom: spacing.base,
+  },
 
   body: {
-    flexDirection: 'row', gap: 12, alignItems: 'flex-start',
-    marginTop: 8, marginLeft: 46,
+    flexDirection: 'row',
+    gap: spacing.base,
+    alignItems: 'flex-start',
   },
-  note: { flex: 1, fontSize: 13, color: '#444', lineHeight: 19 },
-  thumb: { width: 64, height: 64, borderRadius: 8, backgroundColor: '#f0eaec' },
+  note: { flex: 1, lineHeight: 21 },
+  thumb: {
+    width: 84, height: 84,
+    borderRadius: borderRadius.xs,
+    backgroundColor: colors.creamDeep,
+  },
 
-  emptyWrap: { padding: 40, alignItems: 'center' },
-  emptyTitle: { fontSize: 14, fontWeight: '600', color: '#444', marginBottom: 8 },
-  emptyDesc: { fontSize: 12, color: '#888', textAlign: 'center', lineHeight: 18 },
+  divider: {
+    height: 1,
+    backgroundColor: colors.borderStrong,
+    marginTop: spacing.lg,
+    marginHorizontal: -spacing.md, // 카드 패딩 무시하고 풀폭
+  },
+
+  emptyWrap: {
+    paddingHorizontal: spacing.md, paddingVertical: spacing.xxl,
+    alignItems: 'center', gap: spacing.sm,
+  },
+  emptyDesc: { textAlign: 'center', lineHeight: 18 },
 });

@@ -1,5 +1,7 @@
 import React from 'react';
-import { View, Text, Pressable, StyleSheet } from 'react-native';
+import { View, Pressable, StyleSheet } from 'react-native';
+import { BodyBold, Caption, Eyebrow } from '@/components/Typography';
+import { colors, spacing } from '@/constants/theme';
 
 interface Props {
   title: string;
@@ -7,23 +9,25 @@ interface Props {
   /** 우측 액션 라벨 (default '더보기'). null 이면 미노출 */
   actionLabel?: string | null;
   onActionPress?: () => void;
+  /** Eyebrow 라벨 — 섹션 위 작은 카테고리 표시 */
+  eyebrow?: string;
 }
 
 /**
- * Discover 섹션 헤더 — 트레바리/데일리샷 스타일의 에디토리얼 톤.
- * 모든 가로 스크롤/그리드 섹션 위에 일관되게 사용. 제목+부제 2줄 구조 +
- * 우측 액션(더보기). 섹션 간 시각적 리듬 통일.
+ * 섹션 헤더 — Eyebrow (선택) + Bold 한글 제목 + 우측 더보기.
+ * 매거진 톤 통일 (2026-05-14 redesign A).
  */
-export function DiscoverSectionHeader({ title, subtitle, actionLabel = '더보기', onActionPress }: Props) {
+export function DiscoverSectionHeader({ title, subtitle, actionLabel = '더보기', onActionPress, eyebrow }: Props) {
   return (
     <View style={styles.wrap}>
       <View style={{ flex: 1 }}>
-        <Text style={styles.title}>{title}</Text>
-        {subtitle ? <Text style={styles.subtitle}>{subtitle}</Text> : null}
+        {eyebrow ? <Eyebrow tone="warmMuted" style={styles.eyebrow}>{eyebrow}</Eyebrow> : null}
+        <BodyBold tone="warm" style={styles.title}>{title}</BodyBold>
+        {subtitle ? <Caption tone="warmMuted" style={styles.subtitle}>{subtitle}</Caption> : null}
       </View>
       {actionLabel && onActionPress ? (
         <Pressable onPress={onActionPress} hitSlop={6}>
-          <Text style={styles.action}>{actionLabel} ›</Text>
+          <Caption tone="primary" style={styles.action}>{actionLabel} ›</Caption>
         </Pressable>
       ) : null}
     </View>
@@ -33,9 +37,10 @@ export function DiscoverSectionHeader({ title, subtitle, actionLabel = '더보�
 const styles = StyleSheet.create({
   wrap: {
     flexDirection: 'row', alignItems: 'flex-end', justifyContent: 'space-between',
-    paddingHorizontal: 20, marginBottom: 12, marginTop: 4,
+    paddingHorizontal: spacing.md, marginBottom: spacing.base, marginTop: spacing.xs,
   },
-  title: { fontSize: 18, fontWeight: '700', color: '#1a1a1a', letterSpacing: -0.3 },
-  subtitle: { fontSize: 12, color: '#888', marginTop: 4, lineHeight: 16 },
-  action: { fontSize: 12, color: '#7b2d4e', fontWeight: '600' },
+  eyebrow: { letterSpacing: 1.5, marginBottom: spacing.xs },
+  title: { fontSize: 18, letterSpacing: -0.3 },
+  subtitle: { marginTop: spacing.xs, lineHeight: 16 },
+  action: { fontWeight: '600' },
 });

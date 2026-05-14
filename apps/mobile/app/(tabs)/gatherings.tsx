@@ -1,12 +1,14 @@
 import React, { useState, useCallback, useMemo } from 'react';
-import { View, Text, ScrollView, StyleSheet, Pressable, RefreshControl, TextInput } from 'react-native';
+import { View, ScrollView, StyleSheet, Pressable, RefreshControl, TextInput } from 'react-native';
 import { useFocusEffect, useRouter } from 'expo-router';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Svg, { Line, Circle, Path } from 'react-native-svg';
 import { useGatherings, type Gathering } from '@/lib/hooks/useGatherings';
 import { GatheringCompactRow } from '@/components/GatheringCompactRow';
 import { CreateGatheringSheet } from '@/components/CreateGatheringSheet';
 import { CategoryChips } from '@/components/CategoryChips';
-import { ScreenHeader } from '@/components/ScreenHeader';
+import { H1, H2, Body, Caption, BodyBold } from '@/components/Typography';
+import { colors, spacing, borderRadius, fontSize } from '@/constants/theme';
 import { CATEGORY_FILTERS, CATEGORY_DB_MAP } from '@/lib/constants/drinkCategories';
 
 // Time-of-day boundary for "this week / next week / later" grouping.
@@ -72,6 +74,7 @@ function matchesSearch(g: Gathering, q: string): boolean {
 
 export default function GatheringsScreen() {
   const router = useRouter();
+  const insets = useSafeAreaInsets();
   const [activeCat, setActiveCat] = useState('전체');
   const categoryKey = activeCat !== '전체' ? CATEGORY_DB_MAP[activeCat] : null;
   const { gatherings, loading, loadGatherings } = useGatherings(categoryKey);
@@ -98,21 +101,23 @@ export default function GatheringsScreen() {
 
   return (
     <View style={styles.container}>
-      <ScreenHeader
-        variant="centered"
-        title="모임"
-        left={
+      {/* 매거진 표지 + 우상단 작은 + 버튼 */}
+      <View style={[styles.cover, { paddingTop: insets.top + spacing.lg }]}>
+        <View style={styles.coverHead}>
+          <Caption tone="warmMuted" style={styles.eyebrow}>SEASON · {gatherings.length}</Caption>
           <Pressable onPress={() => setShowCreate(true)} hitSlop={8}>
-            <Svg width={24} height={24} fill="none" stroke="#222" strokeWidth={1.8} viewBox="0 0 24 24">
+            <Svg width={22} height={22} fill="none" stroke={colors.textWarm} strokeWidth={1.8} viewBox="0 0 24 24">
               <Line x1={12} y1={5} x2={12} y2={19} />
               <Line x1={5} y1={12} x2={19} y2={12} />
             </Svg>
           </Pressable>
-        }
-      />
+        </View>
+        <H1 tone="warm" style={styles.coverTitle}>모임</H1>
+        <Caption tone="warmMuted" style={styles.coverSub}>한 잔을 위해 모이는 사람들</Caption>
+      </View>
 
       <View style={styles.searchWrap}>
-        <Svg width={14} height={14} fill="none" stroke="#999" strokeWidth={1.8} viewBox="0 0 24 24">
+        <Svg width={14} height={14} fill="none" stroke={colors.textMuted} strokeWidth={1.8} viewBox="0 0 24 24">
           <Circle cx={11} cy={11} r={8} />
           <Path d="M21 21l-4.35-4.35" />
         </Svg>
@@ -121,12 +126,12 @@ export default function GatheringsScreen() {
           value={query}
           onChangeText={setQuery}
           placeholder="제목·호스트·장소로 검색"
-          placeholderTextColor="#bbb"
+          placeholderTextColor={colors.textLight}
           returnKeyType="search"
         />
         {query ? (
           <Pressable onPress={() => setQuery('')} hitSlop={8}>
-            <Text style={styles.clear}>✕</Text>
+            <Caption tone="muted" style={styles.clear}>✕</Caption>
           </Pressable>
         ) : null}
       </View>
@@ -134,26 +139,28 @@ export default function GatheringsScreen() {
       <CategoryChips categories={CATEGORY_FILTERS} active={activeCat} onChange={setActiveCat} />
 
       <ScrollView
-        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#7b2d4e" />}
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.primary} />}
         keyboardShouldPersistTaps="handled"
       >
         {!hasAny && !loading ? (
           <View style={styles.empty}>
-            <Text style={styles.emptyTitle}>
+            <H2 style={styles.emptyTitle}>
               {query
                 ? '검색 결과가 없어요'
                 : activeCat === '전체'
                   ? '아직 등록된 모임이 없어요'
                   : `${activeCat} 카테고리 모임이 없어요`}
-            </Text>
-            <Text style={styles.emptyDesc}>
+            </H2>
+            <Body tone="muted">
               {query ? '검색어를 바꿔보세요' : activeCat === '전체' ? '+ 버튼으로 새 모임을 만들어보세요' : '다른 카테고리를 보거나 모임을 만들어보세요'}
-            </Text>
+            </Body>
           </View>
         ) : (
           sections.map(section => (
             <View key={section.key}>
-              <Text style={styles.sectionHeader}>{section.label} · {section.items.length}</Text>
+              <BodyBold tone="warm" style={styles.sectionHeader}>
+                {section.label}  ·  <Caption tone="warmMuted">{section.items.length}</Caption>
+              </BodyBold>
               {section.items.map(g => (
                 <GatheringCompactRow
                   key={g.id}
@@ -164,7 +171,7 @@ export default function GatheringsScreen() {
             </View>
           ))
         )}
-        <View style={{ height: 20 }} />
+        <View style={{ height: spacing.lg }} />
       </ScrollView>
 
       <CreateGatheringSheet
@@ -177,28 +184,43 @@ export default function GatheringsScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#fff' },
+  container: { flex: 1, backgroundColor: colors.cream },
 
+  // ─── 매거진 표지 ───
+  cover: {
+    paddingHorizontal: spacing.md,
+    paddingBottom: spacing.lg,
+  },
+  coverHead: {
+    flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
+    marginBottom: spacing.base,
+  },
+  eyebrow: { letterSpacing: 2 },
+  coverTitle: {
+    fontSize: 30, lineHeight: 36, letterSpacing: -0.6,
+    marginBottom: spacing.sm,
+  },
+  coverSub: { fontStyle: 'italic' },
+
+  // ─── 검색 + 카테고리 ───
   searchWrap: {
-    flexDirection: 'row', alignItems: 'center', gap: 8,
-    marginHorizontal: 16, marginTop: 8, marginBottom: 4,
-    paddingHorizontal: 12, paddingVertical: 8,
-    borderRadius: 10, backgroundColor: '#f5f5f5',
+    flexDirection: 'row', alignItems: 'center', gap: spacing.sm,
+    marginHorizontal: spacing.md, marginTop: spacing.sm, marginBottom: spacing.xs,
+    paddingHorizontal: spacing.base, paddingVertical: spacing.sm,
+    borderRadius: borderRadius.md,
+    backgroundColor: colors.background, // cream 위에 흰 검색바
+    borderWidth: 1, borderColor: colors.borderStrong,
   },
   searchInput: {
-    flex: 1, fontSize: 14, color: '#222',
-    paddingVertical: 0, // kill default TextInput vertical padding
+    flex: 1, fontSize: fontSize.body, color: colors.text,
+    paddingVertical: 0,
   },
-  clear: { fontSize: 14, color: '#999', paddingHorizontal: 4 },
+  clear: { paddingHorizontal: spacing.xs },
 
   sectionHeader: {
-    fontSize: 11, fontWeight: '700', color: '#999',
-    textTransform: 'uppercase', letterSpacing: 0.8,
-    paddingHorizontal: 20, paddingTop: 14, paddingBottom: 6,
-    backgroundColor: '#fafafa',
+    paddingHorizontal: spacing.md, paddingTop: spacing.lg, paddingBottom: spacing.sm,
   },
 
-  empty: { alignItems: 'center', paddingTop: 100 },
-  emptyTitle: { fontSize: 17, fontWeight: '600', color: '#222', marginBottom: 6 },
-  emptyDesc: { fontSize: 14, color: '#999' },
+  empty: { alignItems: 'center', paddingTop: 100, gap: spacing.sm },
+  emptyTitle: { marginBottom: spacing.xs },
 });

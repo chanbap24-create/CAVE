@@ -1,5 +1,5 @@
 import React, { useCallback, useState } from 'react';
-import { View, Text, ScrollView, RefreshControl, Pressable, StyleSheet, Alert } from 'react-native';
+import { View, ScrollView, RefreshControl, Pressable, StyleSheet, Alert } from 'react-native';
 import { useFocusEffect, useRouter } from 'expo-router';
 import { useAuth } from '@/lib/auth';
 import { supabase } from '@/lib/supabase';
@@ -7,6 +7,8 @@ import { useCollectionSocial } from '@/lib/hooks/useCollectionSocial';
 import { useCollectionPhoto } from '@/lib/hooks/useCollectionPhoto';
 import { ScreenHeader, BackButton } from '@/components/ScreenHeader';
 import { CellarList } from '@/components/CellarList';
+import { Body, Caption, Eyebrow, H1 } from '@/components/Typography';
+import { colors, spacing } from '@/constants/theme';
 import { CATEGORY_DB_MAP } from '@/lib/constants/drinkCategories';
 
 const caveTabs = ['전체', '와인', '양주', '전통주', '기타'];
@@ -80,32 +82,38 @@ export default function CellarAllScreen() {
 
   return (
     <View style={styles.container}>
-      <ScreenHeader
-        variant="centered"
-        title={`내 셀러 ${collections.length}병`}
-        left={<BackButton fallbackPath="/(tabs)/cellar" />}
-      />
+      <ScreenHeader title="" left={<BackButton fallbackPath="/(tabs)/profile" />} />
+
+      <View style={styles.cover}>
+        <Caption tone="warmMuted" style={styles.eyebrow}>MY CELLAR · {collections.length}</Caption>
+        <H1 tone="warm" style={styles.coverTitle}>내 셀러</H1>
+      </View>
 
       <View style={styles.tabRow}>
-        {caveTabs.map(c => (
-          <Pressable
-            key={c}
-            style={[styles.tab, activeCat === c && styles.tabActive]}
-            onPress={() => setActiveCat(c)}
-          >
-            <Text style={[styles.tabText, activeCat === c && styles.tabTextActive]}>{c}</Text>
-          </Pressable>
-        ))}
+        {caveTabs.map(c => {
+          const isActive = activeCat === c;
+          return (
+            <Pressable
+              key={c}
+              style={[styles.tab, isActive && styles.tabActive]}
+              onPress={() => setActiveCat(c)}
+            >
+              <Body tone={isActive ? 'warm' : 'warmMuted'} style={isActive ? styles.tabTextActive : undefined}>
+                {c}
+              </Body>
+            </Pressable>
+          );
+        })}
       </View>
 
       <ScrollView
-        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#7b2d4e" />}
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.primary} />}
         contentContainerStyle={{ paddingBottom: 60 }}
       >
         <CellarList
           collections={filtered}
           social={social}
-          onPressRow={(c) => router.push(`/wine/${c.id}`)}
+          onPressRow={(c) => router.push(`/wine/${c.id}?from=profile` as any)}
           onLongPressRow={openRowActions}
         />
       </ScrollView>
@@ -114,14 +122,19 @@ export default function CellarAllScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#fff' },
+  container: { flex: 1, backgroundColor: colors.cream },
+
+  cover: { paddingHorizontal: spacing.md, paddingTop: spacing.sm, paddingBottom: spacing.lg },
+  eyebrow: { letterSpacing: 2, marginBottom: spacing.sm },
+  coverTitle: { fontSize: 30, lineHeight: 36, letterSpacing: -0.6 },
+
   tabRow: {
     flexDirection: 'row',
-    borderBottomWidth: 1, borderBottomColor: '#efefef',
-    paddingHorizontal: 16,
+    borderBottomWidth: 1, borderBottomColor: colors.borderStrong,
+    paddingHorizontal: spacing.md,
+    backgroundColor: colors.cream,
   },
-  tab: { paddingVertical: 10, paddingHorizontal: 14 },
-  tabActive: { borderBottomWidth: 2, borderBottomColor: '#222' },
-  tabText: { fontSize: 13, fontWeight: '500', color: '#bbb' },
-  tabTextActive: { color: '#222', fontWeight: '600' },
+  tab: { paddingVertical: spacing.sm, paddingHorizontal: spacing.base },
+  tabActive: { borderBottomWidth: 2, borderBottomColor: colors.textWarm },
+  tabTextActive: { fontWeight: '600' },
 });

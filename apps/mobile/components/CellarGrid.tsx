@@ -46,7 +46,7 @@ export function CellarGrid({ collections, emptyText = '아직 등록된 와인�
           <Pressable
             key={c.id}
             style={styles.item}
-            onPress={() => router.push(`/wine/${c.id}` as any)}
+            onPress={() => router.push(`/wine/${c.id}?from=profile` as any)}
           >
             {src ? (
               <Image source={src} style={styles.image} contentFit="cover" cachePolicy="memory-disk" transition={120} />

@@ -13,16 +13,28 @@ import { HeartIcon, CommentBubbleIcon } from '@/components/icons/PostIcons';
 import { TastingNoteEditor } from '@/components/TastingNoteEditor';
 import { PhotoPager, type PhotoPagerSlide } from '@/components/PhotoPager';
 import { WineCommentSheet } from '@/components/WineCommentSheet';
+import { UserAvatar } from '@/components/UserAvatar';
+import { H2, Body, BodyBold, Caption, Eyebrow } from '@/components/Typography';
+import { colors, spacing, borderRadius } from '@/constants/theme';
 
 /**
  * Full page for a single cellar bottle.
  * 메인 사진 + 메모리 캐러셀 + 와인 정보 + 별점/맛 프로파일 + 노트 + 댓글 시트.
  */
 export default function WineDetailScreen() {
-  const { id } = useLocalSearchParams<{ id: string }>();
+  const { id, from } = useLocalSearchParams<{ id: string; from?: string }>();
   const router = useRouter();
   const { user } = useAuth();
   const collectionId = id ? parseInt(id, 10) : null;
+
+  // 출처별 명시 fallback. canGoBack=true 면 router.back() 이 우선이라
+  // 이건 deep link / RN tab+stack 회귀 케이스에 한 번 더 안전망.
+  const backOnPress =
+    from === 'reviews' ? () => router.replace('/(tabs)/reviews' as any) :
+    from === 'profile' ? () => router.replace('/(tabs)/profile' as any) :
+    from === 'explore' ? () => router.replace('/(tabs)/explore' as any) :
+    undefined;
+  const backFallback = from === 'reviews' ? '/(tabs)/reviews' : '/(tabs)/profile';
   const { data, loading, isOwner, saveTastingNote } = useWineMemory(collectionId);
 
   const { count: likeCount, liked, busy: likeBusy, toggle } = useCollectionLike(collectionId);
@@ -81,8 +93,8 @@ export default function WineDetailScreen() {
   if (loading && !data) {
     return (
       <View style={styles.container}>
-        <ScreenHeader title="와인" left={<BackButton fallbackPath="/(tabs)/cellar" />} />
-        <Text style={styles.loading}>불러오는 중…</Text>
+        <ScreenHeader title="" left={<BackButton fallbackPath={backFallback} onPress={backOnPress} />} />
+        <Caption tone="muted" style={styles.loading}>불러오는 중…</Caption>
       </View>
     );
   }
@@ -90,8 +102,8 @@ export default function WineDetailScreen() {
   if (!data) {
     return (
       <View style={styles.container}>
-        <ScreenHeader title="와인" left={<BackButton fallbackPath="/(tabs)/cellar" />} />
-        <Text style={styles.loading}>와인을 찾을 수 없습니다.</Text>
+        <ScreenHeader title="" left={<BackButton fallbackPath={backFallback} onPress={backOnPress} />} />
+        <Caption tone="muted" style={styles.loading}>와인을 찾을 수 없습니다.</Caption>
       </View>
     );
   }
@@ -101,8 +113,8 @@ export default function WineDetailScreen() {
   return (
     <View style={styles.container}>
       <ScreenHeader
-        title="와인"
-        left={<BackButton fallbackPath="/(tabs)/cellar" />}
+        title=""
+        left={<BackButton fallbackPath={backFallback} onPress={backOnPress} />}
         right={isOwner ? (
           <Pressable
             onPress={pickAndUpload}
@@ -111,7 +123,7 @@ export default function WineDetailScreen() {
             style={styles.addBtn}
           >
             {photoUploading ? (
-              <ActivityIndicator size="small" color="#7b2d4e" />
+              <ActivityIndicator size="small" color={colors.primary} />
             ) : (
               <Text style={styles.addBtnText}>＋</Text>
             )}
@@ -120,6 +132,28 @@ export default function WineDetailScreen() {
       />
 
       <ScrollView keyboardShouldPersistTaps="handled" contentContainerStyle={styles.scroll}>
+        {/* 작성자 헤더 — 누가 쓴 글인지 즉시 보이게. 탭하면 사용자 프로필.
+            본인 글일 때도 일관성 위해 노출 ("이건 내 컬렉션" 인지). */}
+        <Pressable
+          style={styles.ownerRow}
+          onPress={() => router.push(`/user/${data.user_id}` as any)}
+          hitSlop={4}
+        >
+          <UserAvatar
+            uri={data.owner?.avatar_url ?? undefined}
+            fallbackChar={(data.owner?.display_name ?? data.owner?.username ?? '?')[0]?.toUpperCase()}
+            size="sm"
+          />
+          <View style={styles.ownerText}>
+            <BodyBold tone="warm" numberOfLines={1}>
+              {data.owner?.display_name || data.owner?.username || '익명'}
+            </BodyBold>
+            {data.owner?.username && data.owner?.display_name ? (
+              <Caption tone="warmMuted" numberOfLines={1}>@{data.owner.username}</Caption>
+            ) : null}
+          </View>
+        </Pressable>
+
         {/* Cover photo + memory carousel — 메인 사진 뒤로 사진/비디오를
             슬라이드. 헤더 우상단의 "+" 버튼으로 추가, 메모리 슬라이드를
             길게 누르면 삭제. cover 슬라이드는 collections.photo_url 이라
@@ -139,15 +173,15 @@ export default function WineDetailScreen() {
           <Text style={styles.uploadProgress}>업로드 {Math.floor(videoProgress)}%</Text>
         )}
 
-        {/* Wine identity */}
+        {/* Wine identity — Eyebrow producer + 큰 sans bold name + meta */}
         <View style={styles.identity}>
-          {data.wine?.producer ? <Text style={styles.producer}>{data.wine.producer}</Text> : null}
-          <Text style={styles.wineName}>{data.wine?.name ?? 'Unknown wine'}</Text>
-          {data.wine?.name_ko ? <Text style={styles.nameKo}>{data.wine.name_ko}</Text> : null}
-          <Text style={styles.meta}>
+          {data.wine?.producer ? <Eyebrow tone="primary" style={styles.producer}>{data.wine.producer}</Eyebrow> : null}
+          <H2 tone="warm" style={styles.wineName}>{data.wine?.name ?? 'Unknown wine'}</H2>
+          {data.wine?.name_ko ? <Body tone="warmMuted" style={styles.nameKo}>{data.wine.name_ko}</Body> : null}
+          <Caption tone="muted" style={styles.meta}>
             {locale || 'Region unknown'}
             {data.wine?.vintage_year ? ` · ${data.wine.vintage_year}` : ''}
-          </Text>
+          </Caption>
         </View>
 
         {/* Action icons — heart toggles like, bubble opens comment sheet. */}
@@ -163,11 +197,11 @@ export default function WineDetailScreen() {
         {(likeCount > 0 || comments.length > 0) && (
           <View style={styles.countsRow}>
             {likeCount > 0 && (
-              <Text style={styles.countsText}>{likeCount} likes</Text>
+              <BodyBold tone="warm">{likeCount} likes</BodyBold>
             )}
             {comments.length > 0 && (
               <Pressable onPress={() => setCommentsOpen(true)} hitSlop={4}>
-                <Text style={styles.countsText}>{comments.length} comments</Text>
+                <BodyBold tone="warm">{comments.length} comments</BodyBold>
               </Pressable>
             )}
           </View>
@@ -199,37 +233,47 @@ export default function WineDetailScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#fff' },
-  loading: { textAlign: 'center', color: '#999', padding: 40, fontSize: 13 },
-  scroll: { paddingBottom: 20 },
+  container: { flex: 1, backgroundColor: colors.background },
+  loading: { textAlign: 'center', padding: spacing.xl },
+  scroll: { paddingBottom: spacing.lg },
 
-  cover: { width: '100%', aspectRatio: 1, backgroundColor: '#f5f5f5' },
-  coverPlaceholder: { backgroundColor: '#f0f0f0' },
-  uploadProgress: { fontSize: 11, color: '#7b2d4e', textAlign: 'center', paddingVertical: 6 },
+  cover: { width: '100%', aspectRatio: 1, backgroundColor: colors.surfaceLight },
+  coverPlaceholder: { backgroundColor: colors.surface },
+  uploadProgress: { fontSize: 11, color: colors.primary, textAlign: 'center', paddingVertical: 6 },
+
+  ownerRow: {
+    flexDirection: 'row', alignItems: 'center', gap: spacing.base,
+    paddingHorizontal: spacing.md, paddingVertical: spacing.base,
+    borderBottomWidth: 1, borderBottomColor: colors.borderStrong,
+    backgroundColor: colors.cream,
+  },
+  ownerText: { flex: 1 },
 
   addBtn: {
     width: 36, height: 36, borderRadius: 18,
     alignItems: 'center', justifyContent: 'center',
   },
   addBtnText: {
-    fontSize: 26, color: '#7b2d4e', fontWeight: '300',
+    fontSize: 26, color: colors.primary, fontWeight: '300',
     lineHeight: 30, marginTop: -2,
   },
 
-  identity: { paddingHorizontal: 20, paddingVertical: 16, borderBottomWidth: 1, borderBottomColor: '#f5f5f5' },
-  producer: { fontSize: 12, fontWeight: '700', color: '#7b2d4e', letterSpacing: 0.5, textTransform: 'uppercase', marginBottom: 4 },
-  wineName: { fontSize: 20, fontWeight: '700', color: '#222', lineHeight: 26 },
-  nameKo: { fontSize: 14, color: '#666', marginTop: 4 },
-  meta: { fontSize: 12, color: '#999', marginTop: 6 },
+  identity: {
+    paddingHorizontal: spacing.md, paddingVertical: spacing.md,
+    borderBottomWidth: 1, borderBottomColor: colors.border,
+  },
+  producer: { letterSpacing: 1.5, marginBottom: spacing.xs },
+  wineName: { fontSize: 22, lineHeight: 28, letterSpacing: -0.3 },
+  nameKo: { marginTop: spacing.xs },
+  meta: { marginTop: spacing.sm },
 
   actionBar: {
-    flexDirection: 'row', alignItems: 'center', gap: 14,
-    paddingHorizontal: 16, paddingTop: 12, paddingBottom: 6,
+    flexDirection: 'row', alignItems: 'center', gap: spacing.base,
+    paddingHorizontal: spacing.md, paddingTop: spacing.base, paddingBottom: spacing.xs,
   },
   countsRow: {
-    flexDirection: 'row', gap: 14,
-    paddingHorizontal: 16, paddingBottom: 12,
-    borderBottomWidth: 1, borderBottomColor: '#f5f5f5',
+    flexDirection: 'row', gap: spacing.base,
+    paddingHorizontal: spacing.md, paddingBottom: spacing.base,
+    borderBottomWidth: 1, borderBottomColor: colors.border,
   },
-  countsText: { fontSize: 13, fontWeight: '600', color: '#222' },
 });

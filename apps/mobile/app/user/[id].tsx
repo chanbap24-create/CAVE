@@ -8,6 +8,8 @@ import { getTopBadge } from '@/lib/tierUtils';
 import { UserAvatar } from '@/components/UserAvatar';
 import { PartnerBadge } from '@/components/PartnerBadge';
 import { ScreenHeader, BackButton } from '@/components/ScreenHeader';
+import { H1, BodyBold, Body, Caption, Eyebrow, Label } from '@/components/Typography';
+import { colors, spacing, borderRadius } from '@/constants/theme';
 import { useUserGatherings } from '@/lib/hooks/useUserGatherings';
 import { useUserPicks } from '@/lib/hooks/useUserPicks';
 import { useUserBadges } from '@/lib/hooks/useUserBadges';
@@ -63,23 +65,27 @@ export default function UserProfileScreen() {
 
   const topBadge = getTopBadge(profile.collection_count || 0);
 
+  const displayName = profile.display_name || profile.username;
+
   return (
     <View style={styles.container}>
-      <ScreenHeader
-        title={
-          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-            <Text style={styles.headerTitle}>{profile.username}</Text>
-            {topBadge && (
-              <View style={[styles.headerBadge, { backgroundColor: topBadge.bg }]}>
-                <Text style={[styles.headerBadgeText, { color: topBadge.color }]}>{topBadge.name}</Text>
-              </View>
-            )}
-          </View>
-        }
-        left={<BackButton fallbackPath="/(tabs)/explore" />}
-      />
+      <ScreenHeader title="" left={<BackButton fallbackPath="/(tabs)/explore" />} />
 
       <ScrollView>
+        {/* 매거진 표지 */}
+        <View style={styles.cover}>
+          <Caption tone="warmMuted" style={styles.eyebrow}>@{profile.username}</Caption>
+          <H1 tone="warm" style={styles.coverTitle}>{displayName}</H1>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: spacing.xs }}>
+            {topBadge && (
+              <View style={[styles.topBadge, { backgroundColor: topBadge.bg }]}>
+                <Label style={{ color: topBadge.color }}>{topBadge.name}</Label>
+              </View>
+            )}
+            {profile.is_partner ? <PartnerBadge label={profile.partner_label} size="sm" /> : null}
+          </View>
+        </View>
+
         <View style={styles.profileTop}>
           <UserAvatar
             uri={profile.avatar_url}
@@ -89,27 +95,23 @@ export default function UserProfileScreen() {
           />
           <View style={styles.profileStats}>
             <View style={styles.stat}>
-              <Text style={styles.statNum}>{profile.post_count || 0}</Text>
-              <Text style={styles.statLabel}>게시물</Text>
+              <BodyBold style={styles.statNum}>{profile.post_count || 0}</BodyBold>
+              <Label tone="muted">게시물</Label>
             </View>
             <View style={styles.stat}>
-              <Text style={styles.statNum}>{profile.follower_count || 0}</Text>
-              <Text style={styles.statLabel}>팔로워</Text>
+              <BodyBold style={styles.statNum}>{profile.follower_count || 0}</BodyBold>
+              <Label tone="muted">팔로워</Label>
             </View>
             <View style={styles.stat}>
-              <Text style={styles.statNum}>{profile.following_count || 0}</Text>
-              <Text style={styles.statLabel}>팔로잉</Text>
+              <BodyBold style={styles.statNum}>{profile.following_count || 0}</BodyBold>
+              <Label tone="muted">팔로잉</Label>
             </View>
           </View>
         </View>
 
-        <View style={styles.profileInfo}>
-          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
-            <Text style={styles.profileName}>{profile.display_name || profile.username}</Text>
-            {profile.is_partner ? <PartnerBadge label={profile.partner_label} size="sm" /> : null}
-          </View>
-          {profile.bio && <Text style={styles.profileBio}>{profile.bio}</Text>}
-        </View>
+        {profile.bio ? (
+          <Body tone="warm" style={styles.profileBio}>{profile.bio}</Body>
+        ) : null}
 
         <View style={styles.actions}>
           <FollowButton targetUserId={id!} />
@@ -123,14 +125,14 @@ export default function UserProfileScreen() {
               }
               router.push(`/chat/${res.roomId}?title=${encodeURIComponent(profile.username)}`);
             }}>
-              <Text style={styles.dmBtnText}>메시지</Text>
+              <Body tone="warm" style={styles.dmBtnText}>메시지</Body>
             </Pressable>
           )}
         </View>
 
         {userBadges.length > 0 && (
-          <View style={{ marginBottom: 12 }}>
-            <Text style={[styles.sectionTitle, { paddingHorizontal: 20, marginBottom: 8 }]}>배지</Text>
+          <View style={{ marginBottom: spacing.base }}>
+            <Eyebrow tone="warmMuted" style={styles.sectionTitleEyebrow}>BADGES · {userBadges.length}</Eyebrow>
             <BadgeList allBadges={allBadges} earnedIds={new Set(userBadges.map(b => b.badge_id))} />
           </View>
         )}
@@ -139,19 +141,19 @@ export default function UserProfileScreen() {
 
         {userGatherings.length > 0 && (
           <View style={styles.gatheringSection}>
-            <Text style={styles.sectionTitle}>모임 ({userGatherings.length})</Text>
+            <Eyebrow tone="warmMuted" style={styles.sectionTitleEyebrow}>GATHERINGS · {userGatherings.length}</Eyebrow>
             {userGatherings.map(g => {
               const dateStr = formatMonthDay(g.gathering_date);
               return (
                 <Pressable key={g.id} style={styles.gatheringItem} onPress={() => router.push(`/gathering/${g.id}`)}>
                   <View style={styles.gatheringInfo}>
-                    <Text style={styles.gatheringTitle}>{g.title}</Text>
-                    <Text style={styles.gatheringMeta}>{dateStr}{g.location ? ` · ${g.location}` : ''}</Text>
+                    <BodyBold tone="warm">{g.title}</BodyBold>
+                    <Caption tone="muted">{dateStr}{g.location ? ` · ${g.location}` : ''}</Caption>
                   </View>
                   <View style={[styles.gatheringRole, g.role === 'host' && styles.gatheringRoleHost]}>
-                    <Text style={[styles.gatheringRoleText, g.role === 'host' && styles.gatheringRoleTextHost]}>
+                    <Caption style={g.role === 'host' ? styles.gatheringRoleTextHost : styles.gatheringRoleText}>
                       {g.role === 'host' ? 'Host' : 'Joined'}
-                    </Text>
+                    </Caption>
                   </View>
                 </Pressable>
               );
@@ -171,40 +173,51 @@ export default function UserProfileScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#fff' },
-  headerTitle: { fontSize: 17, fontWeight: '700', color: '#222' },
-  headerBadge: { paddingHorizontal: 8, paddingVertical: 2, borderRadius: 8 },
-  headerBadgeText: { fontSize: 10, fontWeight: '600' },
+  container: { flex: 1, backgroundColor: colors.cream },
 
-  profileTop: { flexDirection: 'row', alignItems: 'center', padding: 20, gap: 20 },
-  profileStats: { flex: 1, flexDirection: 'row', justifyContent: 'center', gap: 20 },
-  stat: { alignItems: 'center' },
-  statNum: { fontSize: 17, fontWeight: '700', color: '#222' },
-  statLabel: { fontSize: 11, color: '#999', marginTop: 2 },
+  cover: { paddingHorizontal: spacing.md, paddingTop: spacing.sm, paddingBottom: spacing.lg },
+  eyebrow: { letterSpacing: 1, marginBottom: spacing.sm },
+  coverTitle: { fontSize: 30, lineHeight: 36, letterSpacing: -0.6 },
+  topBadge: { paddingHorizontal: spacing.sm, paddingVertical: 2, borderRadius: borderRadius.sm },
 
-  profileInfo: { paddingHorizontal: 20, paddingBottom: 16 },
-  profileName: { fontSize: 14, fontWeight: '600', color: '#222' },
-  profileBio: { fontSize: 13, color: '#666', marginTop: 4, lineHeight: 18 },
-
-  actions: { flexDirection: 'row', gap: 8, paddingHorizontal: 20, paddingBottom: 16 },
-  dmBtn: {
-    flex: 1, borderWidth: 1, borderColor: '#ddd', borderRadius: 8,
-    paddingVertical: 8, alignItems: 'center',
+  profileTop: {
+    flexDirection: 'row', alignItems: 'center',
+    paddingHorizontal: spacing.md, paddingTop: spacing.sm, paddingBottom: spacing.md,
+    gap: spacing.md,
+    backgroundColor: colors.background,
+    borderTopWidth: 1, borderTopColor: colors.borderStrong,
   },
-  dmBtnText: { fontSize: 13, fontWeight: '600', color: '#222' },
+  profileStats: { flex: 1, flexDirection: 'row', justifyContent: 'center', gap: spacing.md },
+  stat: { alignItems: 'center' },
+  statNum: { fontSize: 18, letterSpacing: -0.3 },
 
-  gatheringSection: { paddingHorizontal: 20, paddingTop: 8 },
+  profileBio: {
+    paddingHorizontal: spacing.md, paddingBottom: spacing.md,
+    backgroundColor: colors.background,
+    lineHeight: 19,
+  },
+
+  actions: {
+    flexDirection: 'row', gap: spacing.sm,
+    paddingHorizontal: spacing.md, paddingBottom: spacing.md,
+    backgroundColor: colors.background,
+  },
+  dmBtn: {
+    flex: 1, borderWidth: 1, borderColor: colors.border, borderRadius: borderRadius.sm,
+    paddingVertical: spacing.sm, alignItems: 'center',
+  },
+  dmBtnText: { fontWeight: '600' },
+
+  gatheringSection: { paddingHorizontal: spacing.md, paddingTop: spacing.sm },
   gatheringItem: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
-    paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: '#f5f5f5',
+    paddingVertical: spacing.base, borderBottomWidth: 1, borderBottomColor: colors.borderStrong,
   },
   gatheringInfo: { flex: 1 },
-  gatheringTitle: { fontSize: 14, fontWeight: '600', color: '#222' },
-  gatheringMeta: { fontSize: 11, color: '#999', marginTop: 3 },
-  gatheringRole: { backgroundColor: '#e8f5e9', paddingHorizontal: 10, paddingVertical: 4, borderRadius: 8 },
-  gatheringRoleHost: { backgroundColor: '#f7f0f3' },
-  gatheringRoleText: { fontSize: 11, fontWeight: '600', color: '#2e7d32' },
-  gatheringRoleTextHost: { color: '#7b2d4e' },
+  gatheringRole: { backgroundColor: '#e8f5e9', paddingHorizontal: spacing.sm, paddingVertical: spacing.xs, borderRadius: borderRadius.sm },
+  gatheringRoleHost: { backgroundColor: colors.primaryLight },
+  gatheringRoleText: { color: '#2e7d32', fontWeight: '600' },
+  gatheringRoleTextHost: { color: colors.primary, fontWeight: '600' },
 
-  sectionTitle: { fontSize: 15, fontWeight: '600', color: '#222', marginBottom: 12 },
+  sectionTitleEyebrow: { paddingHorizontal: spacing.md, marginBottom: spacing.sm, letterSpacing: 1.5 },
 });

@@ -211,7 +211,7 @@ export default function GatheringDetailScreen() {
             onPress={() => setActiveSection('wines')}
           >
             <Text style={[styles.tabText, activeSection === 'wines' && styles.tabTextActive]}>
-              Wine Lineup ({lineup.length})
+              와인 라인업 ({lineup.length})
             </Text>
           </Pressable>
           <Pressable
@@ -219,8 +219,8 @@ export default function GatheringDetailScreen() {
             onPress={() => setActiveSection('members')}
           >
             <Text style={[styles.tabText, activeSection === 'members' && styles.tabTextActive]}>
-              Members ({approvedMembers.length + (host ? 1 : 0)}
-              {isHost && pendingMembers.length > 0 ? ` · +${pendingMembers.length} pending` : ''})
+              참여자 ({approvedMembers.length + (host ? 1 : 0)}
+              {isHost && pendingMembers.length > 0 ? ` · +${pendingMembers.length} 대기` : ''})
             </Text>
           </Pressable>
         </View>
@@ -273,14 +273,14 @@ export default function GatheringDetailScreen() {
             ) : null}
 
             {approvedMembers.length === 0 && (!isHost || pendingMembers.length === 0) && !host ? (
-              <Text style={styles.emptyMembers}>아직 참가자가 없습니다.</Text>
+              <Text style={styles.emptyMembers}>아직 참여자가 없어요</Text>
             ) : null}
             {approvedMembers.map(m => (
               <ApplicantRow key={m.user_id} member={m} onAvatarPress={setCellarUserId} />
             ))}
             {isHost && pendingMembers.length > 0 && (
               <>
-                <Text style={styles.pendingLabel}>Pending ({pendingMembers.length})</Text>
+                <Text style={styles.pendingLabel}>승인 대기 ({pendingMembers.length})</Text>
                 {pendingMembers.map(m => (
                   <ApplicantRow
                     key={m.user_id}
@@ -312,7 +312,7 @@ export default function GatheringDetailScreen() {
         <View style={styles.bottomBar}>
           <View style={[styles.statusBar, myStatus === 'approved' && { backgroundColor: '#e8f5e9' }]}>
             <Text style={[styles.statusText, myStatus === 'approved' && { color: '#2e7d32' }]}>
-              {myStatus === 'approved' ? "You're in!" : 'Request pending...'}
+              {myStatus === 'approved' ? '참여 확정' : '승인 대기 중'}
             </Text>
           </View>
           <Pressable style={styles.leaveBtn} onPress={() => {
@@ -372,42 +372,57 @@ export default function GatheringDetailScreen() {
 }
 
 
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#fff' },
+import { colors as themeColors, spacing as themeSpacing, borderRadius as themeBorderRadius, fontFamily as themeFontFamily } from '@/constants/theme';
 
-  section: { paddingHorizontal: 20, paddingTop: 8 },
-  sectionTitle: { fontSize: 15, fontWeight: '700', color: '#222', marginBottom: 12 },
+const styles = StyleSheet.create({
+  container: { flex: 1, backgroundColor: themeColors.background },
+
+  section: { paddingHorizontal: themeSpacing.md, paddingTop: themeSpacing.sm },
+  sectionTitle: { fontSize: 15, fontFamily: themeFontFamily.bold, color: themeColors.text, marginBottom: themeSpacing.base },
 
   tabRow: {
-    flexDirection: 'row', gap: 16,
-    paddingHorizontal: 20, paddingTop: 16,
-    borderBottomWidth: 1, borderBottomColor: '#efefef',
+    flexDirection: 'row', gap: themeSpacing.md,
+    paddingHorizontal: themeSpacing.md, paddingTop: themeSpacing.md,
+    borderBottomWidth: 1, borderBottomColor: themeColors.border,
   },
-  tab: { paddingVertical: 10, paddingHorizontal: 2 },
-  tabActive: { borderBottomWidth: 2, borderBottomColor: '#222', marginBottom: -1 },
-  tabText: { fontSize: 14, fontWeight: '500', color: '#bbb' },
-  tabTextActive: { color: '#222', fontWeight: '700' },
+  tab: { paddingVertical: themeSpacing.sm, paddingHorizontal: 2 },
+  tabActive: { borderBottomWidth: 2, borderBottomColor: themeColors.text, marginBottom: -1 },
+  tabText: { fontSize: 14, fontFamily: themeFontFamily.medium, color: themeColors.textLight },
+  tabTextActive: { color: themeColors.text, fontFamily: themeFontFamily.bold },
 
-  emptyMembers: { textAlign: 'center', color: '#bbb', paddingVertical: 24, fontSize: 13 },
+  emptyMembers: {
+    textAlign: 'center', color: themeColors.textLight,
+    paddingVertical: themeSpacing.lg, fontSize: 13, fontFamily: themeFontFamily.body,
+  },
   pendingLabel: {
-    fontSize: 11, fontWeight: '700', color: '#999',
-    textTransform: 'uppercase', letterSpacing: 0.8,
-    marginTop: 18, marginBottom: 4,
+    fontSize: 11, fontFamily: themeFontFamily.bold, color: themeColors.textMuted,
+    textTransform: 'uppercase', letterSpacing: 1.2,
+    marginTop: themeSpacing.md, marginBottom: themeSpacing.xs,
   },
 
-  bottomBar: { padding: 20, paddingBottom: 34, borderTopWidth: 1, borderTopColor: '#efefef' },
-  applyBtn: { backgroundColor: '#7b2d4e', padding: 16, borderRadius: 12, alignItems: 'center' },
-  applyBtnText: { color: '#fff', fontSize: 16, fontWeight: '600' },
-  statusBar: {
-    backgroundColor: '#fafafa', padding: 16, borderRadius: 12, alignItems: 'center',
+  bottomBar: {
+    padding: themeSpacing.md, paddingBottom: 34,
+    borderTopWidth: 1, borderTopColor: themeColors.border,
   },
-  statusText: { fontSize: 14, fontWeight: '500', color: '#999' },
-  leaveBtn: { alignItems: 'center', marginTop: 10 },
-  leaveText: { fontSize: 13, fontWeight: '500', color: '#ed4956' },
-
-  deleteBtn: {
-    borderWidth: 1, borderColor: '#ed4956', padding: 14, borderRadius: 12,
+  applyBtn: {
+    backgroundColor: themeColors.primary,
+    padding: themeSpacing.md, borderRadius: themeBorderRadius.md,
     alignItems: 'center',
   },
-  deleteBtnText: { color: '#ed4956', fontSize: 14, fontWeight: '600' },
+  applyBtnText: { color: '#fff', fontSize: 16, fontFamily: themeFontFamily.semibold },
+  statusBar: {
+    backgroundColor: themeColors.surface,
+    padding: themeSpacing.md, borderRadius: themeBorderRadius.md,
+    alignItems: 'center',
+  },
+  statusText: { fontSize: 14, fontFamily: themeFontFamily.medium, color: themeColors.textMuted },
+  leaveBtn: { alignItems: 'center', marginTop: themeSpacing.sm },
+  leaveText: { fontSize: 13, fontFamily: themeFontFamily.medium, color: themeColors.error },
+
+  deleteBtn: {
+    borderWidth: 1, borderColor: themeColors.error,
+    padding: themeSpacing.base, borderRadius: themeBorderRadius.md,
+    alignItems: 'center',
+  },
+  deleteBtnText: { color: themeColors.error, fontSize: 14, fontFamily: themeFontFamily.semibold },
 });

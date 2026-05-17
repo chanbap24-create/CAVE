@@ -1,11 +1,13 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, ScrollView, StyleSheet, Pressable } from 'react-native';
+import { View, ScrollView, StyleSheet, Pressable } from 'react-native';
 import { useLocalSearchParams } from 'expo-router';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/lib/auth';
 import { PostCard } from '@/components/PostCard';
 import { ScreenHeader, BackButton } from '@/components/ScreenHeader';
 import { EditCategorySheet } from '@/components/EditCategorySheet';
+import { Body, Caption } from '@/components/Typography';
+import { colors, spacing, borderRadius, fontFamily } from '@/constants/theme';
 import { useDrinkCategories } from '@/lib/hooks/useDrinkCategories';
 
 export default function PostDetailScreen() {
@@ -48,7 +50,7 @@ export default function PostDetailScreen() {
 
   return (
     <View style={styles.container}>
-      <ScreenHeader title="게시물" left={<BackButton fallbackPath="/(tabs)/explore" />} />
+      <ScreenHeader title="" left={<BackButton fallbackPath="/(tabs)/explore" />} />
       <ScrollView>
         {post && <PostCard post={post} />}
 
@@ -58,22 +60,22 @@ export default function PostDetailScreen() {
             style={styles.categoryRow}
             onPress={() => setShowEditCategory(true)}
           >
-            <Text style={styles.categoryLabel}>카테고리</Text>
+            <Caption tone="muted">카테고리</Caption>
             {catMeta ? (
               <View
                 style={[
                   styles.categoryChip,
-                  { backgroundColor: catMeta.bg_color ?? '#f0f0f0' },
+                  { backgroundColor: catMeta.bg_color ?? colors.surfaceLight },
                 ]}
               >
-                <Text style={[styles.categoryChipText, { color: catMeta.text_color ?? '#666' }]}>
+                <Caption style={[styles.categoryChipText, { color: catMeta.text_color ?? colors.textSecondary }]}>
                   {catMeta.label}
-                </Text>
+                </Caption>
               </View>
             ) : (
-              <Text style={styles.categoryPlaceholder}>미설정 — 탭하여 선택</Text>
+              <Body tone="muted" style={styles.categoryPlaceholder}>미설정 — 탭하여 선택</Body>
             )}
-            <Text style={styles.editHint}>편집</Text>
+            <Caption tone="primary" style={styles.editHint}>편집</Caption>
           </Pressable>
         )}
       </ScrollView>
@@ -92,17 +94,17 @@ export default function PostDetailScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#fff' },
+  container: { flex: 1, backgroundColor: colors.background },
   categoryRow: {
-    flexDirection: 'row', alignItems: 'center', gap: 10,
-    paddingHorizontal: 16, paddingVertical: 14,
-    borderTopWidth: 1, borderTopColor: '#f5f5f5',
+    flexDirection: 'row', alignItems: 'center', gap: spacing.base,
+    paddingHorizontal: spacing.md, paddingVertical: spacing.md,
+    borderTopWidth: 1, borderTopColor: colors.border,
   },
-  categoryLabel: { fontSize: 13, color: '#999' },
   categoryChip: {
-    paddingHorizontal: 10, paddingVertical: 4, borderRadius: 10,
+    paddingHorizontal: spacing.base, paddingVertical: spacing.xs,
+    borderRadius: borderRadius.md,
   },
-  categoryChipText: { fontSize: 12, fontWeight: '600' },
-  categoryPlaceholder: { fontSize: 13, color: '#bbb', fontStyle: 'italic', flex: 1 },
-  editHint: { fontSize: 12, color: '#7b2d4e', fontWeight: '600', marginLeft: 'auto' },
+  categoryChipText: { fontFamily: fontFamily.semibold },
+  categoryPlaceholder: { fontStyle: 'italic', flex: 1 },
+  editHint: { fontFamily: fontFamily.semibold, marginLeft: 'auto' },
 });

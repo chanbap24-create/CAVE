@@ -1,26 +1,28 @@
 import React, { useEffect } from 'react';
-import { View, Text, ScrollView, StyleSheet, Pressable } from 'react-native';
+import { View, ScrollView, StyleSheet, Pressable } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useNotifications } from '@/lib/hooks/useNotifications';
 import { ScreenHeader, BackButton } from '@/components/ScreenHeader';
+import { Body, BodyBold, Caption } from '@/components/Typography';
+import { colors, spacing, borderRadius, fontFamily } from '@/constants/theme';
 import { timeAgo } from '@/lib/utils/dateUtils';
 
 const typeMessages: Record<string, string> = {
-  like: 'liked your post',
-  comment: 'commented on your post',
-  follow: 'started following you',
-  badge_earned: 'You earned a badge!',
-  mention: 'mentioned you',
-  gathering_invite: 'wants to join your gathering',
-  gathering_approved: 'approved your request',
-  gathering_rejected: 'declined your request',
-  gathering_vote_request: 'requested a wine change — your vote is needed',
-  gathering_vote_cast: 'voted on your wine-change request',
-  gathering_vote_approved: 'Your wine-change request was approved',
-  gathering_vote_rejected: 'Your wine-change request was rejected',
-  collection_like: 'liked your wine',
-  collection_comment: 'commented on your wine',
-  collection_photo_tag: 'tagged you in a wine memory',
+  like: '님이 회원님 게시물을 좋아합니다',
+  comment: '님이 회원님 게시물에 댓글을 남겼어요',
+  follow: '님이 회원님을 팔로우하기 시작했어요',
+  badge_earned: '배지를 획득했어요',
+  mention: '님이 회원님을 멘션했어요',
+  gathering_invite: '님이 모임 참여를 요청했어요',
+  gathering_approved: '님이 회원님 요청을 승인했어요',
+  gathering_rejected: '님이 회원님 요청을 거절했어요',
+  gathering_vote_request: '님이 와인 변경을 요청했어요 — 투표 필요',
+  gathering_vote_cast: '님이 회원님 요청에 투표했어요',
+  gathering_vote_approved: '회원님 와인 변경 요청이 승인됐어요',
+  gathering_vote_rejected: '회원님 와인 변경 요청이 거절됐어요',
+  collection_like: '님이 회원님 와인을 좋아합니다',
+  collection_comment: '님이 회원님 와인에 댓글을 남겼어요',
+  collection_photo_tag: '님이 와인 메모리에 회원님을 태그했어요',
 };
 
 export default function NotificationsScreen() {
@@ -34,12 +36,12 @@ export default function NotificationsScreen() {
 
   return (
     <View style={styles.container}>
-      <ScreenHeader title="알림" left={<BackButton />} />
+      <ScreenHeader title="알림" left={<BackButton fallbackPath="/(tabs)/profile" />} />
 
       <ScrollView>
         {notifications.length === 0 && !loading && (
           <View style={styles.empty}>
-            <Text style={styles.emptyText}>아직 알림이 없어요</Text>
+            <Body tone="muted">아직 알림이 없어요</Body>
           </View>
         )}
         {notifications.map(n => {
@@ -56,8 +58,6 @@ export default function NotificationsScreen() {
                 } else if (['like', 'comment', 'mention'].includes(n.type) && n.reference_id && n.reference_type === 'post') {
                   router.push(`/post/${n.reference_id}`);
                 } else if (['collection_like', 'collection_comment', 'collection_photo_tag'].includes(n.type) && n.reference_id) {
-                  // Deep-link straight to the wine detail page — a full
-                  // route with comments + memories + tags in one view.
                   router.push(`/wine/${n.reference_id}`);
                 } else if (['gathering_invite', 'gathering_approved', 'gathering_rejected', 'gathering_vote_request', 'gathering_vote_cast', 'gathering_vote_approved', 'gathering_vote_rejected'].includes(n.type) && n.reference_id) {
                   router.push(`/gathering/${n.reference_id}`);
@@ -65,14 +65,14 @@ export default function NotificationsScreen() {
               }}
             >
               <View style={styles.avatar}>
-                <Text style={styles.avatarText}>{initial}</Text>
+                <Caption style={styles.avatarText}>{initial}</Caption>
               </View>
               <View style={styles.info}>
-                <Text style={styles.text}>
-                  <Text style={styles.bold}>{n.actor?.username || 'Someone'}</Text>
-                  {' '}{message}
-                </Text>
-                <Text style={styles.time}>{timeAgo(n.created_at)}</Text>
+                <Body numberOfLines={2} style={styles.text}>
+                  <BodyBold>{n.actor?.username || '누군가'}</BodyBold>
+                  {message}
+                </Body>
+                <Caption tone="muted" style={styles.time}>{timeAgo(n.created_at)}</Caption>
               </View>
             </Pressable>
           );
@@ -83,22 +83,22 @@ export default function NotificationsScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#fff' },
+  container: { flex: 1, backgroundColor: colors.background },
   empty: { paddingVertical: 80, alignItems: 'center' },
-  emptyText: { fontSize: 14, color: '#bbb' },
   item: {
-    flexDirection: 'row', alignItems: 'center', gap: 12,
-    paddingHorizontal: 16, paddingVertical: 14,
-    borderBottomWidth: 1, borderBottomColor: '#f8f8f8',
+    flexDirection: 'row', alignItems: 'center', gap: spacing.base,
+    paddingHorizontal: spacing.md, paddingVertical: spacing.md,
+    borderBottomWidth: 1, borderBottomColor: colors.border,
   },
-  itemUnread: { backgroundColor: '#fafaf8' },
+  // 안 읽은 알림 — 살짝 옅은 회색 (cream 톤은 minimal 에서 사용 X)
+  itemUnread: { backgroundColor: colors.surface },
   avatar: {
-    width: 40, height: 40, borderRadius: 20, backgroundColor: '#f0f0f0',
+    width: 40, height: 40, borderRadius: borderRadius.full,
+    backgroundColor: colors.surfaceLight,
     alignItems: 'center', justifyContent: 'center',
   },
-  avatarText: { fontSize: 14, fontWeight: '600', color: '#999' },
-  info: { flex: 1 },
-  text: { fontSize: 13, color: '#222', lineHeight: 18 },
-  bold: { fontWeight: '600' },
-  time: { fontSize: 11, color: '#bbb', marginTop: 4 },
+  avatarText: { fontFamily: fontFamily.semibold },
+  info: { flex: 1, gap: spacing.xs },
+  text: { lineHeight: 19 },
+  time: { marginTop: 2 },
 });

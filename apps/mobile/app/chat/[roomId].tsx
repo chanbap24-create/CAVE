@@ -1,10 +1,11 @@
 import React, { useState, useRef } from 'react';
 import { View, Text, StyleSheet, Pressable, TextInput, FlatList, KeyboardAvoidingView, Platform } from 'react-native';
-import { Image } from 'expo-image';
 import { useLocalSearchParams } from 'expo-router';
 import { useAuth } from '@/lib/auth';
 import { useChat } from '@/lib/hooks/useChat';
+import { CardImage } from '@/components/CardImage';
 import { ScreenHeader, BackButton } from '@/components/ScreenHeader';
+import { colors, spacing, borderRadius, fontFamily } from '@/constants/theme';
 import { formatTime } from '@/lib/utils/dateUtils';
 
 export default function ChatScreen() {
@@ -46,7 +47,7 @@ export default function ChatScreen() {
                 <View style={styles.avatarCol}>
                   {showAvatar ? (
                     item.profile?.avatar_url ? (
-                      <Image source={item.profile.avatar_url} style={styles.msgAvatar} contentFit="cover" cachePolicy="memory-disk" transition={150} />
+                      <CardImage source={item.profile.avatar_url} style={styles.msgAvatar} />
                     ) : (
                       <View style={styles.msgAvatarPlaceholder}>
                         <Text style={styles.msgAvatarText}>{initial}</Text>
@@ -74,8 +75,8 @@ export default function ChatScreen() {
           style={styles.input}
           value={text}
           onChangeText={setText}
-          placeholder="메시지 입력..."
-          placeholderTextColor="#bbb"
+          placeholder="메시지 입력…"
+          placeholderTextColor={colors.textLight}
           multiline
           maxLength={500}
         />
@@ -88,41 +89,57 @@ export default function ChatScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#fff' },
-  headerTitle: { fontSize: 16, fontWeight: '700', color: '#222', textAlign: 'center' },
+  container: { flex: 1, backgroundColor: colors.background },
+  headerTitle: {
+    fontSize: 16, fontFamily: fontFamily.bold,
+    color: colors.text, textAlign: 'center',
+  },
 
-  messageList: { padding: 16, paddingBottom: 8 },
+  messageList: { padding: spacing.md, paddingBottom: spacing.sm },
 
   messageRow: { flexDirection: 'row', marginBottom: 6, alignItems: 'flex-end' },
   messageRowMine: { flexDirection: 'row-reverse' },
 
-  avatarCol: { width: 28, marginRight: 8 },
+  avatarCol: { width: 28, marginRight: spacing.sm },
   msgAvatar: { width: 28, height: 28, borderRadius: 14 },
   msgAvatarPlaceholder: {
-    width: 28, height: 28, borderRadius: 14, backgroundColor: '#f0f0f0',
+    width: 28, height: 28, borderRadius: 14, backgroundColor: colors.surfaceLight,
     alignItems: 'center', justifyContent: 'center',
   },
-  msgAvatarText: { fontSize: 10, fontWeight: '600', color: '#999' },
-  msgUsername: { fontSize: 10, color: '#999', marginBottom: 2, marginLeft: 4 },
+  msgAvatarText: { fontSize: 10, fontFamily: fontFamily.semibold, color: colors.textMuted },
+  msgUsername: { fontSize: 10, fontFamily: fontFamily.body, color: colors.textMuted, marginBottom: 2, marginLeft: 4 },
 
-  bubble: { paddingHorizontal: 14, paddingVertical: 10, borderRadius: 18, maxWidth: '100%' },
-  bubbleOther: { backgroundColor: '#f0f0f0', borderBottomLeftRadius: 4 },
-  bubbleMine: { backgroundColor: '#7b2d4e', borderBottomRightRadius: 4 },
-  bubbleText: { fontSize: 14, color: '#222', lineHeight: 20 },
+  bubble: {
+    paddingHorizontal: spacing.base + 2, paddingVertical: spacing.sm + 2,
+    borderRadius: 18, maxWidth: '100%',
+  },
+  bubbleOther: { backgroundColor: colors.surfaceLight, borderBottomLeftRadius: 4 },
+  bubbleMine: { backgroundColor: colors.primary, borderBottomRightRadius: 4 },
+  bubbleText: {
+    fontSize: 14, fontFamily: fontFamily.body,
+    color: colors.text, lineHeight: 20,
+  },
   bubbleTextMine: { color: '#fff' },
 
-  msgTime: { fontSize: 10, color: '#bbb', marginTop: 2, marginLeft: 4 },
+  msgTime: {
+    fontSize: 10, fontFamily: fontFamily.body,
+    color: colors.textLight, marginTop: 2, marginLeft: 4,
+  },
   msgTimeMine: { textAlign: 'right', marginRight: 4 },
 
   inputBar: {
-    flexDirection: 'row', alignItems: 'flex-end', gap: 10,
-    paddingHorizontal: 16, paddingVertical: 10, paddingBottom: 34,
-    borderTopWidth: 1, borderTopColor: '#efefef',
+    flexDirection: 'row', alignItems: 'flex-end', gap: spacing.base,
+    paddingHorizontal: spacing.md, paddingVertical: spacing.sm, paddingBottom: 34,
+    borderTopWidth: 1, borderTopColor: colors.border,
   },
   input: {
-    flex: 1, backgroundColor: '#f5f5f5', borderRadius: 20,
-    paddingHorizontal: 16, paddingVertical: 10,
-    fontSize: 14, maxHeight: 100,
+    flex: 1, backgroundColor: colors.surfaceLight, borderRadius: 20,
+    paddingHorizontal: spacing.md, paddingVertical: spacing.sm,
+    fontSize: 14, fontFamily: fontFamily.body, maxHeight: 100,
+    color: colors.text,
   },
-  sendBtn: { fontSize: 14, fontWeight: '600', color: '#7b2d4e', paddingBottom: 6 },
+  sendBtn: {
+    fontSize: 14, fontFamily: fontFamily.semibold,
+    color: colors.primary, paddingBottom: 6,
+  },
 });

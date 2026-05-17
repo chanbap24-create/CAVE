@@ -1,19 +1,19 @@
 import React, { useCallback } from 'react';
-import { View, Text, ScrollView, StyleSheet, Pressable, RefreshControl } from 'react-native';
-import { Image } from 'expo-image';
+import { View, ScrollView, StyleSheet, Pressable, RefreshControl } from 'react-native';
 import { useRouter, useFocusEffect } from 'expo-router';
+import { CardImage } from '@/components/CardImage';
 import { useDMList } from '@/lib/hooks/useDMList';
 import { timeAgo } from '@/lib/utils/dateUtils';
-import { ScreenHeader } from '@/components/ScreenHeader';
+import { ScreenHeader, BackButton } from '@/components/ScreenHeader';
+import { Body, BodyBold, Caption } from '@/components/Typography';
+import { colors, spacing, borderRadius, fontFamily } from '@/constants/theme';
 
 export default function MessagesScreen() {
   const router = useRouter();
   const { rooms, loading, loadRooms } = useDMList();
   const [refreshing, setRefreshing] = React.useState(false);
 
-  useFocusEffect(
-    useCallback(() => { loadRooms(); }, [])
-  );
+  useFocusEffect(useCallback(() => { loadRooms(); }, []));
 
   const onRefresh = async () => {
     setRefreshing(true);
@@ -23,15 +23,20 @@ export default function MessagesScreen() {
 
   return (
     <View style={styles.container}>
-      <ScreenHeader variant="centered" title="메시지" />
+      <ScreenHeader
+        title="메시지"
+        left={<BackButton fallbackPath="/(tabs)/profile" />}
+      />
 
       <ScrollView
-        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#7b2d4e" />}
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.primary} />}
       >
         {rooms.length === 0 && !loading && (
           <View style={styles.empty}>
-            <Text style={styles.emptyTitle}>아직 메시지가 없어요</Text>
-            <Text style={styles.emptyDesc}>다른 사람의 프로필에서{'\n'}메시지 버튼으로 대화를 시작해보세요</Text>
+            <BodyBold>아직 메시지가 없어요</BodyBold>
+            <Body tone="muted" style={styles.emptyDesc}>
+              다른 사람의 프로필에서{'\n'}메시지 버튼으로 대화를 시작해보세요
+            </Body>
           </View>
         )}
 
@@ -46,20 +51,20 @@ export default function MessagesScreen() {
               onPress={() => router.push(`/chat/${room.room_id}?title=${encodeURIComponent(u.username)}`)}
             >
               {u.avatar_url ? (
-                <Image source={u.avatar_url} style={styles.avatar} contentFit="cover" cachePolicy="memory-disk" transition={150} />
+                <CardImage source={u.avatar_url} style={styles.avatar} />
               ) : (
                 <View style={styles.avatarPlaceholder}>
-                  <Text style={styles.avatarText}>{initial}</Text>
+                  <Body style={styles.avatarText}>{initial}</Body>
                 </View>
               )}
               <View style={styles.info}>
                 <View style={styles.nameRow}>
-                  <Text style={[styles.name, room.unread && styles.nameUnread]}>{u.username}</Text>
-                  <Text style={styles.time}>{timeAgo(room.last_message_at)}</Text>
+                  <Body style={[styles.name, room.unread && styles.nameUnread]}>{u.username}</Body>
+                  <Caption tone="muted">{timeAgo(room.last_message_at)}</Caption>
                 </View>
-                <Text style={[styles.lastMsg, room.unread && styles.lastMsgUnread]} numberOfLines={1}>
-                  {room.last_message || 'No messages yet'}
-                </Text>
+                <Body tone="muted" style={[styles.lastMsg, room.unread && styles.lastMsgUnread]} numberOfLines={1}>
+                  {room.last_message || '아직 메시지 없음'}
+                </Body>
               </View>
               {room.unread && <View style={styles.unreadDot} />}
             </Pressable>
@@ -71,34 +76,33 @@ export default function MessagesScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#fff' },
-  empty: { alignItems: 'center', paddingTop: 120 },
-  emptyTitle: { fontSize: 17, fontWeight: '600', color: '#222', marginBottom: 6 },
-  emptyDesc: { fontSize: 14, color: '#999', textAlign: 'center', lineHeight: 22 },
+  container: { flex: 1, backgroundColor: colors.background },
+  empty: { alignItems: 'center', paddingTop: 120, gap: spacing.sm },
+  emptyDesc: { textAlign: 'center', lineHeight: 21 },
 
   item: {
-    flexDirection: 'row', alignItems: 'center', gap: 12,
-    paddingHorizontal: 20, paddingVertical: 14,
-    borderBottomWidth: 1, borderBottomColor: '#f8f8f8',
+    flexDirection: 'row', alignItems: 'center', gap: spacing.base,
+    paddingHorizontal: spacing.md, paddingVertical: spacing.md,
+    borderBottomWidth: 1, borderBottomColor: colors.border,
   },
-  itemUnread: { backgroundColor: '#fafaf8' },
+  itemUnread: { backgroundColor: colors.surface },
 
-  avatar: { width: 50, height: 50, borderRadius: 25 },
+  avatar: { width: 50, height: 50, borderRadius: borderRadius.full },
   avatarPlaceholder: {
-    width: 50, height: 50, borderRadius: 25, backgroundColor: '#f0f0f0',
+    width: 50, height: 50, borderRadius: borderRadius.full,
+    backgroundColor: colors.surfaceLight,
     alignItems: 'center', justifyContent: 'center',
   },
-  avatarText: { fontSize: 18, fontWeight: '600', color: '#999' },
+  avatarText: { fontFamily: fontFamily.semibold, color: colors.textMuted },
 
-  info: { flex: 1 },
+  info: { flex: 1, gap: spacing.xs },
   nameRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-  name: { fontSize: 15, fontWeight: '500', color: '#222' },
-  nameUnread: { fontWeight: '700' },
-  time: { fontSize: 11, color: '#bbb' },
-  lastMsg: { fontSize: 13, color: '#999', marginTop: 3 },
-  lastMsgUnread: { color: '#222', fontWeight: '500' },
+  name: { fontFamily: fontFamily.medium, fontSize: 15 },
+  nameUnread: { fontFamily: fontFamily.bold },
+  lastMsg: { fontSize: 13 },
+  lastMsgUnread: { color: colors.text, fontFamily: fontFamily.medium },
 
   unreadDot: {
-    width: 10, height: 10, borderRadius: 5, backgroundColor: '#7b2d4e',
+    width: 10, height: 10, borderRadius: 5, backgroundColor: colors.primary,
   },
 });

@@ -139,47 +139,51 @@ export default function LoginScreen() {
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#fff', justifyContent: 'space-between' },
   hero: { flex: 1, alignItems: 'center', justifyContent: 'center' },
-  logo: { fontFamily: 'Pretendard-ExtraBold', fontSize: 48, color: '#7b2d4e', marginBottom: 10 },
-  sub: { fontSize: 15, color: '#999' },
+  logo: { fontFamily: 'Pretendard-ExtraBold', fontSize: 44, color: '#222', marginBottom: 10, letterSpacing: -1.5 },
+  sub: { fontSize: 14, color: '#999', fontFamily: 'Pretendard-Regular' },
   actions: { paddingHorizontal: 28, paddingBottom: 50 },
   form: { paddingHorizontal: 28, paddingBottom: 50 },
 
   emailBtn: {
     backgroundColor: '#7b2d4e', padding: 14, borderRadius: 10, alignItems: 'center',
   },
-  emailBtnText: { color: '#fff', fontSize: 15, fontWeight: '600' },
+  emailBtnText: { color: '#fff', fontSize: 15, fontFamily: 'Pretendard-SemiBold' },
 
   signupLink: { alignItems: 'center', marginTop: 14 },
-  signupLinkText: { fontSize: 13, color: '#999' },
-  signupLinkBold: { color: '#7b2d4e', fontWeight: '600' },
+  signupLinkText: { fontSize: 13, color: '#999', fontFamily: 'Pretendard-Regular' },
+  signupLinkBold: { color: '#7b2d4e', fontFamily: 'Pretendard-SemiBold' },
 
   divider: { flexDirection: 'row', alignItems: 'center', gap: 16, marginVertical: 20 },
   dividerLine: { flex: 1, height: 1, backgroundColor: '#eee' },
-  dividerText: { fontSize: 12, color: '#ccc' },
+  dividerText: { fontSize: 12, color: '#ccc', fontFamily: 'Pretendard-Regular' },
 
   googleBtn: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
     gap: 10, backgroundColor: '#fff', borderWidth: 1, borderColor: '#ddd',
     padding: 14, borderRadius: 10,
   },
-  googleText: { fontSize: 15, fontWeight: '500', color: '#333' },
+  googleText: { fontSize: 15, fontFamily: 'Pretendard-Medium', color: '#333' },
 
   appleBtn: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
     gap: 10, backgroundColor: '#000', padding: 14, borderRadius: 10, marginTop: 10,
   },
-  appleText: { fontSize: 15, fontWeight: '500', color: '#fff' },
+  appleText: { fontSize: 15, fontFamily: 'Pretendard-Medium', color: '#fff' },
 
-  terms: { fontSize: 11, color: '#bbb', textAlign: 'center', marginTop: 20, lineHeight: 16 },
+  terms: {
+    fontSize: 11, color: '#bbb', textAlign: 'center',
+    marginTop: 20, lineHeight: 16, fontFamily: 'Pretendard-Regular',
+  },
 
   input: {
     borderWidth: 1, borderColor: '#eee', borderRadius: 10,
     padding: 14, fontSize: 15, marginBottom: 12, backgroundColor: '#fafafa',
+    fontFamily: 'Pretendard-Regular', color: '#222',
   },
   submitBtn: {
     backgroundColor: '#7b2d4e', padding: 16, borderRadius: 10, alignItems: 'center', marginTop: 4,
   },
-  submitBtnText: { color: '#fff', fontSize: 16, fontWeight: '600' },
-  switchText: { fontSize: 13, color: '#999', textAlign: 'center', marginTop: 16 },
-  switchBold: { color: '#7b2d4e', fontWeight: '600' },
+  submitBtnText: { color: '#fff', fontSize: 16, fontFamily: 'Pretendard-SemiBold' },
+  switchText: { fontSize: 13, color: '#999', textAlign: 'center', marginTop: 16, fontFamily: 'Pretendard-Regular' },
+  switchBold: { color: '#7b2d4e', fontFamily: 'Pretendard-SemiBold' },
 });

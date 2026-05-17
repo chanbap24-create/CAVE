@@ -255,7 +255,7 @@ const accent = StyleSheet.create({
     position: 'absolute', right: 18, top: -10,
     fontSize: 130, fontWeight: '700', lineHeight: 130,
     letterSpacing: -10, opacity: 0.45,
-    fontFamily: 'PlayfairDisplay_700Bold_Italic',
+    fontFamily: 'Pretendard-ExtraBold',
   },
   // promo — 50% OFF 도장
   stampWrap: { position: 'absolute', right: 18, top: 18 },

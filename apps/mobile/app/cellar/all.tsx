@@ -7,7 +7,7 @@ import { useCollectionSocial } from '@/lib/hooks/useCollectionSocial';
 import { useCollectionPhoto } from '@/lib/hooks/useCollectionPhoto';
 import { ScreenHeader, BackButton } from '@/components/ScreenHeader';
 import { CellarList } from '@/components/CellarList';
-import { Body, Caption, Eyebrow, H1 } from '@/components/Typography';
+import { Body } from '@/components/Typography';
 import { colors, spacing } from '@/constants/theme';
 import { CATEGORY_DB_MAP } from '@/lib/constants/drinkCategories';
 
@@ -84,11 +84,6 @@ export default function CellarAllScreen() {
     <View style={styles.container}>
       <ScreenHeader title="" left={<BackButton fallbackPath="/(tabs)/profile" />} />
 
-      <View style={styles.cover}>
-        <Caption tone="warmMuted" style={styles.eyebrow}>MY CELLAR · {collections.length}</Caption>
-        <H1 tone="warm" style={styles.coverTitle}>내 셀러</H1>
-      </View>
-
       <View style={styles.tabRow}>
         {caveTabs.map(c => {
           const isActive = activeCat === c;
@@ -123,10 +118,6 @@ export default function CellarAllScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.cream },
-
-  cover: { paddingHorizontal: spacing.md, paddingTop: spacing.sm, paddingBottom: spacing.lg },
-  eyebrow: { letterSpacing: 2, marginBottom: spacing.sm },
-  coverTitle: { fontSize: 30, lineHeight: 36, letterSpacing: -0.6 },
 
   tabRow: {
     flexDirection: 'row',

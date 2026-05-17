@@ -7,7 +7,7 @@ import { useGatherings, type Gathering } from '@/lib/hooks/useGatherings';
 import { GatheringCompactRow } from '@/components/GatheringCompactRow';
 import { CreateGatheringSheet } from '@/components/CreateGatheringSheet';
 import { CategoryChips } from '@/components/CategoryChips';
-import { H1, H2, Body, Caption, BodyBold } from '@/components/Typography';
+import { H2, Body, Caption, BodyBold } from '@/components/Typography';
 import { colors, spacing, borderRadius, fontSize } from '@/constants/theme';
 import { CATEGORY_FILTERS, CATEGORY_DB_MAP } from '@/lib/constants/drinkCategories';
 
@@ -101,19 +101,14 @@ export default function GatheringsScreen() {
 
   return (
     <View style={styles.container}>
-      {/* 매거진 표지 + 우상단 작은 + 버튼 */}
-      <View style={[styles.cover, { paddingTop: insets.top + spacing.lg }]}>
-        <View style={styles.coverHead}>
-          <Caption tone="warmMuted" style={styles.eyebrow}>SEASON · {gatherings.length}</Caption>
-          <Pressable onPress={() => setShowCreate(true)} hitSlop={8}>
-            <Svg width={22} height={22} fill="none" stroke={colors.textWarm} strokeWidth={1.8} viewBox="0 0 24 24">
-              <Line x1={12} y1={5} x2={12} y2={19} />
-              <Line x1={5} y1={12} x2={19} y2={12} />
-            </Svg>
-          </Pressable>
-        </View>
-        <H1 tone="warm" style={styles.coverTitle}>모임</H1>
-        <Caption tone="warmMuted" style={styles.coverSub}>한 잔을 위해 모이는 사람들</Caption>
+      {/* 우상단 + 버튼만 — 큰 표지 제거 */}
+      <View style={[styles.headerBar, { paddingTop: insets.top + spacing.sm }]}>
+        <Pressable onPress={() => setShowCreate(true)} hitSlop={8}>
+          <Svg width={22} height={22} fill="none" stroke={colors.textWarm} strokeWidth={1.8} viewBox="0 0 24 24">
+            <Line x1={12} y1={5} x2={12} y2={19} />
+            <Line x1={5} y1={12} x2={19} y2={12} />
+          </Svg>
+        </Pressable>
       </View>
 
       <View style={styles.searchWrap}>
@@ -186,21 +181,10 @@ export default function GatheringsScreen() {
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.cream },
 
-  // ─── 매거진 표지 ───
-  cover: {
-    paddingHorizontal: spacing.md,
-    paddingBottom: spacing.lg,
+  headerBar: {
+    flexDirection: 'row', justifyContent: 'flex-end',
+    paddingHorizontal: spacing.md, paddingBottom: spacing.sm,
   },
-  coverHead: {
-    flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
-    marginBottom: spacing.base,
-  },
-  eyebrow: { letterSpacing: 2 },
-  coverTitle: {
-    fontSize: 30, lineHeight: 36, letterSpacing: -0.6,
-    marginBottom: spacing.sm,
-  },
-  coverSub: { fontStyle: 'italic' },
 
   // ─── 검색 + 카테고리 ───
   searchWrap: {

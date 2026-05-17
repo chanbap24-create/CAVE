@@ -100,19 +100,27 @@ export default function ProfileScreen() {
     setReviews((data ?? []).filter((r: any) => r.tasting_note?.trim().length > 0));
   }, [user?.id]);
 
-  // Persistent (헤더/CaveHero/NextGathering 에 항상 필요): focus 마다 fresh
+  // Persistent (헤더 / NextGathering 에 항상 필요)
   const loadCore = useCallback(() => {
     loadCollections(); loadGatherings(); loadUnreadCount(); checkAndAwardBadges();
   }, [loadCollections, loadGatherings, loadUnreadCount, checkAndAwardBadges]);
 
-  // 탭별 데이터 — 해당 탭 처음 열릴 때만 한 번 로드 (focus 마다 재실행 X).
-  // 새로고침은 pull-to-refresh 로만.
+  // 탭별 데이터 — 처음 열릴 때만 1회 로드.
   const loadedTabsRef = useRef<Set<Tab>>(new Set());
   const loadActivityData = useCallback(() => {
     loadPicks(); refreshDrinks(); refreshCaves(); loadRecs();
   }, [loadPicks, refreshDrinks, refreshCaves, loadRecs]);
 
-  useFocusEffect(useCallback(() => { loadCore(); }, [loadCore]));
+  // focus 캐시: 30초 이내 재 focus 면 reload skip.
+  // (다른 탭 갔다 돌아올 때마다 4 fetch 호출되던 문제 — 누적 491s 차지).
+  const lastFocusLoadRef = useRef(0);
+  const FOCUS_CACHE_MS = 30_000;
+  useFocusEffect(useCallback(() => {
+    const now = Date.now();
+    if (now - lastFocusLoadRef.current < FOCUS_CACHE_MS) return;
+    lastFocusLoadRef.current = now;
+    loadCore();
+  }, [loadCore]));
 
   useEffect(() => {
     if (loadedTabsRef.current.has(tab)) return;
@@ -124,6 +132,7 @@ export default function ProfileScreen() {
   async function onRefresh() {
     setRefreshing(true);
     loadedTabsRef.current.clear();
+    lastFocusLoadRef.current = Date.now();  // focus 캐시 갱신
     loadCore();
     if (tab === 'activity') loadActivityData();
     else if (tab === 'reviews') loadReviews();

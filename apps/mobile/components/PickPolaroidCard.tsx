@@ -124,7 +124,7 @@ const styles = StyleSheet.create({
   caption: { marginTop: 8, alignItems: 'center' },
   wineName: {
     fontSize: 12, color: '#2c1810',
-    fontFamily: 'PlayfairDisplay_700Bold_Italic',
+    fontFamily: 'Pretendard-ExtraBold',
     textAlign: 'center',
   },
   memo: {

@@ -5,7 +5,7 @@ import { StatusBar } from 'expo-status-bar';
 import { AuthProvider, useAuth } from '@/lib/auth';
 import { FollowProvider } from '@/lib/followContext';
 import { View, StyleSheet, ActivityIndicator } from 'react-native';
-import { useFonts, PlayfairDisplay_700Bold_Italic } from '@expo-google-fonts/playfair-display';
+import { useFonts } from 'expo-font';
 
 function AuthGate() {
   const { session, loading } = useAuth();
@@ -35,7 +35,14 @@ function AuthGate() {
 }
 
 export default function RootLayout() {
-  const [fontsLoaded] = useFonts({ PlayfairDisplay_700Bold_Italic });
+  // Pretendard — 한국 모던 앱 표준 (토스/당근/트레바리 톤). minimal redesign B.
+  const [fontsLoaded] = useFonts({
+    'Pretendard-Regular':    require('@/assets/fonts/Pretendard-Regular.otf'),
+    'Pretendard-Medium':     require('@/assets/fonts/Pretendard-Medium.otf'),
+    'Pretendard-SemiBold':   require('@/assets/fonts/Pretendard-SemiBold.otf'),
+    'Pretendard-Bold':       require('@/assets/fonts/Pretendard-Bold.otf'),
+    'Pretendard-ExtraBold':  require('@/assets/fonts/Pretendard-ExtraBold.otf'),
+  });
 
   if (!fontsLoaded) {
     return (

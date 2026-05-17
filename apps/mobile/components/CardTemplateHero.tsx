@@ -181,7 +181,7 @@ const styles = StyleSheet.create({
     position: 'absolute',
     fontWeight: '700',
     letterSpacing: -8,
-    fontFamily: 'PlayfairDisplay_700Bold_Italic',
+    fontFamily: 'Pretendard-ExtraBold',
     zIndex: 2,
   },
 

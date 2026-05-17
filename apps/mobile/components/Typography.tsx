@@ -41,78 +41,81 @@ function makeText(base: TextStyle) {
   };
 }
 
-// ─── Display — serif italic, 매거진 hero / 큰 숫자 ─────────
+// Pretendard 는 weight 별 별도 파일 — fontWeight 보단 fontFamily 직접 매핑이
+// iOS/Android 양쪽에서 가장 정확.
+
+// ─── Display — 큰 숫자 / hero ─────────
 export const Display = makeText({
-  fontFamily: fontFamily.serifItalic,
+  fontFamily: fontFamily.extrabold,
   fontSize: fontSize.displayLg,
   lineHeight: fontSize.displayLg * lineHeight.tight,
-  letterSpacing: -0.5,
+  letterSpacing: -0.6,
 });
 
 export const DisplaySm = makeText({
-  fontFamily: fontFamily.serifItalic,
+  fontFamily: fontFamily.extrabold,
   fontSize: fontSize.display,
   lineHeight: fontSize.display * lineHeight.tight,
-  letterSpacing: -0.4,
+  letterSpacing: -0.5,
 });
 
-// ─── Headings — 섹션 위계 ─────────────────────────────────
+// ─── Headings ─────────────────────────────────
 export const H1 = makeText({
+  fontFamily: fontFamily.bold,
   fontSize: fontSize.h1,
-  fontWeight: fontWeight.bold as TextStyle['fontWeight'],
   lineHeight: fontSize.h1 * lineHeight.tight,
   letterSpacing: -0.3,
 });
 
 export const H2 = makeText({
+  fontFamily: fontFamily.bold,
   fontSize: fontSize.h2,
-  fontWeight: fontWeight.bold as TextStyle['fontWeight'],
   lineHeight: fontSize.h2 * lineHeight.tight,
   letterSpacing: -0.2,
 });
 
 export const H3 = makeText({
+  fontFamily: fontFamily.semibold,
   fontSize: fontSize.h3,
-  fontWeight: fontWeight.semibold as TextStyle['fontWeight'],
   lineHeight: fontSize.h3 * lineHeight.tight,
 });
 
-// ─── Body — 본문 ────────────────────────────────────────
+// ─── Body ────────────────────────────────────────
 export const Body = makeText({
+  fontFamily: fontFamily.body,
   fontSize: fontSize.body,
-  fontWeight: fontWeight.regular as TextStyle['fontWeight'],
   lineHeight: fontSize.body * lineHeight.body,
 });
 
 export const BodyLg = makeText({
+  fontFamily: fontFamily.body,
   fontSize: fontSize.bodyLg,
-  fontWeight: fontWeight.regular as TextStyle['fontWeight'],
   lineHeight: fontSize.bodyLg * lineHeight.body,
 });
 
 export const BodyBold = makeText({
+  fontFamily: fontFamily.semibold,
   fontSize: fontSize.body,
-  fontWeight: fontWeight.semibold as TextStyle['fontWeight'],
   lineHeight: fontSize.body * lineHeight.body,
 });
 
-// ─── Label / Caption — 라벨 · 메타 · 캡션 ───────────────────
+// ─── Label / Caption ───────────────────
 export const Label = makeText({
+  fontFamily: fontFamily.medium,
   fontSize: fontSize.label,
-  fontWeight: fontWeight.medium as TextStyle['fontWeight'],
   lineHeight: fontSize.label * lineHeight.base,
 });
 
 export const Caption = makeText({
+  fontFamily: fontFamily.body,
   fontSize: fontSize.caption,
-  fontWeight: fontWeight.regular as TextStyle['fontWeight'],
   lineHeight: fontSize.caption * lineHeight.base,
 });
 
-/** 작은 카테고리 / 섹션 라벨 — 큰 글자보다 위에 배치 ("NEXT GATHERING" 같은) */
+/** 작은 카테고리 / 섹션 라벨 (uppercase) */
 export const Eyebrow = makeText({
+  fontFamily: fontFamily.bold,
   fontSize: fontSize.caption,
-  fontWeight: fontWeight.bold as TextStyle['fontWeight'],
   letterSpacing: 1.2,
   textTransform: 'uppercase' as TextStyle['textTransform'],
   lineHeight: fontSize.caption * lineHeight.base,

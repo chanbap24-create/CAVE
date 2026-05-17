@@ -1,7 +1,7 @@
 import React from 'react';
 import { View, Text, ScrollView, StyleSheet } from 'react-native';
 import { Image } from 'expo-image';
-import { useLocalSearchParams } from 'expo-router';
+import { useLocalSearchParams, useRouter } from 'expo-router';
 import { ScreenHeader, BackButton } from '@/components/ScreenHeader';
 import { WineTasteAggregate } from '@/components/WineTasteAggregate';
 import { TopComments } from '@/components/TopComments';
@@ -15,15 +15,24 @@ import { usePartnerSellersForWine } from '@/lib/hooks/usePartnerSellersForWine';
  * /wine/[id] (개인 셀러 컬렉션) 와 다른 페이지: wineId 기준 집계.
  */
 export default function WineCatalogScreen() {
-  const { wineId } = useLocalSearchParams<{ wineId: string }>();
+  const { wineId, from } = useLocalSearchParams<{ wineId: string; from?: string }>();
+  const router = useRouter();
   const id = wineId ? parseInt(wineId, 10) : null;
   const { wine, aggregate, topComments, loading } = useWineCatalog(id);
   const { sellers } = usePartnerSellersForWine(id);
 
+  // 출처별 명시 back — RN tab+stack 회귀시 holding tab 잃어버리는 케이스 대비.
+  const backOnPress =
+    from === 'wines' ? () => router.replace('/(tabs)/wines' as any) :
+    from === 'explore' ? () => router.replace('/(tabs)/explore' as any) :
+    undefined;
+  const backFallback = from === 'wines' ? '/(tabs)/wines' : '/(tabs)/explore';
+  const back = <BackButton fallbackPath={backFallback} onPress={backOnPress} />;
+
   if (loading && !wine) {
     return (
       <View style={styles.container}>
-        <ScreenHeader title="와인" left={<BackButton />} />
+        <ScreenHeader title="와인" left={back} />
         <Text style={styles.loading}>불러오는 중…</Text>
       </View>
     );
@@ -32,7 +41,7 @@ export default function WineCatalogScreen() {
   if (!wine) {
     return (
       <View style={styles.container}>
-        <ScreenHeader title="와인" left={<BackButton />} />
+        <ScreenHeader title="와인" left={back} />
         <Text style={styles.loading}>와인을 찾을 수 없어요.</Text>
       </View>
     );
@@ -42,7 +51,7 @@ export default function WineCatalogScreen() {
 
   return (
     <View style={styles.container}>
-      <ScreenHeader title="와인" left={<BackButton />} />
+      <ScreenHeader title="와인" left={back} />
       <ScrollView contentContainerStyle={{ paddingBottom: 40 }}>
         {wine.image_url ? (
           <Image source={wine.image_url} style={styles.cover} contentFit="cover" cachePolicy="memory-disk" />

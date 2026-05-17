@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import {
-  View, TextInput, FlatList, ScrollView, Pressable, StyleSheet, ActivityIndicator, Dimensions,
+  View, Text, TextInput, FlatList, ScrollView, Pressable, StyleSheet, ActivityIndicator, Dimensions,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -11,7 +11,9 @@ import { usePartnerWineMenu } from '@/lib/hooks/usePartnerWineMenu';
 import { useAllPartnerSales, type PartnerSale } from '@/lib/hooks/useAllPartnerSales';
 import { PartnerMenuList } from '@/components/PartnerMenuList';
 import { AddPartnerWineSheet } from '@/components/AddPartnerWineSheet';
-import { H1, BodyBold, Body, Caption, Eyebrow } from '@/components/Typography';
+import { TrendingDrinks } from '@/components/TrendingDrinks';
+import { BodyBold, Body, Caption, Eyebrow } from '@/components/Typography';
+import { useReadyWithImages } from '@/lib/hooks/useReadyWithImages';
 import { colors, spacing, borderRadius, fontSize } from '@/constants/theme';
 
 type Mode = 'browse' | 'menu';
@@ -29,11 +31,7 @@ export default function WinesSearchScreen() {
 
   return (
     <View style={styles.container}>
-      <View style={[styles.cover, { paddingTop: insets.top + spacing.lg }]}>
-        <Caption tone="warmMuted" style={styles.coverEyebrow}>CATALOG</Caption>
-        <H1 tone="warm" style={styles.coverTitle}>주류 도감</H1>
-        <Caption tone="warmMuted" style={styles.coverSub}>찾고 싶은 와인을 직접 검색하세요</Caption>
-      </View>
+      <View style={[styles.topPad, { paddingTop: insets.top + spacing.sm }]} />
 
       {isPartner && (
         <View style={styles.segmentedWrap}>
@@ -97,14 +95,23 @@ function BrowseMode({ router }: { router: ReturnType<typeof useRouter> }) {
         <SearchResultList
           results={results}
           loading={searchLoading}
-          onTap={(id) => router.push(`/catalog/${id}` as any)}
+          onTap={(id) => router.push(`/catalog/${id}?from=wines` as any)}
         />
       ) : (
-        <SalesList
-          sales={sales}
-          loading={salesLoading}
-          onTap={(wineId) => router.push(`/catalog/${wineId}` as any)}
-        />
+        <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: spacing.xxl }}>
+          <SalesList
+            sales={sales}
+            loading={salesLoading}
+            onTap={(wineId) => router.push(`/catalog/${wineId}?from=wines` as any)}
+          />
+          <View style={styles.trendingWrap}>
+            <View style={styles.trendingHeader}>
+              <BodyBold tone="warm" style={styles.trendingTitle}>트렌딩 주류</BodyBold>
+              <Caption tone="warmMuted" style={styles.trendingSub}>최근 셀러에 많이 추가된 보틀</Caption>
+            </View>
+            <TrendingDrinks />
+          </View>
+        </ScrollView>
       )}
     </>
   );
@@ -148,11 +155,11 @@ function SearchResultList({
   );
 }
 
-// 한 줄에 2.5장 보이는 카드 폭 — 좌측 패딩 + (카드 + gap) × 2 + 0.5 카드.
+// 한 줄에 2.3장 보이는 카드 (데일리샷 톤) — 좌패딩 + (카드 + gap) × 2 + 0.3 카드 peek.
 const SALES_PADDING = 16;
-const SALES_GAP = 10;
+const SALES_GAP = 12;
 const SALES_CARD_W = Math.floor(
-  (Dimensions.get('window').width - SALES_PADDING - SALES_GAP * 2) / 2.5,
+  (Dimensions.get('window').width - SALES_PADDING - SALES_GAP * 2) / 2.3,
 );
 
 function SalesList({
@@ -162,7 +169,11 @@ function SalesList({
   loading: boolean;
   onTap: (wineId: number) => void;
 }) {
-  if (loading && sales.length === 0) {
+  // 이미지 prefetch 가 끝날 때까지 spinner — 데이터 + 이미지 한꺼번에 reveal.
+  const imageUrls = React.useMemo(() => sales.map(s => s.wine?.image_url ?? null), [sales]);
+  const ready = useReadyWithImages(imageUrls);
+
+  if ((loading && sales.length === 0) || !ready) {
     return <ActivityIndicator color={colors.primary} style={{ marginTop: spacing.lg }} />;
   }
   if (sales.length === 0) {
@@ -177,7 +188,15 @@ function SalesList({
   }
   return (
     <View>
-      <Eyebrow tone="warmMuted" style={styles.salesHeading}>판매 중 · {sales.length}</Eyebrow>
+      {/* 섹션 헤더 — 큰 sans bold + sub + 더보기 (데일리샷 패턴) */}
+      <View style={styles.salesHeader}>
+        <View style={{ flex: 1 }}>
+          <BodyBold tone="warm" style={styles.salesTitle}>지금 판매 중인 와인</BodyBold>
+          <Caption tone="warmMuted" style={styles.salesSub}>파트너가 직접 선별한 보틀</Caption>
+        </View>
+        <Caption tone="warmMuted">더보기</Caption>
+      </View>
+
       <ScrollView
         horizontal
         showsHorizontalScrollIndicator={false}
@@ -185,31 +204,44 @@ function SalesList({
         decelerationRate="fast"
         contentContainerStyle={styles.salesScroll}
       >
-        {sales.map(item => (
-          <Pressable
-            key={item.id}
-            style={[styles.saleCard, { width: SALES_CARD_W }]}
-            onPress={() => onTap(item.wine_id)}
-          >
-            {item.wine?.image_url ? (
-              <CardImage
-                source={item.wine.image_url}
-                style={[styles.saleCardImg, { width: SALES_CARD_W, height: SALES_CARD_W }]}
-              />
-            ) : (
-              <View style={[styles.saleCardImg, styles.saleCardImgPlaceholder, { width: SALES_CARD_W, height: SALES_CARD_W }]} />
-            )}
-            <View style={styles.saleCardBody}>
-              <BodyBold tone="warm" numberOfLines={2} style={styles.saleCardName}>
-                {item.wine?.name ?? '와인'}
-              </BodyBold>
-              <Caption tone="primary" numberOfLines={1}>
-                {item.partner?.partner_label || item.partner?.display_name || item.partner?.username || '파트너'}
-              </Caption>
-              <BodyBold tone="primary" style={styles.salePrice}>{item.price.toLocaleString('ko-KR')}원</BodyBold>
-            </View>
-          </Pressable>
-        ))}
+        {sales.map(item => {
+          const partnerLabel = item.partner?.partner_label || item.partner?.display_name || item.partner?.username || '파트너';
+          const region = [item.wine?.region, item.wine?.vintage_year].filter(Boolean).join(' · ');
+          return (
+            <Pressable
+              key={item.id}
+              style={[styles.saleCard, { width: SALES_CARD_W }]}
+              onPress={() => onTap(item.wine_id)}
+            >
+              {/* 이미지 영역 — 정사각, 옅은 회색 bg, contain (병이 카드 안에 떠있게) */}
+              <View style={[styles.saleImgWrap, { width: SALES_CARD_W, height: SALES_CARD_W }]}>
+                {item.wine?.image_url ? (
+                  <CardImage
+                    source={item.wine.image_url}
+                    style={styles.saleImg}
+                    contentFit="contain"
+                  />
+                ) : (
+                  <View style={styles.saleImgEmpty} />
+                )}
+              </View>
+
+              {/* 본문 — 파트너 칩 + 와인명 + 가격 + 지역 */}
+              <View style={styles.saleBody}>
+                <View style={styles.partnerChip}>
+                  <Caption tone="primary" style={styles.partnerChipText}>{partnerLabel}</Caption>
+                </View>
+                <BodyBold tone="warm" numberOfLines={2} style={styles.saleName}>
+                  {item.wine?.name ?? '와인'}
+                </BodyBold>
+                <Text style={styles.salePrice}>
+                  {item.price.toLocaleString('ko-KR')}<Text style={styles.salePriceUnit}>원</Text>
+                </Text>
+                {region ? <Caption tone="muted" style={styles.saleMeta}>{region}</Caption> : null}
+              </View>
+            </Pressable>
+          );
+        })}
       </ScrollView>
     </View>
   );
@@ -277,14 +309,7 @@ function PartnerMenuMode() {
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.cream },
 
-  // ─── 매거진 표지 ───
-  cover: {
-    paddingHorizontal: spacing.md,
-    paddingBottom: spacing.lg,
-  },
-  coverEyebrow: { letterSpacing: 2, marginBottom: spacing.sm },
-  coverTitle: { fontSize: 30, lineHeight: 36, letterSpacing: -0.6, marginBottom: spacing.xs },
-  coverSub: { fontStyle: 'italic' },
+  topPad: {},
 
   segmentedWrap: {
     flexDirection: 'row', gap: spacing.xs,
@@ -328,24 +353,49 @@ const styles = StyleSheet.create({
   },
   rowChevron: { fontSize: 18, marginLeft: spacing.sm },
 
-  // 판매 중 — 가로 카드
-  salesHeading: {
-    paddingHorizontal: spacing.md, paddingTop: spacing.md, paddingBottom: spacing.sm,
-    letterSpacing: 1.5,
+  // ─── 판매 중 — 데일리샷 톤 카드 ───
+  salesHeader: {
+    flexDirection: 'row', alignItems: 'flex-end',
+    paddingHorizontal: spacing.md, paddingTop: spacing.lg, paddingBottom: spacing.base,
   },
-  salesScroll: { paddingLeft: SALES_PADDING, paddingRight: SALES_PADDING / 2 },
+  salesTitle: { fontSize: 18, letterSpacing: -0.3 },
+  salesSub: { marginTop: 2 },
+  salesScroll: { paddingLeft: SALES_PADDING, paddingRight: SALES_PADDING },
+
   saleCard: {
     marginRight: SALES_GAP,
-    backgroundColor: colors.background,
+  },
+  // 이미지 영역 — 정사각 cream 배경 + 라운드, 병이 안에 떠있는 느낌 (contain).
+  saleImgWrap: {
+    backgroundColor: '#f4f2ed',
     borderRadius: borderRadius.md,
-    borderWidth: 1, borderColor: colors.border,
+    padding: spacing.base,
+    alignItems: 'center', justifyContent: 'center',
     overflow: 'hidden',
   },
-  saleCardImg: { backgroundColor: colors.creamDeep },
-  saleCardImgPlaceholder: {},
-  saleCardBody: { padding: spacing.sm, gap: spacing.xs },
-  saleCardName: { lineHeight: 18 },
-  salePrice: { marginTop: 2 },
+  saleImg: { width: '100%', height: '100%' },
+  saleImgEmpty: { flex: 1 },
+
+  // 본문
+  saleBody: { paddingTop: spacing.sm, gap: spacing.xs },
+  partnerChip: {
+    alignSelf: 'flex-start',
+    paddingHorizontal: 6, paddingVertical: 2,
+    borderRadius: borderRadius.xs,
+  },
+  partnerChipText: { fontWeight: '600' },
+  saleName: { fontSize: 13, lineHeight: 17, marginTop: 2 },
+  salePrice: { fontSize: 18, fontWeight: '800', color: colors.text, letterSpacing: -0.3, marginTop: 4 },
+  salePriceUnit: { fontSize: 13, fontWeight: '600' },
+  saleMeta: { marginTop: 2 },
+
+  // ─── 트렌딩 주류 섹션 ───
+  trendingWrap: { marginTop: spacing.xxl },
+  trendingHeader: {
+    paddingHorizontal: spacing.md, paddingBottom: spacing.base,
+  },
+  trendingTitle: { fontSize: 18, letterSpacing: -0.3 },
+  trendingSub: { marginTop: 2 },
 
   menuHeader: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',

@@ -71,7 +71,7 @@ const styles = StyleSheet.create({
   statValue: {
     fontSize: 28, lineHeight: 32,
     color: '#3a1e1c',
-    fontFamily: 'PlayfairDisplay_700Bold_Italic',
+    fontFamily: 'Pretendard-ExtraBold',
     letterSpacing: -0.5,
   },
   statUnit: {

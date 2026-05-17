@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, Text, ScrollView, Pressable, StyleSheet } from 'react-native';
+import { View, Text, ScrollView, Pressable, StyleSheet, ActivityIndicator } from 'react-native';
 import { CardImage } from '@/components/CardImage';
 import { useRouter } from 'expo-router';
 import { DiscoverSectionHeader } from '@/components/DiscoverSectionHeader';
@@ -7,6 +7,7 @@ import {
   getDiscoverCardWidth, getSnapInterval, HORIZONTAL_PADDING, CARD_GAP,
 } from '@/lib/utils/discoverCardWidth';
 import { timeAgo } from '@/lib/utils/dateUtils';
+import { useReadyWithImages } from '@/lib/hooks/useReadyWithImages';
 import type { RecentDrink } from '@/lib/hooks/useRecentDrinks';
 
 const CARD_WIDTH = getDiscoverCardWidth();
@@ -22,10 +23,18 @@ interface Props {
  */
 export function RecentlyDrunkRow({ drinks }: Props) {
   const router = useRouter();
+  const imageUrls = React.useMemo(
+    () => drinks.map(d => d.collection_photo_url || d.wine?.image_url || null),
+    [drinks],
+  );
+  const ready = useReadyWithImages(imageUrls);
+
   return (
     <View style={styles.wrap}>
       <DiscoverSectionHeader title="최근 마신 와인" actionLabel={null} />
-      {drinks.length === 0 ? (
+      {!ready && drinks.length > 0 ? (
+        <ActivityIndicator color="#7b2d4e" style={{ marginVertical: 32 }} />
+      ) : drinks.length === 0 ? (
         <View style={styles.empty}>
           <Text style={styles.emptyTitle}>아직 기록이 없어요</Text>
           <Text style={styles.emptySub}>

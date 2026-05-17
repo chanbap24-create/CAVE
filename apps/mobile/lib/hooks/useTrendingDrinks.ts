@@ -8,6 +8,8 @@ export interface TrendingDrink {
   category: string;
   country: string | null;
   region: string | null;
+  vintage_year: number | null;
+  image_url: string | null;
   add_count: number;
 }
 
@@ -43,7 +45,7 @@ export function useTrendingDrinks(category?: string | null) {
     const ids = sorted.map(([id]) => parseInt(id));
     const { data: wines } = await supabase
       .from('wines')
-      .select('id, name, name_ko, category, country, region')
+      .select('id, name, name_ko, category, country, region, vintage_year, image_url')
       .in('id', ids);
 
     if (!wines) { setDrinks([]); setLoading(false); return; }
@@ -53,7 +55,11 @@ export function useTrendingDrinks(category?: string | null) {
       .map(([id, count]) => {
         const w = wineMap.get(parseInt(id));
         if (!w) return null;
-        return { wine_id: w.id, name: w.name, name_ko: w.name_ko, category: w.category, country: w.country, region: w.region, add_count: count };
+        return {
+          wine_id: w.id, name: w.name, name_ko: w.name_ko, category: w.category,
+          country: w.country, region: w.region, vintage_year: w.vintage_year,
+          image_url: w.image_url, add_count: count,
+        };
       })
       .filter(Boolean) as TrendingDrink[];
 

@@ -1,5 +1,5 @@
-import React from 'react';
-import { View, Pressable, StyleSheet } from 'react-native';
+import React, { useMemo } from 'react';
+import { View, Pressable, StyleSheet, ActivityIndicator } from 'react-native';
 import { CardImage } from '@/components/CardImage';
 import { useRouter } from 'expo-router';
 import { PartnerBadge } from '@/components/PartnerBadge';
@@ -7,6 +7,7 @@ import { StarRating } from '@/components/StarRating';
 import { BodyBold, Body, BodyLg, Caption, H2 } from '@/components/Typography';
 import { colors, spacing, borderRadius, fontWeight } from '@/constants/theme';
 import { timeAgo } from '@/lib/utils/dateUtils';
+import { useReadyWithImages } from '@/lib/hooks/useReadyWithImages';
 import type { TastingReview } from '@/lib/hooks/useTastingReviews';
 
 interface Props {
@@ -16,13 +17,22 @@ interface Props {
 const AVATAR = 32;
 
 /**
- * 시음 후기 피드 — 매거진식 노트북 엔트리 (2026-05-14 redesign A).
- *
- * 카드/박스 X. 큰 serif italic 와인 이름 + body 노트 + hairline divider.
- * 작성자/시간/별점은 상단 메타 한 줄로 절제.
+ * 시음 후기 피드 — 매거진식 노트북 엔트리.
+ * 이미지 prefetch 끝나면 일괄 reveal (텍스트 먼저 / 사진 늦게 jank 제거).
  */
 export function TastingReviewsFeed({ reviews }: Props) {
   const router = useRouter();
+  // 아바타 + 사진 URL 합쳐 prefetch (entry 당 1개 대표 URL 만 골라).
+  const imageUrls = useMemo(
+    () => reviews.flatMap(r => [r.owner?.avatar_url, r.photo_url || r.wine?.image_url]),
+    [reviews],
+  );
+  const ready = useReadyWithImages(imageUrls);
+
+  if (!ready && reviews.length > 0) {
+    return <ActivityIndicator color={colors.primary} style={{ marginTop: spacing.xl }} />;
+  }
+
   if (reviews.length === 0) {
     return (
       <View style={styles.emptyWrap}>

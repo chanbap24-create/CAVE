@@ -4,7 +4,6 @@ import { useFocusEffect } from 'expo-router';
 import { useFeaturedCaves } from '@/lib/hooks/useFeaturedCaves';
 import { useGatherings } from '@/lib/hooks/useGatherings';
 import { FeaturedCaveCard } from '@/components/FeaturedCaveCard';
-import { TrendingDrinks } from '@/components/TrendingDrinks';
 import { SeasonClubHero } from '@/components/SeasonClubHero';
 import { PartnerGatheringsRow } from '@/components/PartnerGatheringsRow';
 import { UserGatheringsRow } from '@/components/UserGatheringsRow';
@@ -86,10 +85,7 @@ export default function ExploreScreen() {
           </View>
         )}
 
-        <View style={styles.trendingWrap}>
-          <DiscoverSectionHeader title="트렌딩 주류" actionLabel={null} />
-          <TrendingDrinks refreshKey={refreshKey} category={categoryKey} />
-        </View>
+        {/* 트렌딩 주류 — wines 탭으로 이동 (2026-05-15). */}
 
         <EditorGuidesSection />
 
@@ -105,7 +101,6 @@ const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.background },
 
   cavesWrap: { marginTop: spacing.xxl },
-  trendingWrap: { marginTop: spacing.xxl },
   scrollRow: {
     paddingLeft: HORIZONTAL_PADDING, paddingRight: HORIZONTAL_PADDING / 2,
   },

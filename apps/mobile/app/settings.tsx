@@ -10,7 +10,7 @@ import { useUserBadges } from '@/lib/hooks/useUserBadges';
 import { BadgeList } from '@/components/BadgeList';
 import { EditPartnerProfileSheet } from '@/components/EditPartnerProfileSheet';
 import { CardTemplateDefaultSheet } from '@/components/CardTemplateDefaultSheet';
-import { H1, Body, Caption, Eyebrow } from '@/components/Typography';
+import { Body, Caption, Eyebrow } from '@/components/Typography';
 import { colors, spacing, borderRadius } from '@/constants/theme';
 
 /**
@@ -38,7 +38,7 @@ export default function SettingsScreen() {
   return (
     <View style={styles.container}>
       <ScrollView contentContainerStyle={{ paddingTop: insets.top + spacing.md, paddingBottom: spacing.xxl }}>
-        {/* 표지 — back 버튼 + 큰 serif italic 제목 */}
+        {/* back 버튼만 (표지 제거) */}
         <View style={styles.cover}>
           <Pressable
             onPress={() => router.canGoBack() ? router.back() : router.replace('/(tabs)/profile' as any)}
@@ -49,11 +49,7 @@ export default function SettingsScreen() {
               <Polyline points="15 18 9 12 15 6" />
             </Svg>
           </Pressable>
-          <Eyebrow tone="warmMuted" style={styles.eyebrow}>ACCOUNT</Eyebrow>
-          <H1 tone="warm" style={styles.coverTitle}>설정</H1>
         </View>
-
-        <View style={styles.divider} />
 
         <MenuRow
           icon="color-palette-outline"

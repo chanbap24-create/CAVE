@@ -1,40 +1,42 @@
-// i Cave Design Tokens — Editorial / Magazine 톤 (2026-05-14 redesign A).
+// i Cave Design Tokens — Minimal / 무인양품 톤 (2026-05-17 redesign B).
 //
-// Direction: 트레바리식 큐레이션 + 와인 일기 정서.
-// 기존의 단편적 톤 (인스타식 / 폴라로이드 / 매거진 hero / 평면 카드) 을
-// 한 시각언어로 통합. cream/sepia 액센트 + serif italic 강조 + 의도적 여백.
+// Direction: 흑백 위주, 얇은 stroke, hairline divider, 컬러는 액센트만.
+// 사진 / 콘텐츠가 주인공. 매거진 sepia/warm 톤 제거 — 시스템적·차분.
+//
+// 토큰 이름은 redesign A 와 동일 유지 (cream / textWarm 등) — 코드 호환,
+// 값만 minimal 로 재정의. 따라서 caller 변경 없이 전체 톤 전환.
 
 export const colors = {
-  // ─── Base (white-first, cream 액센트) ───
+  // ─── Base (white-first, 옅은 회색 layer) ───
   background: '#ffffff',
   surface: '#fafafa',
   surfaceLight: '#f5f5f5',
-  /** 종이 질감 — 큐레이션 / 일기 카드 배경 */
-  cream: '#fcfaf6',
-  /** 큐레이션 강조 카드 배경 */
-  creamDeep: '#f7f0e2',
+  /** 이전 cream — 거의 흰색에 살짝 회색 차이만 (#fafafa 톤) */
+  cream: '#fafafa',
+  /** 이전 creamDeep — section 강조 배경, 옅은 회색 */
+  creamDeep: '#f0f0f0',
   border: '#efefef',
-  borderStrong: '#e0dccf',
+  /** 이전 borderStrong — 옅은 회색 단일 */
+  borderStrong: '#e5e5e5',
 
-  // ─── Text ───
+  // ─── Text — 단색 3단 회색 ───
   text: '#222222',
   textSecondary: '#666666',
   textMuted: '#999999',
   textLight: '#bbbbbb',
-  /** 따뜻한 본문 톤 — cream 배경 위 텍스트 */
-  textWarm: '#3a2a1e',
-  textWarmMuted: '#7a6a55',
+  /** 이전 textWarm — 표준 black 으로 통일 */
+  textWarm: '#222222',
+  /** 이전 textWarmMuted — 회색 */
+  textWarmMuted: '#999999',
 
-  // ─── Accent — Wine ───
+  // ─── Accent — Wine (절제, 액션/링크/강조에만) ───
   primary: '#7b2d4e',
   primaryLight: '#f7f0f3',
   primaryDark: '#5a1e38',
 
-  // ─── Accent — Sepia / Gold (큐레이션 톤) ───
-  /** badge / 큰 숫자 / 인용 */
-  sepia: '#5a4a3e',
-  sepiaLight: '#a08a72',
-  /** 우수 / 추천 강조 */
+  // ─── Sepia/Gold (호환 위해 토큰 유지, minimal 톤은 거의 안 씀) ───
+  sepia: '#5a5a5a',
+  sepiaLight: '#a0a0a0',
   gold: '#a07818',
   goldSoft: '#c9a84c',
   goldBg: '#f8f4e8',
@@ -101,10 +103,14 @@ export const fontWeight = {
 } as const;
 
 export const fontFamily = {
-  /** 한글/숫자 본문 — 시스템 (다음 단계에서 Pretendard 도입 검토) */
-  body: undefined as string | undefined,
-  /** 영문 액센트 — 매거진 hero, 큰 숫자, 인용 */
-  serifItalic: 'PlayfairDisplay_700Bold_Italic',
+  /** 한글/숫자 본문 — Pretendard (한국 모던 앱 표준) */
+  body: 'Pretendard-Regular',
+  medium: 'Pretendard-Medium',
+  semibold: 'Pretendard-SemiBold',
+  bold: 'Pretendard-Bold',
+  extrabold: 'Pretendard-ExtraBold',
+  /** 호환용 — 기존 serif italic 사용처는 Pretendard ExtraBold 로 대체 */
+  serifItalic: 'Pretendard-ExtraBold',
 } as const;
 
 export const borderRadius = {

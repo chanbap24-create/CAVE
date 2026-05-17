@@ -139,7 +139,7 @@ export default function LoginScreen() {
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#fff', justifyContent: 'space-between' },
   hero: { flex: 1, alignItems: 'center', justifyContent: 'center' },
-  logo: { fontFamily: 'PlayfairDisplay_700Bold_Italic', fontSize: 48, color: '#7b2d4e', marginBottom: 10 },
+  logo: { fontFamily: 'Pretendard-ExtraBold', fontSize: 48, color: '#7b2d4e', marginBottom: 10 },
   sub: { fontSize: 15, color: '#999' },
   actions: { paddingHorizontal: 28, paddingBottom: 50 },
   form: { paddingHorizontal: 28, paddingBottom: 50 },

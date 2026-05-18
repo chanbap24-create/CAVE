@@ -10,6 +10,8 @@ interface AddExistingInput {
   source?: Source;
   /** Personal photo URL saved on the collections row (not on wines). */
   photoUrl?: string | null;
+  /** 등록할 보틀 수 (기본 1). N개면 같은 collections row를 N개 생성. */
+  quantity?: number;
 }
 
 interface AddNewInput {
@@ -17,6 +19,13 @@ interface AddNewInput {
   source?: Source;
   /** Personal photo URL saved on the collections row (not on wines). */
   photoUrl?: string | null;
+  /** 등록할 보틀 수 (기본 1). N개면 같은 collections row를 N개 생성. */
+  quantity?: number;
+}
+
+function clampQuantity(q: number | undefined): number {
+  if (!q || !Number.isFinite(q) || q < 1) return 1;
+  return Math.min(Math.floor(q), 99);
 }
 
 /**
@@ -31,13 +40,13 @@ export function useAddToCave() {
   const [adding, setAdding] = useState(false);
 
   async function addExisting({
-    wineId, source = 'search', photoUrl,
+    wineId, source = 'search', photoUrl, quantity,
   }: AddExistingInput): Promise<boolean> {
     if (!user || adding) return false;
     setAdding(true);
     try {
       const base: Record<string, any> = { user_id: user.id, wine_id: wineId, source };
-      const { error } = await insertCollectionRow(base, photoUrl);
+      const { error } = await insertCollectionRows(base, photoUrl, clampQuantity(quantity));
       if (error) console.error('[addToCave:addExisting]', error.message);
       return !error;
     } finally {
@@ -45,7 +54,7 @@ export function useAddToCave() {
     }
   }
 
-  async function addNew({ extracted, source = 'photo', photoUrl }: AddNewInput): Promise<WineRow | null> {
+  async function addNew({ extracted, source = 'photo', photoUrl, quantity }: AddNewInput): Promise<WineRow | null> {
     if (!user || adding) return null;
     setAdding(true);
     try {
@@ -82,7 +91,7 @@ export function useAddToCave() {
         wine_id: wine.id,
         source,
       };
-      const { error: collectionError } = await insertCollectionRow(base, photoUrl);
+      const { error: collectionError } = await insertCollectionRows(base, photoUrl, clampQuantity(quantity));
       if (collectionError) {
         console.error('[addToCave:addNew collections]', collectionError.message);
         return null;
@@ -97,26 +106,26 @@ export function useAddToCave() {
 }
 
 /**
- * Insert a collections row, falling back to the same row without `photo_url`
- * if the server rejects it (most commonly: the 00021 migration isn't applied
- * yet and the column doesn't exist). We'd rather save the membership than
- * block the user on a cosmetic field.
+ * Insert N collections rows in one round-trip. photo_url 컬럼이 서버에서 거부되면
+ * (e.g. 00021 migration 미적용) photo_url 없이 재시도해 멤버십만이라도 저장한다.
+ *
+ * quantity > 1 이면 row 를 N개 동일 base로 복제. (DB 스키마 변경 없이 보유 수량을
+ * "같은 wine_id 가 N개" 로 표현. 화면에선 count로 합쳐 보여준다.)
  */
-async function insertCollectionRow(
+async function insertCollectionRows(
   base: Record<string, any>,
   photoUrl: string | null | undefined,
+  quantity: number,
 ) {
+  const rows = Array.from({ length: quantity }, () => ({ ...base }));
   if (photoUrl) {
-    const withPhoto = { ...base, photo_url: photoUrl };
+    const withPhoto = rows.map((r) => ({ ...r, photo_url: photoUrl }));
     const first = await supabase.from('collections').insert(withPhoto);
     if (!first.error) return first;
-    // Retry without photo_url on "column photo_url does not exist" (42703)
-    // or anything else that looks schema-ish. The retry path also covers
-    // transient issues where photo_url is somehow rejected.
     const msg = first.error.message?.toLowerCase() ?? '';
     const schemaIssue = msg.includes('photo_url') || msg.includes('column');
     if (!schemaIssue) return first;
     console.warn('[addToCave] photo_url rejected, retrying without:', first.error.message);
   }
-  return supabase.from('collections').insert(base);
+  return supabase.from('collections').insert(rows);
 }

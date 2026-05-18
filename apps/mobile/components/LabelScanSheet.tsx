@@ -8,7 +8,7 @@ import { useAddToCave } from '@/lib/hooks/useAddToCave';
 import { maybeContributeWineImage } from '@/lib/utils/contributeWineImage';
 import { isAutoMatch } from '@/lib/hooks/useWineMatch';
 import { uploadImage } from '@/lib/utils/imageUpload';
-import { fromExtracted, type ReviewFormValue } from '@/components/LabelReviewForm';
+import { fromExtracted, parseQuantity, type ReviewFormValue } from '@/components/LabelReviewForm';
 import { PickStage, AnalyzingStage, ErrorStage, ReviewStage } from '@/components/LabelScanStages';
 
 interface Props {
@@ -71,7 +71,8 @@ export function LabelScanSheet({ visible, onClose, onAdded }: Props) {
 
     if (useMatchId) {
       const photoUrl = await uploadScanPhoto();
-      const ok = await cave.addExisting({ wineId: useMatchId, source: 'photo', photoUrl });
+      const quantity = parseQuantity(form.quantity);
+      const ok = await cave.addExisting({ wineId: useMatchId, source: 'photo', photoUrl, quantity });
       if (!ok) return Alert.alert('Error', 'Could not add to cave');
       // 공용 wines.image_url 첫 기여 — fire-and-forget, 실패해도 메인 흐름 OK
       if (scan.result?.imageUri) {
@@ -99,6 +100,7 @@ export function LabelScanSheet({ visible, onClose, onAdded }: Props) {
       },
       source: 'photo',
       photoUrl,
+      quantity: parseQuantity(form.quantity),
     });
     if (!result) return Alert.alert('Error', 'Could not save wine');
     // 새로 만든 wine row → image_url 비어있으니 무조건 기여 시도

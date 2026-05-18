@@ -12,6 +12,8 @@ export interface ReviewFormValue {
   vintage: string; // stored as text to allow "" while editing; parsed on save
   vintageType: VintageType; // 'year' | 'nv' | 'mv' — 'year' pairs with `vintage`
   category: DrinkCategory;
+  /** 등록할 보틀 수 (1 이상). text로 보관해 비어있을 때 편집 가능. */
+  quantity: string;
 }
 
 interface Props {
@@ -23,6 +25,7 @@ export function emptyFormValue(): ReviewFormValue {
   return {
     name: '', producer: '', region: '', country: '',
     vintage: '', vintageType: 'year', category: 'wine',
+    quantity: '1',
   };
 }
 
@@ -38,7 +41,15 @@ export function fromExtracted(e: ExtractedWineInfo): ReviewFormValue {
     vintage: e.vintage_year ? String(e.vintage_year) : '',
     vintageType,
     category: e.category,
+    quantity: '1',
   };
+}
+
+/** form.quantity 문자열을 1 이상 정수로 변환. 빈/0/음수는 1로 보정. 상한 99. */
+export function parseQuantity(q: string | undefined): number {
+  const n = parseInt(q || '1', 10);
+  if (!Number.isFinite(n) || n < 1) return 1;
+  return Math.min(n, 99);
 }
 
 export function LabelReviewForm({ value, onChange }: Props) {
@@ -115,6 +126,18 @@ export function LabelReviewForm({ value, onChange }: Props) {
           categories={categories}
           selected={value.category}
           onChange={k => set('category', (k ?? 'wine') as DrinkCategory)}
+        />
+      </Field>
+
+      <Field label="Bottles">
+        <TextInput
+          style={styles.input}
+          value={value.quantity}
+          onChangeText={t => set('quantity', t.replace(/[^0-9]/g, '').slice(0, 2))}
+          placeholder="1"
+          placeholderTextColor="#ccc"
+          keyboardType="number-pad"
+          maxLength={2}
         />
       </Field>
     </View>

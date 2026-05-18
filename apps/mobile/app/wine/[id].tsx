@@ -1,9 +1,10 @@
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import {
   View, Text, ScrollView, StyleSheet, Pressable, Alert, ActivityIndicator,
 } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useAuth } from '@/lib/auth';
+import { supabase } from '@/lib/supabase';
 import { useWineMemory } from '@/lib/hooks/useWineMemory';
 import { useCollectionLike } from '@/lib/hooks/useCollectionLike';
 import { useCollectionComments } from '@/lib/hooks/useCollectionComments';
@@ -46,6 +47,26 @@ export default function WineDetailScreen() {
 
   const [carouselIndex, setCarouselIndex] = useState(0);
   const [commentsOpen, setCommentsOpen] = useState(false);
+
+  // 본인 셀러에 같은 와인이 몇 병 등록돼 있는지. 다른 사용자 화면(=isOwner false)에는 표시 X.
+  const [bottleCount, setBottleCount] = useState<number | null>(null);
+  useEffect(() => {
+    const wineId = data?.wine?.id;
+    if (!user || !wineId || !isOwner) {
+      setBottleCount(null);
+      return;
+    }
+    let active = true;
+    (async () => {
+      const { count } = await supabase
+        .from('collections')
+        .select('id', { count: 'exact', head: true })
+        .eq('user_id', user.id)
+        .eq('wine_id', wineId);
+      if (active) setBottleCount(count ?? 0);
+    })();
+    return () => { active = false; };
+  }, [user?.id, data?.wine?.id, isOwner]);
 
   // Cover (wine 메인 사진) 가 슬라이드 0, memory 가 슬라이드 1..N.
   // 메인 사진이 없으면 카루셀에서도 빠짐 — memory 만으로도 페이저 가능.
@@ -182,6 +203,11 @@ export default function WineDetailScreen() {
             {locale || 'Region unknown'}
             {data.wine?.vintage_year ? ` · ${data.wine.vintage_year}` : ''}
           </Caption>
+          {bottleCount != null && bottleCount > 0 && (
+            <BodyBold tone="warm" style={styles.bottleCount}>
+              {bottleCount} {bottleCount === 1 ? 'Bottle' : 'Bottles'}
+            </BodyBold>
+          )}
         </View>
 
         {/* Action icons — heart toggles like, bubble opens comment sheet. */}
@@ -266,6 +292,7 @@ const styles = StyleSheet.create({
   wineName: { fontSize: 22, lineHeight: 28, letterSpacing: -0.3 },
   nameKo: { marginTop: spacing.xs },
   meta: { marginTop: spacing.sm },
+  bottleCount: { marginTop: spacing.sm, fontSize: 14 },
 
   actionBar: {
     flexDirection: 'row', alignItems: 'center', gap: spacing.base,

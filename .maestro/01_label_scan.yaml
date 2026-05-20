@@ -1,0 +1,64 @@
+# 라벨 스캔 → 와인 등록 → 셀러 반영 검증
+#
+# 전제:
+#   - 로그인된 상태 (initialRoute=profile 로 시작)
+#   - 시뮬레이터 사진 라이브러리에 와인 라벨 이미지 1장 이상 있어야
+#
+# 실행: maestro test .maestro/01_label_scan.yaml
+
+appId: com.icellar.app
+---
+- launchApp
+
+# 프로필 탭에서 시작 (initial route)
+- assertVisible:
+    text: "활동|셀러|모임|후기"
+    regex: true
+
+# 우상단 스캔 아이콘 탭 (header 의 첫 아이콘)
+- tapOn:
+    point: "92%, 10%"
+
+# 라벨 스캔 시트 — "Scan Label" 또는 사진 선택
+- assertVisible:
+    text: "Scan Label|라벨 스캔"
+    regex: true
+
+# 사진 선택 (시뮬레이터 라이브러리에서 1번째)
+- tapOn:
+    text: "Pick.*Library|사진|Photo"
+    regex: true
+
+# 권한 prompt 가 뜨면 Allow
+- runFlow:
+    when:
+      visible: "Allow"
+    commands:
+      - tapOn: "Allow"
+
+# 사진 선택 후 잠시 대기 (analyzing → ready)
+- extendedWaitUntil:
+    visible:
+      text: "와인 이름|Name"
+      regex: true
+    timeout: 20000
+
+# 수량 ± 버튼 한 번 + → 2 입력
+- tapOn: "+"
+
+# 등록 버튼 (Save)
+- tapOn:
+    text: "등록|Save"
+    regex: true
+
+# 셀러에 반영되었는지 확인 — 시트 닫히고 그리드 보임
+- assertVisible:
+    text: "셀러"
+
+# 셀러 탭으로 이동
+- tapOn: "셀러"
+
+# ×2 배지 노출 확인 (방금 등록한 와인)
+- extendedWaitUntil:
+    visible: "×2"
+    timeout: 5000

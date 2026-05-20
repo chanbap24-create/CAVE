@@ -40,4 +40,12 @@ if [ -n "$TSC" ]; then
   echo "$TSC" >&2
 fi
 
+# 3. quick smoke — 큰 변경 (마이그레이션 / 새 페이지 / hook) 시 트리거.
+#    빈번 호출 방지 위해 .ts/.tsx 의 새 함수 추가 또는 sql 일 때만.
+if [[ "$FILE" == *.sql ]] || git diff --cached --name-only 2>/dev/null | grep -qE "(app/.*\.tsx|lib/hooks/use.*\.ts)$"; then
+  if [ -x "$CLAUDE_PROJECT_DIR/scripts/smoke-test.sh" ]; then
+    "$CLAUDE_PROJECT_DIR/scripts/smoke-test.sh" --quick 2>&1 | tail -3 >&2 || true
+  fi
+fi
+
 exit 0

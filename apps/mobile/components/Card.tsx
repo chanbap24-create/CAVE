@@ -1,6 +1,7 @@
 import React from 'react';
 import { View, Pressable, StyleSheet, type ViewStyle, type StyleProp } from 'react-native';
 import { colors, spacing, borderRadius, shadow } from '@/constants/theme';
+// shadow import 가 variant 안에서 spread 됨 — eslint unused 안 뜸.
 
 // ─────────────────────────────────────────────────────────
 // 카드 시스템 — 5등급 (2026-05-14 redesign A).
@@ -32,27 +33,27 @@ interface CardProps {
 const variantStyles: Record<Variant, ViewStyle> = {
   row: {
     backgroundColor: colors.background,
-    borderRadius: borderRadius.md,
+    borderRadius: borderRadius.md,         // 16
     borderWidth: 1,
     borderColor: colors.border,
     paddingVertical: spacing.base,
     paddingHorizontal: spacing.md,
   },
   hero: {
-    backgroundColor: colors.cream,
-    borderRadius: borderRadius.lg,
-    borderWidth: 1,
-    borderColor: colors.borderStrong,
+    backgroundColor: colors.cream,         // 피치
+    borderRadius: borderRadius.lg,         // 20
     padding: spacing.md,
+    ...shadow.soft,                         // 코랄 톤 — 그림자 기본
   },
   polaroid: {
     backgroundColor: colors.background,
-    borderRadius: borderRadius.xs,
+    borderRadius: borderRadius.sm,         // 10
     borderWidth: 1,
     borderColor: colors.border,
     paddingTop: spacing.sm,
     paddingHorizontal: spacing.sm,
     paddingBottom: spacing.md,
+    ...shadow.soft,
   },
   module: {
     backgroundColor: colors.background,

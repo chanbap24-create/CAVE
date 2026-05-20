@@ -8,6 +8,7 @@ import { GatheringCompactRow } from '@/components/GatheringCompactRow';
 import { CreateGatheringSheet } from '@/components/CreateGatheringSheet';
 import { CategoryChips } from '@/components/CategoryChips';
 import { H2, Body, Caption, BodyBold } from '@/components/Typography';
+import { HeroBanner } from '@/components/HeroBanner';
 import { colors, spacing, borderRadius, fontSize } from '@/constants/theme';
 import { CATEGORY_FILTERS, CATEGORY_DB_MAP } from '@/lib/constants/drinkCategories';
 
@@ -101,10 +102,15 @@ export default function GatheringsScreen() {
 
   return (
     <View style={styles.container}>
-      {/* 우상단 + 버튼만 — 큰 표지 제거 */}
-      <View style={[styles.headerBar, { paddingTop: insets.top + spacing.sm }]}>
-        <Pressable onPress={() => setShowCreate(true)} hitSlop={8}>
-          <Svg width={22} height={22} fill="none" stroke={colors.textWarm} strokeWidth={1.8} viewBox="0 0 24 24">
+      {/* 코랄 hero + 우상단 + 버튼 */}
+      <View style={[styles.headerWrap, { paddingTop: insets.top + spacing.xs }]}>
+        <HeroBanner
+          title={'함께 마실\n사람을 만나요'}
+          subtitle={`GATHERINGS · ${gatherings.length}`}
+          tone="coral"
+        />
+        <Pressable onPress={() => setShowCreate(true)} hitSlop={8} style={styles.fab}>
+          <Svg width={24} height={24} fill="none" stroke="#fff" strokeWidth={2.5} viewBox="0 0 24 24">
             <Line x1={12} y1={5} x2={12} y2={19} />
             <Line x1={5} y1={12} x2={19} y2={12} />
           </Svg>
@@ -179,11 +185,15 @@ export default function GatheringsScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: colors.cream },
+  container: { flex: 1, backgroundColor: colors.background },
 
-  headerBar: {
-    flexDirection: 'row', justifyContent: 'flex-end',
-    paddingHorizontal: spacing.md, paddingBottom: spacing.sm,
+  headerWrap: { position: 'relative' },
+  fab: {
+    position: 'absolute',
+    top: spacing.md, right: spacing.lg,
+    width: 44, height: 44, borderRadius: 22,
+    backgroundColor: 'rgba(0,0,0,0.18)',
+    alignItems: 'center', justifyContent: 'center',
   },
 
   // ─── 검색 + 카테고리 ───

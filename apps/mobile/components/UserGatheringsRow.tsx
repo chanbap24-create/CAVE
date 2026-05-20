@@ -77,8 +77,8 @@ const styles = StyleSheet.create({
 
   empty: {
     marginHorizontal: 16, paddingVertical: 18, paddingHorizontal: 16,
-    backgroundColor: '#fafafa', borderRadius: 10, alignItems: 'flex-start',
+    backgroundColor: '#FFF6EC', borderRadius: 16, alignItems: 'flex-start',
   },
-  emptyTitle: { fontSize: 13, fontWeight: '600', color: '#444' },
-  emptySub: { fontSize: 12, color: '#7b2d4e', marginTop: 4, fontWeight: '500' },
+  emptyTitle: { fontSize: 13, fontWeight: '700', color: '#2D1B1B' },
+  emptySub: { fontSize: 12, color: '#FF6B4A', marginTop: 4, fontWeight: '600' },
 });

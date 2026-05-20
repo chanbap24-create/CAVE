@@ -51,28 +51,29 @@ const styles = StyleSheet.create({
   // 다른 가로 카드(Partner / User Gatherings) 와 동일 폭/높이 — 시각 통일
   card: {
     width: CARD_WIDTH, marginRight: CARD_GAP,
-    backgroundColor: '#fff', borderRadius: 12,
-    borderWidth: 1, borderColor: '#eee',
+    backgroundColor: '#FFF6EC', borderRadius: 16,
     overflow: 'hidden',
+    shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.06, shadowRadius: 16,
+    elevation: 3,
   },
   thumb: {
     width: '100%', height: 140,
-    backgroundColor: '#f5f0f2',
+    backgroundColor: '#FFE5D9',
     alignItems: 'center', justifyContent: 'center',
   },
   thumbInner: {
     width: 36, height: 36, borderRadius: 18,
-    backgroundColor: '#e8d4dc',
+    backgroundColor: '#FFC93C',
   },
   tag: {
-    fontSize: 10, fontWeight: '700', color: '#7b2d4e', letterSpacing: 0.5,
+    fontSize: 10, fontWeight: '700', color: '#FF6B4A', letterSpacing: 0.5,
     paddingHorizontal: 12, paddingTop: 10, textTransform: 'uppercase',
   },
   title: {
-    fontSize: 13, fontWeight: '600', color: '#222', lineHeight: 18,
+    fontSize: 13, fontWeight: '700', color: '#2D1B1B', lineHeight: 18,
     paddingHorizontal: 12, paddingTop: 4,
   },
   coming: {
-    fontSize: 11, color: '#aaa', paddingHorizontal: 12, paddingTop: 6, paddingBottom: 12,
+    fontSize: 11, color: '#A89080', paddingHorizontal: 12, paddingTop: 6, paddingBottom: 12,
   },
 });

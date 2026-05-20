@@ -1,17 +1,26 @@
 import React from 'react';
 import { View, StyleSheet } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { HeroBanner } from '@/components/HeroBanner';
 import { colors, spacing } from '@/constants/theme';
 
 /**
- * 홈 (explore) 상단 — 표지 텍스트 모두 제거 (2026-05-14).
- * status bar 영역 cream pad 만 유지 — 첫 콘텐츠와 노치 사이 호흡.
+ * 홈 (explore) 상단 — 코랄 풀폭 hero banner.
+ * 파파이스/배민식 첫인상 톤.
  */
 export function DiscoverBrandBar() {
   const insets = useSafeAreaInsets();
-  return <View style={[styles.bar, { paddingTop: insets.top + spacing.sm }]} />;
+  return (
+    <View style={[styles.wrap, { paddingTop: insets.top + spacing.xs }]}>
+      <HeroBanner
+        title={'오늘은\n뭐 마실까?'}
+        subtitle="i CAVE · DISCOVER"
+        tone="coral"
+      />
+    </View>
+  );
 }
 
 const styles = StyleSheet.create({
-  bar: { backgroundColor: colors.cream },
+  wrap: { backgroundColor: colors.background },
 });

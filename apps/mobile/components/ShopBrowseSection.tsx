@@ -34,11 +34,12 @@ const styles = StyleSheet.create({
   wrap: { marginTop: 48 },
   card: {
     marginHorizontal: 20,
-    backgroundColor: '#faf6f8', borderRadius: 14,
+    backgroundColor: '#FFE5D9', borderRadius: 16,
     paddingVertical: 28, paddingHorizontal: 20, alignItems: 'center',
-    borderWidth: 1, borderColor: '#f0e4ea',
+    shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.06, shadowRadius: 16,
+    elevation: 3,
   },
   icon: { fontSize: 28, marginBottom: 10 },
-  title: { fontSize: 14, fontWeight: '700', color: '#7b2d4e', marginBottom: 6 },
-  body: { fontSize: 12, color: '#9c5b73', lineHeight: 18, textAlign: 'center' },
+  title: { fontSize: 14, fontWeight: '700', color: '#2D1B1B', marginBottom: 6 },
+  body: { fontSize: 12, color: '#8A7868', lineHeight: 18, textAlign: 'center' },
 });

@@ -95,8 +95,8 @@ const styles = StyleSheet.create({
 
   empty: {
     marginHorizontal: 16, paddingVertical: 18, paddingHorizontal: 16,
-    backgroundColor: '#231115', borderRadius: 10,
+    backgroundColor: '#FFE5D9', borderRadius: 16,
   },
-  emptyTitle: { fontSize: 13, fontWeight: '600', color: '#fff' },
-  emptySub: { fontSize: 12, color: '#bba1ac', marginTop: 4 },
+  emptyTitle: { fontSize: 13, fontWeight: '700', color: '#2D1B1B' },
+  emptySub: { fontSize: 12, color: '#8A7868', marginTop: 4 },
 });

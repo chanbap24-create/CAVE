@@ -40,11 +40,12 @@ interface Slide {
   onPress?: () => void;
 }
 
+// 코랄 톤 팔레트 — 4슬라이드 색감 통일 (primary / cream / gold / dark accent).
 const SLIDES: Slide[] = [
   {
     id: 'season',
     kind: 'season',
-    bg: '#231115', fg: '#ffffff', accent: '#e8c8d4',
+    bg: '#FF6B4A', fg: '#FFFBF5', accent: '#FFC93C',  // 코랄 + 옐로우
     tag: 'COMING SOON',
     title: '시즌 클럽 1기',
     subtitle: '소믈리에 7주 큐레이션 코스',
@@ -53,7 +54,7 @@ const SLIDES: Slide[] = [
   {
     id: 'promo50',
     kind: 'promo',
-    bg: '#d4a043', fg: '#2c1810', accent: '#ffffff',
+    bg: '#FFC93C', fg: '#2D1B1B', accent: '#FF6B4A',  // 옐로우 + 코랄
     tag: '신규 회원',
     title: '첫 모임 50% 할인',
     subtitle: '이번 달 안에 사용 가능',
@@ -62,7 +63,7 @@ const SLIDES: Slide[] = [
   {
     id: 'partner',
     kind: 'partner',
-    bg: '#f5e6d3', fg: '#3a1e1c', accent: '#7b2d4e',
+    bg: '#FFE5D9', fg: '#2D1B1B', accent: '#FF6B4A',  // 피치 크림 + 코랄
     tag: '파트너 모집',
     title: '와인샵·소믈리에를 모십니다',
     subtitle: '무료 호스팅 + 정산 지원',
@@ -71,7 +72,7 @@ const SLIDES: Slide[] = [
   {
     id: 'cellar',
     kind: 'cellar',
-    bg: '#1d2747', fg: '#ffffff', accent: '#9eb593',
+    bg: '#2D1B1B', fg: '#FFFBF5', accent: '#FFC93C',  // 와인 브라운 + 옐로우 accent
     tag: 'AI 큐레이션',
     title: '내 셀러 무료 진단',
     subtitle: '취향 분석 → 와인 3종 추천',

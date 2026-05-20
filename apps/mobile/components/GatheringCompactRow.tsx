@@ -81,21 +81,21 @@ export function GatheringCompactRow({ gathering: g, onPress }: Props) {
 const styles = StyleSheet.create({
   row: {
     flexDirection: 'row', alignItems: 'center', gap: 12,
-    paddingHorizontal: 20, paddingVertical: 12,
-    borderBottomWidth: 1, borderBottomColor: '#f5f5f5',
+    paddingHorizontal: 20, paddingVertical: 14,
+    borderBottomWidth: 1, borderBottomColor: '#F0E0D0',
   },
-  rowPressed: { backgroundColor: '#fafafa' },
+  rowPressed: { backgroundColor: '#FFE5D9' },
   rowClosed: { opacity: 0.55 },
 
-  avatar: { width: 40, height: 40, borderRadius: 20, backgroundColor: '#f0f0f0' },
+  avatar: { width: 40, height: 40, borderRadius: 20, backgroundColor: '#FFE5D9' },
   avatarFallback: { alignItems: 'center', justifyContent: 'center' },
-  avatarText: { fontSize: 13, fontWeight: '700', color: '#888' },
+  avatarText: { fontSize: 13, fontWeight: '700', color: '#8A7868' },
 
   body: { flex: 1, minWidth: 0 },
   titleRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
-  title: { flex: 1, fontSize: 14, fontWeight: '600', color: '#222' },
-  typePrefix: { color: '#7b2d4e', fontWeight: '700' },
-  catBadge: { paddingHorizontal: 6, paddingVertical: 2, borderRadius: 5 },
-  catBadgeText: { fontSize: 10, fontWeight: '600' },
-  meta: { fontSize: 11, color: '#999', marginTop: 3 },
+  title: { flex: 1, fontSize: 14, fontWeight: '700', color: '#2D1B1B' },
+  typePrefix: { color: '#FF6B4A', fontWeight: '800' },
+  catBadge: { paddingHorizontal: 8, paddingVertical: 3, borderRadius: 999 },
+  catBadgeText: { fontSize: 10, fontWeight: '700' },
+  meta: { fontSize: 11, color: '#8A7868', marginTop: 3 },
 });

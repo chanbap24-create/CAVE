@@ -118,7 +118,6 @@ export default function GatheringDetailScreen() {
             return;
           }
           // data contains { deleted: 1, id: N } on success.
-          console.log('[delete_gathering_as_host]', data);
           router.replace('/(tabs)/gatherings');
         },
       },
@@ -405,11 +404,13 @@ const styles = StyleSheet.create({
     borderTopWidth: 1, borderTopColor: themeColors.border,
   },
   applyBtn: {
-    backgroundColor: themeColors.primary,
-    padding: themeSpacing.md, borderRadius: themeBorderRadius.md,
+    backgroundColor: themeColors.gold,
+    padding: themeSpacing.md, borderRadius: themeBorderRadius.xl,
     alignItems: 'center',
+    shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.06, shadowRadius: 16,
+    elevation: 3,
   },
-  applyBtnText: { color: '#fff', fontSize: 16, fontFamily: themeFontFamily.semibold },
+  applyBtnText: { color: themeColors.text, fontSize: 16, fontFamily: themeFontFamily.bold },
   statusBar: {
     backgroundColor: themeColors.surface,
     padding: themeSpacing.md, borderRadius: themeBorderRadius.md,

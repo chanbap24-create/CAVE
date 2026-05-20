@@ -32,10 +32,10 @@ export function CategoryChips({ categories, active, onChange }: Props) {
 const styles = StyleSheet.create({
   scroll: { flexGrow: 0, marginBottom: 4 },
   btn: {
-    paddingHorizontal: 16, paddingVertical: 6, borderRadius: 20,
-    borderWidth: 1, borderColor: '#efefef', backgroundColor: '#fff',
+    paddingHorizontal: 16, paddingVertical: 8, borderRadius: 999,
+    backgroundColor: '#FFE5D9',
   },
-  btnActive: { backgroundColor: '#222', borderColor: '#222' },
-  text: { fontSize: 13, fontWeight: '500', color: '#999' },
+  btnActive: { backgroundColor: '#FF6B4A' },
+  text: { fontSize: 13, fontWeight: '700', color: '#8A7868' },
   textActive: { color: '#fff' },
 });

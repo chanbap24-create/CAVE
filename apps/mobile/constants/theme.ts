@@ -7,45 +7,53 @@
 // 값만 minimal 로 재정의. 따라서 caller 변경 없이 전체 톤 전환.
 
 export const colors = {
-  // ─── Base (white-first, 옅은 회색 layer) ───
-  background: '#ffffff',
-  surface: '#fafafa',
-  surfaceLight: '#f5f5f5',
-  /** 이전 cream — 거의 흰색에 살짝 회색 차이만 (#fafafa 톤) */
-  cream: '#fafafa',
-  /** 이전 creamDeep — section 강조 배경, 옅은 회색 */
-  creamDeep: '#f0f0f0',
-  border: '#efefef',
-  /** 이전 borderStrong — 옅은 회색 단일 */
-  borderStrong: '#e5e5e5',
+  // ─── Base — 웜 아이보리 ─────────────────────────────
+  /** 페이지 배경 — 웜 아이보리 (white-ish + 따뜻함) */
+  background: '#FFFBF5',
+  /** 서피스 약간 더 따뜻한 톤 — 카드/섹션 배경 */
+  surface: '#FFF6EC',
+  /** 더 강한 서피스 — 입력창/구분된 영역 */
+  surfaceLight: '#FFE5D9',
+  /** 이전 cream — 피치 크림 (카드 / 표지 강조) */
+  cream: '#FFE5D9',
+  /** 이전 creamDeep — 더 강한 피치 (히어로 / 강조) */
+  creamDeep: '#FFD4B8',
+  border: '#F0E0D0',
+  borderStrong: '#E8D0BB',
 
-  // ─── Text — 단색 3단 회색 ───
-  text: '#222222',
-  textSecondary: '#666666',
-  textMuted: '#999999',
-  textLight: '#bbbbbb',
-  /** 이전 textWarm — 표준 black 으로 통일 */
-  textWarm: '#222222',
-  /** 이전 textWarmMuted — 회색 */
-  textWarmMuted: '#999999',
+  // ─── Text — 와인 브라운 + 웜 그레이 단계 ───────────
+  /** 본문 — 와인 브라운 (accent) */
+  text: '#2D1B1B',
+  textSecondary: '#5A4A3A',
+  textMuted: '#A89080',
+  textLight: '#C8B8A8',
+  /** redesign 호환 alias — 같은 와인 브라운 */
+  textWarm: '#2D1B1B',
+  textWarmMuted: '#8A7868',
 
-  // ─── Accent — Wine (절제, 액션/링크/강조에만) ───
-  primary: '#7b2d4e',
-  primaryLight: '#f7f0f3',
-  primaryDark: '#5a1e38',
+  // ─── Accent — 코랄 오렌지 (Primary) ─────────────────
+  /** 액션 / 링크 / 강조 — 코랄 오렌지 */
+  primary: '#FF6B4A',
+  /** primary 옅은 톤 — 칩 배경 / hover 면 */
+  primaryLight: '#FFE5D9',
+  /** primary 진한 톤 — pressed / 강조 강 */
+  primaryDark: '#E04E2E',
 
-  // ─── Sepia/Gold (호환 위해 토큰 유지, minimal 톤은 거의 안 씀) ───
-  sepia: '#5a5a5a',
-  sepiaLight: '#a0a0a0',
-  gold: '#a07818',
-  goldSoft: '#c9a84c',
-  goldBg: '#f8f4e8',
+  // ─── Highlight — 옐로우 (뱃지 / Pin) ────────────────
+  /** 뱃지 / 강조 라벨 */
+  gold: '#FFC93C',
+  goldSoft: '#FFD865',
+  goldBg: '#FFF4D0',
 
-  // ─── Status ───
-  success: '#4caf7c',
-  error: '#ed4956',
-  warning: '#e8a838',
-  like: '#ed4956',
+  // ─── Sepia (호환 alias) — 와인 브라운 톤으로 매핑 ──
+  sepia: '#5A4A3A',
+  sepiaLight: '#A89080',
+
+  // ─── Status ─────────────────────────────────────────
+  success: '#4CAF7C',
+  error: '#ED4956',
+  warning: '#FFC93C',
+  like: '#FF6B4A',
 } as const;
 
 // 4 / 8 / 12 / 16 / 24 / 32 / 48 grid — 카드 안 / 섹션 사이 모두 이 단위만 사용.
@@ -114,51 +122,86 @@ export const fontFamily = {
 } as const;
 
 export const borderRadius = {
-  /** chip / 작은 badge */
-  xs: 4,
-  sm: 6,
-  /** 카드 표준 */
-  md: 12,
-  /** hero 카드 */
-  lg: 16,
-  /** sheet / 모달 */
+  /** chip / 작은 badge — pill 효과는 full 사용 */
+  xs: 6,
+  sm: 10,
+  /** 카드 표준 — 코랄 톤 가이드: 16~20 */
+  md: 16,
+  /** hero 카드 / 큰 섹션 */
+  lg: 20,
+  /** CTA 버튼 / sheet / 모달 — pill 톤 */
   xl: 24,
+  /** 완전 pill (뱃지 / 아바타 ring) */
   full: 9999,
 } as const;
 
 // ─── Shadows / Elevation ───
-// 매거진 톤은 그림자 절제. 카드 사이 구분은 border 우선, shadow 는 hover 만.
+// 코랄 톤 가이드: 카드 / 이미지에 부드러운 그림자 (box-shadow 0 4px 16px rgba(0,0,0,0.06)).
+// 따뜻한 배경 위에 살짝 떠 있는 느낌. border 와 병행 가능.
 export const shadow = {
   none: { shadowOpacity: 0 },
-  /** 카드 hover / press */
+  /** 카드 / 이미지 표준 — 코랄 톤 표준 */
   soft: {
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
+    shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.06,
-    shadowRadius: 5,
-    elevation: 2,
+    shadowRadius: 16,
+    elevation: 3,
   },
-  /** sheet / floating */
-  lifted: {
+  /** CTA / 강조 카드 */
+  medium: {
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 6 },
-    shadowOpacity: 0.12,
-    shadowRadius: 14,
-    elevation: 6,
+    shadowOpacity: 0.10,
+    shadowRadius: 20,
+    elevation: 5,
+  },
+  /** sheet / 모달 / floating */
+  lifted: {
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.15,
+    shadowRadius: 24,
+    elevation: 8,
   },
 } as const;
 
 // ─── Card variants — 5등급 시각언어 ───
-// 새 카드 만들 때 반드시 이 중 하나에 속하게. 1회만 등장하는 unique 카드는 내부 검토 후 추가.
+// 코랄 톤: 라운드 코너 진하게 (16~20), 부드러운 그림자, 피치 배경 활용.
 export const cardVariants = {
-  /** L1 — 콘텐츠 그리드 (셀러 / 후기 / 와인 인덱스). 정사각형, no padding. */
+  /** L1 — 콘텐츠 그리드. 정사각형, no padding (그리드 사이만 gap). */
   grid: { bg: colors.background, border: colors.border, radius: 0, padding: 0 },
-  /** L2 — 행 카드 (모임 일정 / 알림 / 메뉴 행). horizontal padding only. */
+  /** L2 — 행 카드 (모임 일정 / 알림 / 메뉴 행). */
   row: { bg: colors.background, border: colors.border, radius: borderRadius.md, padding: spacing.base },
-  /** L3 — hero 카드 (모임 큐레이션, 픽업 / 매거진). cream 배경 + serif. */
+  /** L3 — hero 카드 (모임 / 시즌 클럽). 피치 배경 + 강한 라운드. */
   hero: { bg: colors.cream, border: colors.borderStrong, radius: borderRadius.lg, padding: spacing.md },
-  /** L4 — 폴라로이드 (내 픽 / 일기). 사진 + 메모 + 회전 액센트. */
+  /** L4 — 폴라로이드 (내 픽 / 일기). 사진 + 메모. */
   polaroid: { bg: colors.background, border: colors.border, radius: spacing.xs, padding: spacing.sm },
-  /** L5 — 모듈 박스 (stats / badges / settings 행 그룹). minimal border. */
+  /** L5 — 모듈 박스 (stats / badges). */
   module: { bg: colors.background, border: colors.border, radius: borderRadius.md, padding: spacing.md },
+} as const;
+
+// ─── Button variants — CTA 톤 (24px radius, full color + white text) ───
+export const buttonVariants = {
+  /** Primary CTA — 코랄 풀컬러 + 흰 텍스트, pill */
+  primary: {
+    bg: colors.primary, fg: '#fff',
+    radius: borderRadius.xl,           // 24
+    paddingV: spacing.base, paddingH: spacing.lg,
+    fontSize: 16, fontWeight: '700' as const,
+  },
+  /** Secondary — outlined 피치 톤 */
+  secondary: {
+    bg: colors.cream, fg: colors.text,
+    radius: borderRadius.xl,
+    paddingV: spacing.base, paddingH: spacing.lg,
+    fontSize: 16, fontWeight: '600' as const,
+  },
+  /** Pill chip — 작은 badge (highlight gold 등 풀컬러) */
+  chip: {
+    bg: colors.gold, fg: colors.text,
+    radius: borderRadius.full,
+    paddingV: spacing.xs, paddingH: spacing.base,
+    fontSize: 12, fontWeight: '700' as const,
+  },
 } as const;

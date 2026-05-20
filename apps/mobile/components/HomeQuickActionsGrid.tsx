@@ -26,21 +26,24 @@ interface Action {
   onPress?: () => void;
 }
 
+// 코랄 톤 통일 — 두 컬러 (코랄 primary / 옐로우 highlight) 만 사용해서
+// 시각 노이즈 제거. 차이는 아이콘 / 라벨로.
+import { colors as themeColors } from '@/constants/theme';
 const ACTIONS: Action[] = [
-  { key: 'best',         label: '베스트',     icon: 'flame-outline',         bg: '#ed6363' },
-  { key: 'monthly',      label: '이달의 모임', icon: 'calendar-outline',      bg: '#7b2d4e' },
-  { key: 'coupon',       label: '쿠폰',       icon: 'pricetag-outline',      bg: '#d4a043' },
-  { key: 'ai',           label: 'AI 추천',    icon: 'sparkles-outline',      bg: '#5a7eaa' },
-  { key: 'first',        label: '첫 모임',    icon: 'gift-outline',          bg: '#2c8a6e' },
+  { key: 'best',         label: '베스트',     icon: 'flame-outline',         bg: themeColors.primary },
+  { key: 'monthly',      label: '이달의 모임', icon: 'calendar-outline',      bg: themeColors.gold },
+  { key: 'coupon',       label: '쿠폰',       icon: 'pricetag-outline',      bg: themeColors.primary },
+  { key: 'ai',           label: 'AI 추천',    icon: 'sparkles-outline',      bg: themeColors.gold },
+  { key: 'first',        label: '첫 모임',    icon: 'gift-outline',          bg: themeColors.primary },
 
-  { key: 'partner',      label: '파트너샵',   icon: 'storefront-outline',    bg: '#6b4226' },
-  { key: 'scan',         label: '라벨 스캔',  icon: 'camera-outline',        bg: '#3a3a3a' },
-  { key: 'club',         label: '시즌 클럽',  icon: 'wine-outline',          bg: '#7b2d4e' },
-  { key: 'group',        label: '공동구매',   icon: 'people-outline',        bg: '#bb6b3a' },
-  { key: 'event',        label: '이벤트',     icon: 'megaphone-outline',     bg: '#d4634a' },
+  { key: 'partner',      label: '파트너샵',   icon: 'storefront-outline',    bg: themeColors.gold },
+  { key: 'scan',         label: '라벨 스캔',  icon: 'camera-outline',        bg: themeColors.primary },
+  { key: 'club',         label: '시즌 클럽',  icon: 'wine-outline',          bg: themeColors.gold },
+  { key: 'group',        label: '공동구매',   icon: 'people-outline',        bg: themeColors.primary },
+  { key: 'event',        label: '이벤트',     icon: 'megaphone-outline',     bg: themeColors.gold },
 
-  { key: 'pairing',      label: '페어링',     icon: 'restaurant-outline',    bg: '#8b6a3f' },
-  { key: 'guide',        label: '와인 가이드', icon: 'book-outline',          bg: '#3d4a1f' },
+  { key: 'pairing',      label: '페어링',     icon: 'restaurant-outline',    bg: themeColors.primary },
+  { key: 'guide',        label: '와인 가이드', icon: 'book-outline',          bg: themeColors.gold },
 ];
 
 interface Props {
@@ -135,16 +138,18 @@ const styles = StyleSheet.create({
   },
   cellEmpty: { width: cellWidth, height: 78 },
   iconWrap: {
-    width: 48, height: 48, borderRadius: 12,
+    width: 52, height: 52, borderRadius: 26,         // pill 원형 (파파이스 톤)
     alignItems: 'center', justifyContent: 'center',
     marginBottom: 6,
+    shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.06, shadowRadius: 12,
+    elevation: 3,
   },
-  label: { fontSize: 11, color: '#444', fontWeight: '600', textAlign: 'center' },
+  label: { fontSize: 11, color: '#2D1B1B', fontWeight: '700', textAlign: 'center' },
 
   dots: {
     flexDirection: 'row', justifyContent: 'center',
     gap: 4, marginTop: 8,
   },
-  dot: { width: 5, height: 5, borderRadius: 2.5, backgroundColor: '#dcdcdc' },
-  dotActive: { width: 14, backgroundColor: '#7b2d4e' },
+  dot: { width: 5, height: 5, borderRadius: 2.5, backgroundColor: '#E8D0BB' },
+  dotActive: { width: 14, backgroundColor: '#FF6B4A' },
 });

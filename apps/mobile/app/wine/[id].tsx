@@ -36,7 +36,7 @@ export default function WineDetailScreen() {
     from === 'explore' ? () => router.replace('/(tabs)/explore' as any) :
     undefined;
   const backFallback = from === 'reviews' ? '/(tabs)/reviews' : '/(tabs)/profile';
-  const { data, loading, isOwner, saveTastingNote } = useWineMemory(collectionId);
+  const { data, loading, isOwner, saveTastingNote, updateQuantity, removeFromCellar } = useWineMemory(collectionId);
 
   const { count: likeCount, liked, busy: likeBusy, toggle } = useCollectionLike(collectionId);
   const { comments, loading: commentsLoading, add, remove } = useCollectionComments(collectionId);
@@ -48,7 +48,9 @@ export default function WineDetailScreen() {
   const [carouselIndex, setCarouselIndex] = useState(0);
   const [commentsOpen, setCommentsOpen] = useState(false);
 
-  // 본인 셀러에 같은 와인이 몇 병 등록돼 있는지. 다른 사용자 화면(=isOwner false)에는 표시 X.
+  // 본인 셀러에 같은 와인이 몇 병 있는지. 다른 사용자 화면(=isOwner false)에는 표시 X.
+  // 보유 수량은 collections.quantity 컬럼 합산.
+  // (레거시 row 가 quantity=1 짜리 N개로 흩어져 있으면 합산 결과가 자연스럽게 N 이 됨)
   const [bottleCount, setBottleCount] = useState<number | null>(null);
   useEffect(() => {
     const wineId = data?.wine?.id;
@@ -58,12 +60,17 @@ export default function WineDetailScreen() {
     }
     let active = true;
     (async () => {
-      const { count } = await supabase
+      const { data: rows } = await supabase
         .from('collections')
-        .select('id', { count: 'exact', head: true })
+        .select('quantity')
         .eq('user_id', user.id)
         .eq('wine_id', wineId);
-      if (active) setBottleCount(count ?? 0);
+      if (!active) return;
+      const total = (rows || []).reduce(
+        (sum: number, r: { quantity: number | null }) => sum + (r.quantity ?? 1),
+        0,
+      );
+      setBottleCount(total);
     })();
     return () => { active = false; };
   }, [user?.id, data?.wine?.id, isOwner]);
@@ -108,6 +115,23 @@ export default function WineDetailScreen() {
     Alert.alert('Delete comment?', undefined, [
       { text: '취소', style: 'cancel' },
       { text: '삭제', style: 'destructive', onPress: () => remove(commentId) },
+    ]);
+  }
+
+  function confirmRemoveFromCellar() {
+    Alert.alert('셀러에서 제거', '이 와인을 셀러에서 완전히 제거할까요? 시음 노트도 함께 삭제됩니다.', [
+      { text: '취소', style: 'cancel' },
+      {
+        text: '제거', style: 'destructive',
+        onPress: async () => {
+          const ok = await removeFromCellar();
+          if (ok) {
+            if (backOnPress) backOnPress();
+            else if (router.canGoBack()) router.back();
+            else router.replace(backFallback as any);
+          }
+        },
+      },
     ]);
   }
 
@@ -203,12 +227,34 @@ export default function WineDetailScreen() {
             {locale || 'Region unknown'}
             {data.wine?.vintage_year ? ` · ${data.wine.vintage_year}` : ''}
           </Caption>
-          {bottleCount != null && bottleCount > 0 && (
-            <BodyBold tone="warm" style={styles.bottleCount}>
-              {bottleCount} {bottleCount === 1 ? 'Bottle' : 'Bottles'}
-            </BodyBold>
-          )}
         </View>
+
+        {/* 보유 수량 (owner only) — ± 버튼 + 삭제 */}
+        {isOwner ? (
+          <View style={styles.qtyRow}>
+            <Caption tone="muted" style={styles.qtyLabel}>보유 수량</Caption>
+            <View style={styles.qtyCtrl}>
+              <Pressable
+                style={styles.qtyBtn}
+                onPress={() => updateQuantity((data.quantity ?? 1) - 1)}
+                hitSlop={6}
+              >
+                <Text style={styles.qtyBtnText}>−</Text>
+              </Pressable>
+              <BodyBold style={styles.qtyValue}>{data.quantity ?? 1}</BodyBold>
+              <Pressable
+                style={styles.qtyBtn}
+                onPress={() => updateQuantity((data.quantity ?? 1) + 1)}
+                hitSlop={6}
+              >
+                <Text style={styles.qtyBtnText}>+</Text>
+              </Pressable>
+            </View>
+            <Pressable onPress={confirmRemoveFromCellar} hitSlop={6} style={styles.removeBtn}>
+              <Caption style={styles.removeText}>셀러에서 제거</Caption>
+            </Pressable>
+          </View>
+        ) : null}
 
         {/* Action icons — heart toggles like, bubble opens comment sheet. */}
         <View style={styles.actionBar}>
@@ -286,8 +332,27 @@ const styles = StyleSheet.create({
 
   identity: {
     paddingHorizontal: spacing.md, paddingVertical: spacing.md,
+  },
+
+  // 보유 수량 컨트롤 (owner only)
+  qtyRow: {
+    flexDirection: 'row', alignItems: 'center', gap: spacing.base,
+    paddingHorizontal: spacing.md, paddingVertical: spacing.base,
+    borderTopWidth: 1, borderTopColor: colors.border,
     borderBottomWidth: 1, borderBottomColor: colors.border,
   },
+  qtyLabel: { flex: 1 },
+  qtyCtrl: { flexDirection: 'row', alignItems: 'center', gap: spacing.base },
+  qtyBtn: {
+    width: 32, height: 32, borderRadius: borderRadius.sm,
+    borderWidth: 1, borderColor: colors.border,
+    alignItems: 'center', justifyContent: 'center',
+    backgroundColor: colors.surface,
+  },
+  qtyBtnText: { fontSize: 16, fontWeight: '600', color: colors.text },
+  qtyValue: { fontSize: 16, minWidth: 24, textAlign: 'center' },
+  removeBtn: { paddingHorizontal: spacing.sm },
+  removeText: { color: colors.error, fontWeight: '600' },
   producer: { letterSpacing: 1.5, marginBottom: spacing.xs },
   wineName: { fontSize: 22, lineHeight: 28, letterSpacing: -0.3 },
   nameKo: { marginTop: spacing.xs },

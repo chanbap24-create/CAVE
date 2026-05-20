@@ -16,6 +16,8 @@ export interface WineMemory {
   tasting_note_updated_at: string | null;
   /** 별점 1~5. 노트와 같은 collections row 에 같이 저장. */
   rating: number | null;
+  /** 보유 수량 (default 1). 같은 와인 여러 병이면 quantity > 1. */
+  quantity: number;
   /** Vivino식 테이스팅 프로파일 — 슬라이더 3축 + 향 칩. jsonb 컬럼. */
   taste_profile: TasteProfileValue;
   created_at: string;
@@ -54,7 +56,7 @@ export function useWineMemory(collectionId: number | null) {
     const { data: row, error } = await supabase
       .from('collections')
       .select(`
-        id, user_id, photo_url, is_public, tasting_note, tasting_note_updated_at, rating, taste_profile, created_at,
+        id, user_id, photo_url, is_public, tasting_note, tasting_note_updated_at, rating, quantity, taste_profile, created_at,
         wine:wines(id, name, name_ko, producer, category, region, country, vintage_year, image_url),
         owner:profiles!collections_user_id_fkey(username, display_name, avatar_url)
       `)
@@ -106,5 +108,27 @@ export function useWineMemory(collectionId: number | null) {
     return true;
   }
 
-  return { data, loading, isOwner, reload: load, saveTastingNote };
+  async function updateQuantity(newQty: number): Promise<boolean> {
+    if (!isOwner || collectionId == null) return false;
+    const q = Math.max(1, Math.min(99, Math.floor(newQty)));
+    const { error } = await supabase
+      .from('collections')
+      .update({ quantity: q })
+      .eq('id', collectionId);
+    if (error) { Alert.alert('수정 실패', error.message); return false; }
+    setData(d => d ? { ...d, quantity: q } : d);
+    return true;
+  }
+
+  async function removeFromCellar(): Promise<boolean> {
+    if (!isOwner || collectionId == null) return false;
+    const { error } = await supabase
+      .from('collections')
+      .delete()
+      .eq('id', collectionId);
+    if (error) { Alert.alert('삭제 실패', error.message); return false; }
+    return true;
+  }
+
+  return { data, loading, isOwner, reload: load, saveTastingNote, updateQuantity, removeFromCellar };
 }

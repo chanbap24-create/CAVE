@@ -9,6 +9,8 @@ const ITEM_SIZE = (width - 4) / 3;
 export interface CellarGridItem {
   id: number;
   photo_url: string | null;
+  /** 보유 수량 — 2 이상이면 우상단 ×N 배지 노출. */
+  quantity?: number | null;
   wine?: {
     name?: string | null;
     image_url?: string | null;
@@ -18,14 +20,12 @@ export interface CellarGridItem {
 
 interface Props {
   collections: CellarGridItem[];
-  /** 빈 상태 메시지 (예: 본인 — "라벨 스캔으로 첫 와인 추가" / 타인 — "공유된 와인 없음"). */
   emptyText?: string;
 }
 
 /**
  * Instagram-style 3-column grid of cellar bottles.
- * 각 셀: collection.photo_url (사용자 사진) ↦ wines.image_url (공용 이미지) ↦ placeholder.
- * 탭 → /wine/[collectionId] 디테일.
+ * 한 row = 한 와인. quantity > 1 이면 우상단에 ×N 배지로 보유 수량 표시.
  */
 export function CellarGrid({ collections, emptyText = '아직 등록된 와인이 없어요' }: Props) {
   const router = useRouter();
@@ -42,6 +42,7 @@ export function CellarGrid({ collections, emptyText = '아직 등록된 와인�
     <View style={styles.grid}>
       {collections.map(c => {
         const src = c.photo_url || c.wine?.image_url || null;
+        const qty = c.quantity ?? 1;
         return (
           <Pressable
             key={c.id}
@@ -57,6 +58,11 @@ export function CellarGrid({ collections, emptyText = '아직 등록된 와인�
                 </Text>
               </View>
             )}
+            {qty > 1 ? (
+              <View style={styles.qtyBadge}>
+                <Text style={styles.qtyText}>×{qty}</Text>
+              </View>
+            ) : null}
           </Pressable>
         );
       })}
@@ -73,6 +79,16 @@ const styles = StyleSheet.create({
   image: { width: '100%', height: '100%', backgroundColor: '#f5f0f2' },
   placeholder: { alignItems: 'center', justifyContent: 'center', padding: 6 },
   placeholderText: { fontSize: 10, color: '#999', textAlign: 'center', lineHeight: 13 },
+
+  // 우상단 보유 수량 배지
+  qtyBadge: {
+    position: 'absolute',
+    top: 6, right: 6,
+    backgroundColor: 'rgba(0,0,0,0.65)',
+    paddingHorizontal: 7, paddingVertical: 2,
+    borderRadius: 10,
+  },
+  qtyText: { fontSize: 11, fontWeight: '800', color: '#fff', letterSpacing: -0.3 },
 
   empty: { paddingVertical: 60, alignItems: 'center' },
   emptyText: { fontSize: 13, color: '#999' },

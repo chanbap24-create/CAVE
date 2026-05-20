@@ -3,6 +3,7 @@ import { View, ScrollView, StyleSheet, Pressable, Alert, RefreshControl, Activit
 import { useFocusEffect, useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { Body, BodyBold, Caption, Eyebrow, Label, H1 } from '@/components/Typography';
+import { Button } from '@/components/Button';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Card } from '@/components/Card';
 import { colors, spacing, borderRadius, fontSize, fontWeight } from '@/constants/theme';
@@ -79,13 +80,16 @@ export default function ProfileScreen() {
     if (!user?.id) return;
     const { data } = await supabase
       .from('collections')
-      .select('id, photo_url, source, wine:wines(name, image_url, category)')
+      .select('id, photo_url, source, quantity, wine:wines(name, image_url, category)')
       .eq('user_id', user.id)
-      .order('created_at', { ascending: false });
+      // updated_at desc — 최신 등록 / 수량 변경된 행이 위로 (트리거가 매 update 시 bump).
+      .order('updated_at', { ascending: false });
     const rows = (data ?? []) as any[];
     setCollections(rows as unknown as CellarGridItem[]);
-    setCollectionCount(rows.length);
-    setPurchaseCount(rows.filter(r => r.source === 'shop_purchase').length);
+    // 보유 수량 (quantity) 합산 — row 1 + quantity N 모델.
+    const sumQty = (arr: any[]) => arr.reduce((s, r) => s + (r.quantity ?? 1), 0);
+    setCollectionCount(sumQty(rows));
+    setPurchaseCount(sumQty(rows.filter(r => r.source === 'shop_purchase')));
   }, [user?.id]);
 
   const loadReviews = useCallback(async () => {
@@ -193,12 +197,8 @@ export default function ProfileScreen() {
         />
 
         <View style={styles.actionRow}>
-          <Pressable style={styles.actionBtn} onPress={() => setShowEdit(true)}>
-            <Body style={styles.actionBtnText}>프로필 편집</Body>
-          </Pressable>
-          <Pressable style={styles.actionBtn} onPress={() => Alert.alert('준비중', '셀러 공유 링크 곧 지원')}>
-            <Body style={styles.actionBtnText}>셀러 공유</Body>
-          </Pressable>
+          <Button label="프로필 편집" variant="secondary" size="md" fullWidth onPress={() => setShowEdit(true)} style={{ flex: 1 }} />
+          <Button label="셀러 공유" variant="secondary" size="md" fullWidth onPress={() => Alert.alert('준비중', '셀러 공유 링크 곧 지원')} style={{ flex: 1 }} />
         </View>
 
         {/* 다음 모임 — 평면 카드 (CaveHero 제거됨, stats 는 ProfileHeader 흡수) */}
@@ -426,13 +426,13 @@ const styles = StyleSheet.create({
     backgroundColor: colors.error,
   },
 
-  // ─── 매거진 표지 영역 ───
+  // ─── 매거진 표지 영역 — 피치 톤 ───
   coverWrap: {
     backgroundColor: colors.cream,
     paddingHorizontal: spacing.md,
     paddingBottom: spacing.md,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.borderStrong,
+    borderBottomLeftRadius: borderRadius.lg,
+    borderBottomRightRadius: borderRadius.lg,
   },
   coverHead: {
     flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
@@ -453,13 +453,6 @@ const styles = StyleSheet.create({
     flexDirection: 'row', gap: spacing.sm,
     paddingHorizontal: spacing.md, paddingTop: spacing.base, paddingBottom: spacing.base,
   },
-  actionBtn: {
-    flex: 1, paddingVertical: spacing.sm,
-    borderRadius: borderRadius.sm,
-    backgroundColor: colors.surfaceLight,
-    alignItems: 'center',
-  },
-  actionBtnText: { fontWeight: fontWeight.semibold as any },
 
   tabsRow: {
     flexDirection: 'row',
@@ -470,7 +463,7 @@ const styles = StyleSheet.create({
     flex: 1, paddingVertical: spacing.base, alignItems: 'center',
     borderBottomWidth: 2, borderBottomColor: 'transparent',
   },
-  tabBtnActive: { borderBottomColor: colors.text },
+  tabBtnActive: { borderBottomColor: colors.primary, borderBottomWidth: 3 },
   tabTextActive: { fontWeight: fontWeight.bold as any },
 
   empty: { paddingVertical: spacing.xxl, alignItems: 'center', gap: spacing.sm },
@@ -492,11 +485,12 @@ const styles = StyleSheet.create({
   gatheringGroupHeader: { marginBottom: spacing.sm },
   gatheringCard: {
     flexDirection: 'row',
-    backgroundColor: colors.background,
-    borderRadius: borderRadius.md,
-    borderWidth: 1, borderColor: colors.border,
+    backgroundColor: colors.surface,
+    borderRadius: borderRadius.lg,
     marginBottom: spacing.base,
     overflow: 'hidden',
+    shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.06, shadowRadius: 16,
+    elevation: 3,
   },
   gatheringCardPast: { opacity: 0.7 },
   dayBadge: {

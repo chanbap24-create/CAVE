@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useRef } from 'react';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/lib/auth';
 
@@ -15,14 +15,22 @@ export interface Notification {
   actor?: { username: string; display_name: string | null };
 }
 
+// 30초 디바운스 — focus 마다 매번 fetch 던 게 누적 346K seq_scan / 21s 였음.
+// 캐시 무효화는 markAllRead 시점 + force 인자.
+const CACHE_MS = 30_000;
+
 export function useNotifications() {
   const { user } = useAuth();
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [unreadCount, setUnreadCount] = useState(0);
   const [loading, setLoading] = useState(false);
+  const lastFullLoadRef = useRef(0);
+  const lastCountLoadRef = useRef(0);
 
-  const loadNotifications = useCallback(async () => {
+  const loadNotifications = useCallback(async (force = false) => {
     if (!user) return;
+    if (!force && Date.now() - lastFullLoadRef.current < CACHE_MS) return;
+    lastFullLoadRef.current = Date.now();
     setLoading(true);
 
     const { data } = await supabase
@@ -34,7 +42,6 @@ export function useNotifications() {
 
     if (!data) { setLoading(false); return; }
 
-    // Get actor profiles
     const actorIds = [...new Set(data.map(n => n.actor_id).filter(Boolean))];
     let actorMap = new Map();
     if (actorIds.length > 0) {
@@ -55,8 +62,10 @@ export function useNotifications() {
     setLoading(false);
   }, [user]);
 
-  const loadUnreadCount = useCallback(async () => {
+  const loadUnreadCount = useCallback(async (force = false) => {
     if (!user) return;
+    if (!force && Date.now() - lastCountLoadRef.current < CACHE_MS) return;
+    lastCountLoadRef.current = Date.now();
     const { count } = await supabase
       .from('notifications')
       .select('*', { count: 'exact', head: true })
@@ -74,6 +83,9 @@ export function useNotifications() {
       .eq('is_read', false);
     setUnreadCount(0);
     setNotifications(prev => prev.map(n => ({ ...n, is_read: true })));
+    // 캐시 무효화 — 다음 focus 시 fresh fetch
+    lastFullLoadRef.current = 0;
+    lastCountLoadRef.current = 0;
   }, [user]);
 
   return { notifications, unreadCount, loading, loadNotifications, loadUnreadCount, markAllRead };

@@ -59,12 +59,12 @@ export default function UserProfileScreen() {
     const { data } = await supabase
       .from('collections')
       .select(`
-        id, photo_url, created_at, user_id,
+        id, photo_url, created_at, updated_at, user_id, quantity,
         wine:wines(id, name, producer, category, region, country, vintage_year, image_url)
       `)
       .eq('user_id', id)
       .eq('is_public', true)
-      .order('created_at', { ascending: false })
+      .order('updated_at', { ascending: false })
       .limit(20);
     if (data) setCollections(data);
   }

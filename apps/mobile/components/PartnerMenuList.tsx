@@ -1,21 +1,23 @@
 import React from 'react';
-import { View, Text, Pressable, Switch, Alert, StyleSheet } from 'react-native';
-import { Image } from 'expo-image';
+import { View, Pressable, Switch, Alert, StyleSheet } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
+import { CardImage } from '@/components/CardImage';
+import { BodyBold, Body, Caption } from '@/components/Typography';
+import { colors, spacing, borderRadius, fontFamily } from '@/constants/theme';
 import type { PartnerMenuItem } from '@/lib/hooks/usePartnerWineMenu';
 
 interface Props {
   items: PartnerMenuItem[];
   onToggleAvailable: (id: number, next: boolean) => void;
   onRemove: (id: number) => void;
+  onEdit?: (id: number) => void;
 }
 
 /**
  * 파트너 본인 판매 메뉴 리스트 — owner view.
- * 가격 + available 토글 + long-press 삭제.
- *
- * 가격 수정은 v2 (현재는 삭제 후 재등록).
+ * 가격 / 정가 / 코멘트 / 재고 / available toggle. Long-press 삭제.
  */
-export function PartnerMenuList({ items, onToggleAvailable, onRemove }: Props) {
+export function PartnerMenuList({ items, onToggleAvailable, onRemove, onEdit }: Props) {
   function confirmRemove(item: PartnerMenuItem) {
     Alert.alert(
       '메뉴에서 제거',
@@ -30,63 +32,104 @@ export function PartnerMenuList({ items, onToggleAvailable, onRemove }: Props) {
   if (items.length === 0) {
     return (
       <View style={styles.empty}>
-        <Text style={styles.emptyTitle}>등록된 판매 와인이 없어요</Text>
-        <Text style={styles.emptyHint}>
-          우상단 + 버튼으로 와인을 검색해 가격과 함께 등록하세요.
-        </Text>
+        <BodyBold>등록된 판매 와인이 없어요</BodyBold>
+        <Caption tone="muted" style={styles.emptyHint}>
+          우상단 + 버튼으로 와인을 검색해 등록하세요.
+        </Caption>
       </View>
     );
   }
 
   return (
     <View>
-      {items.map(item => (
-        <Pressable
-          key={item.id}
-          style={styles.row}
-          onLongPress={() => confirmRemove(item)}
-        >
-          {item.wine?.image_url ? (
-            <Image source={item.wine.image_url} style={styles.thumb} contentFit="cover" cachePolicy="memory-disk" />
-          ) : (
-            <View style={[styles.thumb, styles.thumbPlaceholder]} />
-          )}
-          <View style={styles.info}>
-            <Text style={styles.name} numberOfLines={1}>{item.wine?.name ?? '와인'}</Text>
-            {item.wine?.producer && (
-              <Text style={styles.producer} numberOfLines={1}>{item.wine.producer}</Text>
+      {items.map(item => {
+        const photo = item.photo_url || item.wine?.image_url;
+        const discountPct = item.original_price && item.original_price > item.price
+          ? Math.round(((item.original_price - item.price) / item.original_price) * 100)
+          : null;
+        const vintage = item.vintage_year ?? item.wine?.vintage_year;
+        return (
+          <Pressable
+            key={item.id}
+            style={styles.row}
+            onLongPress={() => confirmRemove(item)}
+          >
+            {photo ? (
+              <CardImage source={photo} style={styles.thumb} contentFit="contain" />
+            ) : (
+              <View style={[styles.thumb, styles.thumbPlaceholder]} />
             )}
-            <Text style={styles.price}>
-              {item.price.toLocaleString('ko-KR')}원
-            </Text>
-          </View>
-          <Switch
-            value={item.available}
-            onValueChange={(v) => onToggleAvailable(item.id, v)}
-            trackColor={{ true: '#7b2d4e', false: '#ddd' }}
-          />
-        </Pressable>
-      ))}
-      <Text style={styles.footer}>길게 눌러 삭제</Text>
+            <View style={styles.info}>
+              <BodyBold numberOfLines={1}>
+                {item.wine?.name ?? '와인'}
+                {vintage ? ` · ${vintage}` : ''}
+              </BodyBold>
+              {item.wine?.producer && (
+                <Caption tone="muted" numberOfLines={1} style={{ marginTop: 2 }}>{item.wine.producer}</Caption>
+              )}
+              {item.note ? (
+                <Caption tone="primary" numberOfLines={1} style={styles.note}>{item.note}</Caption>
+              ) : null}
+              <View style={styles.priceRow}>
+                {discountPct != null ? (
+                  <>
+                    <Body style={styles.discount}>{discountPct}%</Body>
+                    <Body style={styles.price}>{item.price.toLocaleString('ko-KR')}원</Body>
+                    <Caption tone="muted" style={styles.originalPrice}>{item.original_price?.toLocaleString('ko-KR')}원</Caption>
+                  </>
+                ) : (
+                  <Body style={styles.price}>{item.price.toLocaleString('ko-KR')}원</Body>
+                )}
+                {item.stock != null ? (
+                  <Caption tone="muted" style={styles.stock}>· 재고 {item.stock}</Caption>
+                ) : null}
+              </View>
+            </View>
+            <View style={styles.actions}>
+              {onEdit ? (
+                <Pressable onPress={() => onEdit(item.id)} hitSlop={8} style={styles.editBtn}>
+                  <Ionicons name="pencil-outline" size={18} color={colors.textSecondary} />
+                </Pressable>
+              ) : null}
+              <Switch
+                value={item.available}
+                onValueChange={(v) => onToggleAvailable(item.id, v)}
+                trackColor={{ true: colors.primary, false: '#ddd' }}
+              />
+            </View>
+          </Pressable>
+        );
+      })}
+      <Caption tone="muted" style={styles.footer}>편집 ✏️  /  길게 눌러 삭제</Caption>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
   row: {
-    flexDirection: 'row', alignItems: 'center', gap: 12,
-    paddingHorizontal: 20, paddingVertical: 12,
-    borderBottomWidth: 1, borderBottomColor: '#f5f5f5',
+    flexDirection: 'row', alignItems: 'center', gap: spacing.base,
+    paddingHorizontal: spacing.md, paddingVertical: spacing.base,
+    borderBottomWidth: 1, borderBottomColor: colors.border,
   },
-  thumb: { width: 44, height: 44, borderRadius: 6, backgroundColor: '#f0eaec' },
+  thumb: {
+    width: 56, height: 56, borderRadius: borderRadius.sm,
+    backgroundColor: colors.surfaceLight,
+  },
   thumbPlaceholder: {},
-  info: { flex: 1 },
-  name: { fontSize: 14, fontWeight: '600', color: '#222' },
-  producer: { fontSize: 11, color: '#999', marginTop: 2 },
-  price: { fontSize: 13, fontWeight: '700', color: '#7b2d4e', marginTop: 4 },
-  footer: { fontSize: 11, color: '#bbb', textAlign: 'center', paddingVertical: 12 },
+  info: { flex: 1, gap: spacing.xs },
+  note: { fontFamily: fontFamily.medium, marginTop: 2 },
 
-  empty: { paddingHorizontal: 24, paddingVertical: 40, alignItems: 'center' },
-  emptyTitle: { fontSize: 14, fontWeight: '600', color: '#444' },
-  emptyHint: { fontSize: 12, color: '#999', marginTop: 6, textAlign: 'center', lineHeight: 18 },
+  actions: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
+  editBtn: { padding: spacing.xs },
+
+  priceRow: { flexDirection: 'row', alignItems: 'baseline', gap: 6, marginTop: spacing.xs, flexWrap: 'wrap' },
+  discount: { color: colors.primary, fontFamily: fontFamily.extrabold, fontSize: 15 },
+  price: { color: colors.text, fontFamily: fontFamily.bold, fontSize: 15 },
+  originalPrice: { textDecorationLine: 'line-through' },
+  stock: {},
+
+  footer: { textAlign: 'center', paddingVertical: spacing.base },
+
+  empty: { paddingHorizontal: spacing.lg, paddingVertical: spacing.xl, alignItems: 'center', gap: spacing.sm },
+  emptyHint: { textAlign: 'center', lineHeight: 18 },
 });

@@ -59,30 +59,32 @@ export function LabelReviewForm({ value, onChange }: Props) {
     onChange({ ...value, [key]: v });
   }
 
+  const qty = parseQuantity(value.quantity);
+
   return (
     <View>
-      <Field label="Name" required>
+      <Field label="와인 이름" required>
         <TextInput
           style={styles.input}
           value={value.name}
           onChangeText={t => set('name', t)}
-          placeholder="e.g. Château Margaux"
+          placeholder="예: Château Margaux"
           placeholderTextColor="#ccc"
         />
       </Field>
 
-      <Field label="Producer">
+      <Field label="생산자">
         <TextInput
           style={styles.input}
           value={value.producer}
           onChangeText={t => set('producer', t)}
-          placeholder="Winery / Distillery"
+          placeholder="와이너리 / 증류소"
           placeholderTextColor="#ccc"
         />
       </Field>
 
       <View style={styles.row}>
-        <Field label="Region" style={{ flex: 1 }}>
+        <Field label="지역" style={{ flex: 1 }}>
           <TextInput
             style={styles.input}
             value={value.region}
@@ -91,7 +93,7 @@ export function LabelReviewForm({ value, onChange }: Props) {
             placeholderTextColor="#ccc"
           />
         </Field>
-        <Field label="Country" style={{ flex: 1 }}>
+        <Field label="국가" style={{ flex: 1 }}>
           <TextInput
             style={styles.input}
             value={value.country}
@@ -102,9 +104,9 @@ export function LabelReviewForm({ value, onChange }: Props) {
         </Field>
       </View>
 
-      <Field label="Vintage">
+      <Field label="빈티지">
         <View style={styles.vintageRow}>
-          <VintageTab label="Year" active={value.vintageType === 'year'} onPress={() => set('vintageType', 'year')} />
+          <VintageTab label="연도" active={value.vintageType === 'year'} onPress={() => set('vintageType', 'year')} />
           <VintageTab label="NV" active={value.vintageType === 'nv'} onPress={() => { set('vintageType', 'nv'); set('vintage', ''); }} />
           <VintageTab label="MV" active={value.vintageType === 'mv'} onPress={() => { set('vintageType', 'mv'); set('vintage', ''); }} />
         </View>
@@ -121,7 +123,7 @@ export function LabelReviewForm({ value, onChange }: Props) {
         )}
       </Field>
 
-      <Field label="Category">
+      <Field label="카테고리">
         <CategoryPicker
           categories={categories}
           selected={value.category}
@@ -129,16 +131,33 @@ export function LabelReviewForm({ value, onChange }: Props) {
         />
       </Field>
 
-      <Field label="Bottles">
-        <TextInput
-          style={styles.input}
-          value={value.quantity}
-          onChangeText={t => set('quantity', t.replace(/[^0-9]/g, '').slice(0, 2))}
-          placeholder="1"
-          placeholderTextColor="#ccc"
-          keyboardType="number-pad"
-          maxLength={2}
-        />
+      <Field label="수량 (병)">
+        <View style={styles.qtyRow}>
+          <Pressable
+            style={styles.qtyBtn}
+            onPress={() => set('quantity', String(Math.max(1, qty - 1)))}
+            hitSlop={6}
+          >
+            <Text style={styles.qtyBtnText}>−</Text>
+          </Pressable>
+          <TextInput
+            style={styles.qtyInput}
+            value={value.quantity}
+            onChangeText={t => set('quantity', t.replace(/[^0-9]/g, '').slice(0, 2))}
+            placeholder="1"
+            placeholderTextColor="#ccc"
+            keyboardType="number-pad"
+            maxLength={2}
+            textAlign="center"
+          />
+          <Pressable
+            style={styles.qtyBtn}
+            onPress={() => set('quantity', String(Math.min(99, qty + 1)))}
+            hitSlop={6}
+          >
+            <Text style={styles.qtyBtnText}>+</Text>
+          </Pressable>
+        </View>
       </Field>
     </View>
   );
@@ -197,4 +216,19 @@ const styles = StyleSheet.create({
   vintageTabActive: { backgroundColor: '#f7f0f3', borderColor: '#7b2d4e' },
   vintageTabText: { fontSize: 13, fontWeight: '500', color: '#999' },
   vintageTabTextActive: { color: '#7b2d4e', fontWeight: '700' },
+
+  // 수량 ± 버튼 (order/new 와 톤 통일)
+  qtyRow: { flexDirection: 'row', alignItems: 'center', gap: 12 },
+  qtyBtn: {
+    width: 40, height: 40, borderRadius: 8,
+    borderWidth: 1, borderColor: '#eee',
+    alignItems: 'center', justifyContent: 'center',
+    backgroundColor: '#fafafa',
+  },
+  qtyBtnText: { fontSize: 20, fontWeight: '600', color: '#222' },
+  qtyInput: {
+    flex: 1, borderWidth: 1, borderColor: '#eee', borderRadius: 10,
+    paddingVertical: 10, fontSize: 18, fontWeight: '700',
+    backgroundColor: '#fafafa', color: '#222',
+  },
 });

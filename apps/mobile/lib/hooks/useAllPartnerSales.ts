@@ -5,6 +5,11 @@ export interface PartnerSale {
   id: number;
   wine_id: number;
   price: number;
+  original_price: number | null;
+  note: string | null;
+  stock: number | null;
+  vintage_year: number | null;  // override
+  photo_url: string | null;     // override
   created_at: string;
   wine: {
     id: number;
@@ -41,7 +46,7 @@ export function useAllPartnerSales() {
       const { data, error } = await supabase
         .from('partner_wine_menu')
         .select(`
-          id, wine_id, price, created_at,
+          id, wine_id, price, original_price, note, stock, vintage_year, photo_url, created_at,
           wine:wines(id, name, name_ko, producer, region, country, vintage_year, image_url),
           partner:profiles!partner_wine_menu_partner_id_fkey(id, username, display_name, avatar_url, partner_label)
         `)

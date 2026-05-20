@@ -11,6 +11,7 @@ import { BadgeList } from '@/components/BadgeList';
 import { EditPartnerProfileSheet } from '@/components/EditPartnerProfileSheet';
 import { CardTemplateDefaultSheet } from '@/components/CardTemplateDefaultSheet';
 import { Body, Caption, Eyebrow } from '@/components/Typography';
+import { Button } from '@/components/Button';
 import { colors, spacing, borderRadius } from '@/constants/theme';
 
 /**
@@ -52,6 +53,12 @@ export default function SettingsScreen() {
         </View>
 
         <MenuRow
+          icon="receipt-outline"
+          label="내 주문"
+          onPress={() => router.push('/order/list' as any)}
+        />
+
+        <MenuRow
           icon="color-palette-outline"
           label="내 카드 디자인"
           onPress={() => setShowCardTemplate(true)}
@@ -79,9 +86,9 @@ export default function SettingsScreen() {
 
         <View style={styles.divider} />
 
-        <Pressable style={styles.signOutBtn} onPress={confirmSignOut}>
-          <Caption tone="warmMuted">로그아웃</Caption>
-        </Pressable>
+        <View style={{ paddingHorizontal: spacing.md, paddingTop: spacing.lg }}>
+          <Button label="로그아웃" variant="ghost" size="md" onPress={confirmSignOut} fullWidth />
+        </View>
       </ScrollView>
 
       <EditPartnerProfileSheet
@@ -119,7 +126,7 @@ function MenuRow({
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: colors.cream },
+  container: { flex: 1, backgroundColor: colors.background },
 
   // ─── Cover ───
   cover: { paddingHorizontal: spacing.md, paddingBottom: spacing.lg },

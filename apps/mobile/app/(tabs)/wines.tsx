@@ -10,11 +10,11 @@ import { useIsPartner } from '@/lib/hooks/useIsPartner';
 import { usePartnerWineMenu } from '@/lib/hooks/usePartnerWineMenu';
 import { useAllPartnerSales, type PartnerSale } from '@/lib/hooks/useAllPartnerSales';
 import { PartnerMenuList } from '@/components/PartnerMenuList';
-import { AddPartnerWineSheet } from '@/components/AddPartnerWineSheet';
 import { TrendingDrinks } from '@/components/TrendingDrinks';
 import { BodyBold, Body, Caption, Eyebrow } from '@/components/Typography';
+import { Button } from '@/components/Button';
 import { useReadyWithImages } from '@/lib/hooks/useReadyWithImages';
-import { colors, spacing, borderRadius, fontSize } from '@/constants/theme';
+import { colors, spacing, borderRadius, fontSize, fontFamily } from '@/constants/theme';
 
 type Mode = 'browse' | 'menu';
 
@@ -99,10 +99,12 @@ function BrowseMode({ router }: { router: ReturnType<typeof useRouter> }) {
         />
       ) : (
         <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: spacing.xxl }}>
+          {/* sales 카드 tap = 카탈로그 (와인 자세한 정보 + 셀러 리스트 + 구매 버튼).
+              구매는 카탈로그의 sellers 행 옆 "구매" 버튼 또는 하단 CTA 로. */}
           <SalesList
             sales={sales}
             loading={salesLoading}
-            onTap={(wineId) => router.push(`/catalog/${wineId}?from=wines` as any)}
+            onTap={(wineId) => router.push({ pathname: '/catalog/[wineId]', params: { wineId: String(wineId), from: 'wines' } } as any)}
           />
           <View style={styles.trendingWrap}>
             <View style={styles.trendingHeader}>
@@ -167,6 +169,7 @@ function SalesList({
 }: {
   sales: PartnerSale[];
   loading: boolean;
+  /** 와인 ID — 카탈로그 진입용 */
   onTap: (wineId: number) => void;
 }) {
   // 이미지 prefetch 가 끝날 때까지 spinner — 데이터 + 이미지 한꺼번에 reveal.
@@ -206,37 +209,49 @@ function SalesList({
       >
         {sales.map(item => {
           const partnerLabel = item.partner?.partner_label || item.partner?.display_name || item.partner?.username || '파트너';
-          const region = [item.wine?.region, item.wine?.vintage_year].filter(Boolean).join(' · ');
+          const vintage = item.vintage_year ?? item.wine?.vintage_year;
+          const region = [item.wine?.region, vintage].filter(Boolean).join(' · ');
+          const photo = item.photo_url || item.wine?.image_url;
+          const discountPct = item.original_price && item.original_price > item.price
+            ? Math.round(((item.original_price - item.price) / item.original_price) * 100)
+            : null;
           return (
             <Pressable
               key={item.id}
               style={[styles.saleCard, { width: SALES_CARD_W }]}
               onPress={() => onTap(item.wine_id)}
             >
-              {/* 이미지 영역 — 정사각, 옅은 회색 bg, contain (병이 카드 안에 떠있게) */}
               <View style={[styles.saleImgWrap, { width: SALES_CARD_W, height: SALES_CARD_W }]}>
-                {item.wine?.image_url ? (
-                  <CardImage
-                    source={item.wine.image_url}
-                    style={styles.saleImg}
-                    contentFit="contain"
-                  />
+                {photo ? (
+                  <CardImage source={photo} style={styles.saleImg} contentFit="contain" />
                 ) : (
                   <View style={styles.saleImgEmpty} />
                 )}
               </View>
 
-              {/* 본문 — 파트너 칩 + 와인명 + 가격 + 지역 */}
               <View style={styles.saleBody}>
                 <View style={styles.partnerChip}>
                   <Caption tone="primary" style={styles.partnerChipText}>{partnerLabel}</Caption>
                 </View>
+                {item.note ? (
+                  <Caption tone="muted" style={styles.saleNote} numberOfLines={1}>{item.note}</Caption>
+                ) : null}
                 <BodyBold tone="warm" numberOfLines={2} style={styles.saleName}>
                   {item.wine?.name ?? '와인'}
                 </BodyBold>
-                <Text style={styles.salePrice}>
-                  {item.price.toLocaleString('ko-KR')}<Text style={styles.salePriceUnit}>원</Text>
-                </Text>
+                <View style={styles.salePriceRow}>
+                  {discountPct != null ? (
+                    <Text style={styles.discount}>{discountPct}%</Text>
+                  ) : null}
+                  <Text style={styles.salePrice}>
+                    {item.price.toLocaleString('ko-KR')}<Text style={styles.salePriceUnit}>원</Text>
+                  </Text>
+                </View>
+                {item.original_price && discountPct != null ? (
+                  <Caption tone="muted" style={styles.originalPrice}>
+                    {item.original_price.toLocaleString('ko-KR')}원
+                  </Caption>
+                ) : null}
                 {region ? <Caption tone="muted" style={styles.saleMeta}>{region}</Caption> : null}
               </View>
             </Pressable>
@@ -258,23 +273,20 @@ function AddPartnerMenuButton() {
   return <View />;
 }
 
-/** 파트너 메뉴 모드 — 본인 판매 와인 + 등록 시트. */
+/** 파트너 메뉴 모드 — 본인 판매 와인. 등록은 /partner/wine/new 페이지로 push. */
 function PartnerMenuMode() {
-  const { items, loading, refresh, add, update, remove } = usePartnerWineMenu();
-  const [sheetOpen, setSheetOpen] = useState(false);
+  const router = useRouter();
+  const { items, loading, update, remove } = usePartnerWineMenu();
 
   return (
     <View style={{ flex: 1 }}>
       <View style={styles.menuHeader}>
-        <Body tone="warmMuted" style={styles.menuCount}>
-          판매 와인 {items.length}개
-        </Body>
-        <Pressable
-          style={styles.addBtn}
-          onPress={() => setSheetOpen(true)}
-        >
-          <Caption tone="inverse" style={styles.addBtnText}>＋ 와인 등록</Caption>
+        <Pressable onPress={() => router.push('/partner/orders' as any)} hitSlop={6}>
+          <Caption tone="primary" style={styles.menuLink}>받은 주문 →</Caption>
         </Pressable>
+        <View style={{ flex: 1 }} />
+        <Body tone="warmMuted" style={styles.menuCount}>{items.length}개</Body>
+        <Button label="＋ 등록" variant="primary" size="sm" onPress={() => router.push('/partner/wine/new' as any)} />
       </View>
 
       {loading && items.length === 0 ? (
@@ -288,6 +300,7 @@ function PartnerMenuMode() {
               items={[item]}
               onToggleAvailable={(id, next) => update(id, { available: next })}
               onRemove={remove}
+              onEdit={(id) => router.push({ pathname: '/partner/wine/new', params: { editId: String(id) } } as any)}
             />
           )}
           ListEmptyComponent={
@@ -295,13 +308,6 @@ function PartnerMenuMode() {
           }
         />
       )}
-
-      <AddPartnerWineSheet
-        visible={sheetOpen}
-        onClose={() => setSheetOpen(false)}
-        onAdded={refresh}
-        add={add}
-      />
     </View>
   );
 }
@@ -353,21 +359,26 @@ const styles = StyleSheet.create({
   },
   rowChevron: { fontSize: 18, marginLeft: spacing.sm },
 
-  // ─── 판매 중 — 데일리샷 톤 카드 ───
+  // ─── 판매 중 — 파파이스 톤 (강한 그림자 + 큰 사진 + 노란 액센트) ───
   salesHeader: {
     flexDirection: 'row', alignItems: 'flex-end',
     paddingHorizontal: spacing.md, paddingTop: spacing.lg, paddingBottom: spacing.base,
   },
-  salesTitle: { fontSize: 18, letterSpacing: -0.3 },
+  salesTitle: { fontSize: 20, letterSpacing: -0.4, fontFamily: fontFamily.extrabold },
   salesSub: { marginTop: 2 },
-  salesScroll: { paddingLeft: SALES_PADDING, paddingRight: SALES_PADDING },
+  salesScroll: { paddingLeft: SALES_PADDING, paddingRight: SALES_PADDING, paddingVertical: spacing.sm },
 
   saleCard: {
     marginRight: SALES_GAP,
+    backgroundColor: colors.surface,
+    borderRadius: borderRadius.lg,
+    padding: spacing.sm,
+    // 파파이스식 두툼한 그림자
+    shadowColor: '#000', shadowOffset: { width: 0, height: 6 }, shadowOpacity: 0.10, shadowRadius: 16,
+    elevation: 5,
   },
-  // 이미지 영역 — 정사각 cream 배경 + 라운드, 병이 안에 떠있는 느낌 (contain).
   saleImgWrap: {
-    backgroundColor: '#f4f2ed',
+    backgroundColor: colors.surfaceLight,
     borderRadius: borderRadius.md,
     padding: spacing.base,
     alignItems: 'center', justifyContent: 'center',
@@ -376,17 +387,21 @@ const styles = StyleSheet.create({
   saleImg: { width: '100%', height: '100%' },
   saleImgEmpty: { flex: 1 },
 
-  // 본문
-  saleBody: { paddingTop: spacing.sm, gap: spacing.xs },
+  saleBody: { paddingTop: spacing.sm, paddingHorizontal: spacing.xs, gap: spacing.xs, paddingBottom: spacing.xs },
   partnerChip: {
     alignSelf: 'flex-start',
-    paddingHorizontal: 6, paddingVertical: 2,
-    borderRadius: borderRadius.xs,
+    paddingHorizontal: 8, paddingVertical: 3,
+    borderRadius: borderRadius.full,
+    backgroundColor: colors.gold,
   },
-  partnerChipText: { fontWeight: '600' },
-  saleName: { fontSize: 13, lineHeight: 17, marginTop: 2 },
-  salePrice: { fontSize: 18, fontWeight: '800', color: colors.text, letterSpacing: -0.3, marginTop: 4 },
-  salePriceUnit: { fontSize: 13, fontWeight: '600' },
+  partnerChipText: { color: colors.text, fontWeight: '700' },
+  saleNote: { fontStyle: 'italic', marginTop: 2 },
+  saleName: { fontSize: 14, lineHeight: 18, marginTop: 4, fontFamily: fontFamily.bold },
+  salePriceRow: { flexDirection: 'row', alignItems: 'baseline', gap: 6, marginTop: 6 },
+  discount: { fontSize: 20, fontWeight: '900', color: colors.primary, letterSpacing: -0.4 },
+  salePrice: { fontSize: 18, fontWeight: '900', color: colors.text, letterSpacing: -0.3 },
+  salePriceUnit: { fontSize: 12, fontWeight: '700' },
+  originalPrice: { textDecorationLine: 'line-through' },
   saleMeta: { marginTop: 2 },
 
   // ─── 트렌딩 주류 섹션 ───
@@ -398,10 +413,11 @@ const styles = StyleSheet.create({
   trendingSub: { marginTop: 2 },
 
   menuHeader: {
-    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
+    flexDirection: 'row', alignItems: 'center', gap: spacing.sm,
     paddingHorizontal: spacing.md, paddingVertical: spacing.base,
     borderBottomWidth: 1, borderBottomColor: colors.borderStrong,
   },
+  menuLink: { fontFamily: fontFamily.semibold },
   menuCount: {},
   addBtn: {
     paddingHorizontal: spacing.base, paddingVertical: spacing.sm, borderRadius: borderRadius.sm,

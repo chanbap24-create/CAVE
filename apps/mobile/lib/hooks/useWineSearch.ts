@@ -6,10 +6,13 @@ export interface WineSearchResult {
   id: number;
   name: string;
   name_ko: string | null;
+  producer: string | null;
   category: string;
   country: string | null;
   region: string | null;
+  vintage_year: number | null;
   alcohol_pct: number | null;
+  image_url: string | null;
 }
 
 export function useWineSearch() {
